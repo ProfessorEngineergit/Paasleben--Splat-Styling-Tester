@@ -11,6 +11,12 @@ npm run dev
 
 Danach im Browser die angezeigte lokale URL öffnen.
 
+## Deployment (GitHub Pages via Actions)
+
+- Workflow: `.github/workflows/deploy.yml`
+- Build & Deployment laufen automatisch bei Push auf den Default-Branch (oder manuell via `workflow_dispatch`).
+- In GitHub unter **Settings → Pages → Build and deployment** die Quelle auf **GitHub Actions** stellen.
+
 ## Splat-Datei austauschen
 
 Standardpfad:
