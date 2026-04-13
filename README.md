@@ -11,6 +11,14 @@ npm run dev
 
 Danach im Browser die angezeigte lokale URL öffnen.
 
+## Deployment (GitHub Pages)
+
+Das Projekt wird per GitHub Actions auf **GitHub Pages** deployed:
+
+- Workflow: `.github/workflows/deploy.yml`
+- Trigger: Push auf `main` (oder manuell via `workflow_dispatch`)
+- Build nutzt automatisch `BASE_PATH=/<repo-name>/` für korrekte Asset-Pfade auf Pages
+
 ## Splat-Datei austauschen
 
 Standardpfad:
