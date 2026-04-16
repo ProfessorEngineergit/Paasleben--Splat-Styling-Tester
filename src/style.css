@@ -1,7 +1,7 @@
 :root {
-  color-scheme: light;
+  color-scheme: dark;
   font-family: Inter, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: #ece8df;
+  background: #111111;
 }
 
 * {
@@ -18,19 +18,20 @@ body,
 
 body {
   overflow: hidden;
-  background: #ece8df;
-  color: #121212;
+  background: #111111;
+  color: #f3f3f3;
 }
 
 .app-shell {
   width: 100%;
   height: 100%;
+  position: relative;
 }
 
-#viewport {
+#viewport,
+#status {
   width: 100%;
   height: 100%;
-  position: relative;
 }
 
 canvas {
@@ -39,112 +40,13 @@ canvas {
   height: 100%;
 }
 
-.lil-gui {
-  --width: 320px;
-  z-index: 12;
-  margin: 12px;
-  max-height: calc(100vh - 24px);
-  overflow: auto;
-  opacity: 0.95;
-}
-
-.intro-overlay {
-  position: fixed;
+#status {
+  position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  pointer-events: auto;
-  background: linear-gradient(180deg, rgba(12, 12, 12, 0.45), rgba(12, 12, 12, 0.2));
-  z-index: 20;
-  transition: opacity 0.35s ease;
-}
-
-.intro-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.intro-card {
-  width: min(420px, 92vw);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  background: rgba(8, 8, 8, 0.58);
-  color: #f4f4f4;
-  padding: 1.2rem;
-  border-radius: 14px;
-  backdrop-filter: blur(8px);
-}
-
-.intro-card h1 {
-  margin: 0 0 0.7rem;
-  font-weight: 600;
-  font-size: 1.28rem;
+  font-size: 1rem;
   letter-spacing: 0.01em;
-}
-
-.intro-card p {
-  margin: 0 0 0.9rem;
-  font-size: 0.95rem;
-  opacity: 0.9;
-}
-
-.intro-card button {
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
-  border-radius: 999px;
-  padding: 0.45rem 0.95rem;
-  cursor: pointer;
-}
-
-.loading-overlay {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(12, 12, 12, 0.35);
-  z-index: 30;
-  transition: opacity 0.24s ease;
-}
-
-.loading-overlay.hidden {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.loading-card {
-  width: min(420px, 90vw);
-  padding: 1rem 1.1rem;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  background: rgba(8, 8, 8, 0.7);
-  color: #f5f5f5;
-}
-
-.loading-text {
-  margin-bottom: 0.55rem;
-  font-size: 0.92rem;
-  opacity: 0.9;
-}
-
-.loading-track {
-  width: 100%;
-  height: 12px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.loading-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #d8d8d8, #ffffff);
-  transition: width 0.15s ease;
-}
-
-.loading-percent {
-  margin-top: 0.5rem;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.92rem;
-  text-align: right;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2;
 }
