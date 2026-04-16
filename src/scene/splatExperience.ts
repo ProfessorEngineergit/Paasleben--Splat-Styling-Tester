@@ -25,6 +25,8 @@ import { computeSceneBounds, type SceneBounds } from './bounds';
 import { AtmosphereLayers } from './atmosphereLayers';
 import { PostProcessor } from '../render/postProcessor';
 
+const SIGN_FALLBACK_PREFIX = 'Bereich';
+
 export class SplatExperience {
   readonly renderer: WebGLRenderer;
   readonly scene: Scene;
@@ -193,7 +195,7 @@ export class SplatExperience {
     const parentName = this.normalizeSignLabel(mesh.parent?.name);
     if (parentName) return parentName;
     this.generatedSignCount += 1;
-    return `Bereich ${this.generatedSignCount}`;
+    return `${SIGN_FALLBACK_PREFIX} ${this.generatedSignCount}`;
   }
 
   private normalizeSignLabel(source: string | undefined): string {
@@ -205,9 +207,7 @@ export class SplatExperience {
 
   private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {
     const base = import.meta.env.BASE_URL;
-    const localPaaslebenGlb = new URL('../../Paasleben.glb', import.meta.url).href;
     const candidates = [
-      localPaaslebenGlb,
       `${base}Paasleben.glb`,
       `${base}paasleben.glb`,
       `${base}Quader.glb`,
