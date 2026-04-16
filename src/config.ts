@@ -1,1 +1,1 @@
-export const SCENE_SPLAT_PATH = '/scene.splat';
+export const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.splat`;
