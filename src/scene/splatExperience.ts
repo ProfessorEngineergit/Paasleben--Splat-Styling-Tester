@@ -7,6 +7,7 @@ import {
   Color,
   DirectionalLight,
   Group,
+  HemisphereLight,
   Material,
   Mesh,
   MeshBasicMaterial,
@@ -24,6 +25,8 @@ import { computeSceneBounds, type SceneBounds } from './bounds';
 import { AtmosphereLayers } from './atmosphereLayers';
 import { PostProcessor } from '../render/postProcessor';
 
+const SIGN_FALLBACK_PREFIX = 'Bereich';
+
 export class SplatExperience {
   readonly renderer: WebGLRenderer;
   readonly scene: Scene;
@@ -39,6 +42,7 @@ export class SplatExperience {
   private quaderRoot: Group | null = null;
   private readonly quaderSigns = new Group();
   private quaderLoadVersion = 0;
+  private generatedSignCount = 0;
   private bounds: SceneBounds | null = null;
   private frameHandle = 0;
 
@@ -47,10 +51,15 @@ export class SplatExperience {
 
     this.scene = new Scene();
     this.scene.background = new Color('#ece8df');
-    this.scene.add(new AmbientLight('#ffffff', 1.15));
-    const keyLight = new DirectionalLight('#ffffff', 1.1);
+    this.scene.add(new AmbientLight('#ffffff', 1.45));
+    const skyFill = new HemisphereLight('#f4f8ff', '#c7c0b3', 0.75);
+    this.scene.add(skyFill);
+    const keyLight = new DirectionalLight('#ffffff', 1.35);
     keyLight.position.set(5, 9, 6);
     this.scene.add(keyLight);
+    const rimLight = new DirectionalLight('#dbe6ff', 0.75);
+    rimLight.position.set(-6, 4, -5);
+    this.scene.add(rimLight);
 
     this.camera = new PerspectiveCamera(52, 1, 0.1, 1200);
     this.camera.position.set(0, 2.5, 8);
@@ -81,8 +90,8 @@ export class SplatExperience {
       integerBasedSort: false,
       sceneRevealMode: GaussianSplats3D.SceneRevealMode.Instant,
       sphericalHarmonicsDegree: 0,
-      enableOptionalEffects: true,
-      kernel2DSize: 0.3,
+      enableOptionalEffects: false,
+      kernel2DSize: 0.6,
     });
 
     this.scene.add(this.dropInViewer);
@@ -155,6 +164,7 @@ export class SplatExperience {
   private async loadQuaderOverlay(): Promise<void> {
     const loadVersion = ++this.quaderLoadVersion;
     this.clearQuaderOverlay(false);
+    this.generatedSignCount = 0;
     const glb = await this.tryLoadQuaderGlb();
     if (!glb || loadVersion !== this.quaderLoadVersion) return;
 
@@ -167,11 +177,10 @@ export class SplatExperience {
 
       const bounds = new Box3().setFromObject(mesh);
       if (bounds.isEmpty()) return;
-
-      const label = mesh.name?.trim() || mesh.parent?.name?.trim();
-      if (!label) return;
-
       mesh.visible = false;
+
+      const label = this.resolveSignLabel(mesh);
+
       const size = bounds.getSize(new Vector3());
       const center = bounds.getCenter(new Vector3());
       const sign = this.createTexturedSign(label, Math.max(size.x, 0.5));
@@ -180,9 +189,27 @@ export class SplatExperience {
     });
   }
 
+  private resolveSignLabel(mesh: Mesh): string {
+    const ownName = this.normalizeSignLabel(mesh.name);
+    if (ownName) return ownName;
+    const parentName = this.normalizeSignLabel(mesh.parent?.name);
+    if (parentName) return parentName;
+    this.generatedSignCount += 1;
+    return `${SIGN_FALLBACK_PREFIX} ${this.generatedSignCount}`;
+  }
+
+  private normalizeSignLabel(source: string | undefined): string {
+    return (source ?? '')
+      .replace(/[._]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {
     const base = import.meta.env.BASE_URL;
     const candidates = [
+      `${base}Paasleben.glb`,
+      `${base}paasleben.glb`,
       `${base}Quader.glb`,
       `${base}quader.glb`,
       `${base}Quader/Quader.glb`,
