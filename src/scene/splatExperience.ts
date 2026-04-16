@@ -69,7 +69,7 @@ export class SplatExperience {
     await this.dropInViewer.addSplatScene(path, {
       showLoadingUI: false,
       progressiveLoad: true,
-      splatAlphaRemovalThreshold: 5,
+      splatAlphaRemovalThreshold: 1,
       onProgress: (percent: number, percentLabel: string) => {
         if (!onProgress) return;
         const numericPercent = Number.isFinite(percent)

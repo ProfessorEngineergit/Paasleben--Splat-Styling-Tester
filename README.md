@@ -33,7 +33,7 @@ Konfiguration:
 
 - Lokales Laden einer `.splat`-Datei im Browser via `@mkkellogg/gaussian-splats-3d`
 - Orbit-Inspektion (Zoom/Pan/Rotate)
-- 5 Presets: **Ink**, **Paper**, **Fog**, **Night Editorial**, **Sketch**
+- 6 Presets: **Original**, **Ink**, **Paper**, **Fog**, **Night Editorial**, **Sketch**
 - Live-Control-Panel (lil-gui) für Kamera, Splat-Look, Atmosphäre und Komposition
 - Bounds-basierte Randbehandlung (Edge Fade/Fog) zur Vermeidung harter Scene-Cut-Kanten
 - Atmosphärische Layer (subtile Haze/Cloud-Bänder)
