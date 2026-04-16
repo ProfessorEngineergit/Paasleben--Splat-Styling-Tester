@@ -27,6 +27,17 @@ import { PostProcessor } from '../render/postProcessor';
 
 const SIGN_FALLBACK_PREFIX = 'Bereich';
 
+type DropInViewerHandle = Group & {
+  viewer: {
+    update: (renderer: WebGLRenderer, camera: PerspectiveCamera) => void;
+    getSplatMesh?: () => any;
+    getSceneCount?: () => number;
+    getSplatScene?: (index: number) => { opacity: number } | null;
+  };
+  addSplatScene: (path: string, options?: Record<string, unknown>) => Promise<unknown>;
+  dispose?: () => void;
+};
+
 export class SplatExperience {
   readonly renderer: WebGLRenderer;
   readonly scene: Scene;
@@ -37,7 +48,7 @@ export class SplatExperience {
 
   private readonly clock = new Clock();
   private readonly mount: HTMLElement;
-  private dropInViewer: any;
+  private dropInViewer: DropInViewerHandle | null = null;
   private readonly gltfLoader = new GLTFLoader();
   private quaderRoot: Group | null = null;
   private readonly quaderSigns = new Group();
@@ -92,7 +103,7 @@ export class SplatExperience {
       sphericalHarmonicsDegree: 0,
       enableOptionalEffects: false,
       kernel2DSize: 0.6,
-    });
+    }) as DropInViewerHandle;
 
     this.scene.add(this.dropInViewer);
     await this.dropInViewer.addSplatScene(path, {
@@ -131,7 +142,7 @@ export class SplatExperience {
       const settings = settingsGetter();
       this.applySettings(settings);
       this.controls.update();
-      this.dropInViewer?.viewer?.update?.(this.renderer, this.camera);
+      this.updateDropInViewer();
       this.postProcessor.update(settings, this.bounds, this.camera, this.clock.getElapsedTime());
       this.atmosphereLayers.update(settings, this.camera, this.clock.getElapsedTime());
       this.updateQuaderSignsFacingCamera();
@@ -296,6 +307,11 @@ export class SplatExperience {
       this.scene.remove(this.quaderRoot);
       this.quaderRoot = null;
     }
+  }
+
+  private updateDropInViewer(): void {
+    if (!this.dropInViewer) return;
+    this.dropInViewer.viewer.update(this.renderer, this.camera);
   }
 
   private applySettings(settings: StyleSettings): void {
