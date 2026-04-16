@@ -105,7 +105,7 @@ export class SplatExperience {
     window.removeEventListener('resize', this.onResize);
     this.controls.dispose();
     this.renderer.dispose();
-    void this.viewer?.dispose?.();
+    this.viewer?.dispose?.();
   }
 
   private onResize = (): void => {
