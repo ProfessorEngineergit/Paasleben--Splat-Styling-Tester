@@ -36,6 +36,42 @@ const createIntroOverlay = (): HTMLDivElement => {
   return overlay;
 };
 
+const createLoadingOverlay = (): {
+  element: HTMLDivElement;
+  setProgress: (value: number) => void;
+  hide: () => void;
+} => {
+  const overlay = document.createElement('div');
+  overlay.className = 'loading-overlay';
+  overlay.innerHTML = `
+    <div class="loading-card">
+      <div class="loading-text">Lade Splat…</div>
+      <div class="loading-track">
+        <div class="loading-fill"></div>
+      </div>
+      <div class="loading-percent">0%</div>
+    </div>
+  `;
+
+  const fill = overlay.querySelector<HTMLDivElement>('.loading-fill');
+  const percent = overlay.querySelector<HTMLDivElement>('.loading-percent');
+
+  const setProgress = (value: number): void => {
+    const clamped = Math.round(Math.max(0, Math.min(100, value)));
+    if (fill) fill.style.width = `${clamped}%`;
+    if (percent) percent.textContent = `${clamped}%`;
+  };
+
+  return {
+    element: overlay,
+    setProgress,
+    hide: () => {
+      overlay.classList.add('hidden');
+      window.setTimeout(() => overlay.remove(), 240);
+    },
+  };
+};
+
 export const boot = async (): Promise<void> => {
   const root = document.querySelector<HTMLDivElement>('#app');
   if (!root) return;
@@ -52,8 +88,13 @@ export const boot = async (): Promise<void> => {
   const initialPreset = ensurePreset(new URL(window.location.href).searchParams.get('preset'));
   const settings = buildSettingsFromPreset(initialPreset);
 
+  const loading = createLoadingOverlay();
+  document.body.appendChild(loading.element);
+
   const experience = new SplatExperience(viewport);
-  await experience.loadSplat(SCENE_SPLAT_PATH);
+  await experience.loadSplat(SCENE_SPLAT_PATH, loading.setProgress);
+  loading.setProgress(100);
+  loading.hide();
 
   const panel = createControlPanel({
     settings,

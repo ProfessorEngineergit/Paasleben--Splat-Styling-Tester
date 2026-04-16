@@ -54,7 +54,7 @@ export class SplatExperience {
     window.addEventListener('resize', this.onResize);
   }
 
-  async loadSplat(path: string): Promise<void> {
+  async loadSplat(path: string, onProgress?: (percent: number) => void): Promise<void> {
     this.dropInViewer = new GaussianSplats3D.DropInViewer({
       gpuAcceleratedSort: true,
       sharedMemoryForWorkers: false,
@@ -67,9 +67,16 @@ export class SplatExperience {
 
     this.scene.add(this.dropInViewer);
     await this.dropInViewer.addSplatScene(path, {
-      showLoadingUI: true,
+      showLoadingUI: false,
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 5,
+      onProgress: (percent: number, percentLabel: string) => {
+        if (!onProgress) return;
+        const numericPercent = Number.isFinite(percent)
+          ? percent
+          : Number.parseFloat(percentLabel ?? '') || 0;
+        onProgress(Math.max(0, Math.min(100, numericPercent)));
+      },
     });
 
     const splatMesh = this.dropInViewer?.viewer?.getSplatMesh?.();
