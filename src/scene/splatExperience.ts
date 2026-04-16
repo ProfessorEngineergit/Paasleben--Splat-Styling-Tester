@@ -7,6 +7,7 @@ import {
   Color,
   DirectionalLight,
   Group,
+  HemisphereLight,
   Material,
   Mesh,
   MeshBasicMaterial,
@@ -47,10 +48,15 @@ export class SplatExperience {
 
     this.scene = new Scene();
     this.scene.background = new Color('#ece8df');
-    this.scene.add(new AmbientLight('#ffffff', 1.15));
-    const keyLight = new DirectionalLight('#ffffff', 1.1);
+    this.scene.add(new AmbientLight('#ffffff', 1.45));
+    const skyFill = new HemisphereLight('#f4f8ff', '#c7c0b3', 0.75);
+    this.scene.add(skyFill);
+    const keyLight = new DirectionalLight('#ffffff', 1.35);
     keyLight.position.set(5, 9, 6);
     this.scene.add(keyLight);
+    const rimLight = new DirectionalLight('#dbe6ff', 0.75);
+    rimLight.position.set(-6, 4, -5);
+    this.scene.add(rimLight);
 
     this.camera = new PerspectiveCamera(52, 1, 0.1, 1200);
     this.camera.position.set(0, 2.5, 8);
@@ -167,11 +173,11 @@ export class SplatExperience {
 
       const bounds = new Box3().setFromObject(mesh);
       if (bounds.isEmpty()) return;
+      mesh.visible = false;
 
       const label = mesh.name?.trim() || mesh.parent?.name?.trim();
       if (!label) return;
 
-      mesh.visible = false;
       const size = bounds.getSize(new Vector3());
       const center = bounds.getCenter(new Vector3());
       const sign = this.createTexturedSign(label, Math.max(size.x, 0.5));
@@ -182,7 +188,11 @@ export class SplatExperience {
 
   private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {
     const base = import.meta.env.BASE_URL;
+    const localPaaslebenGlb = new URL('../../Paasleben.glb', import.meta.url).href;
     const candidates = [
+      localPaaslebenGlb,
+      `${base}Paasleben.glb`,
+      `${base}paasleben.glb`,
       `${base}Quader.glb`,
       `${base}quader.glb`,
       `${base}Quader/Quader.glb`,
