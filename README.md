@@ -31,7 +31,7 @@ Konfiguration:
 
 ## Features
 
-- Lokales Laden einer `.splat`-Datei im Browser via `@mkkellogg/gaussian-splats-3d`
+- Lokales Laden einer `.splat`-Datei im Browser via `@mkkellogg/gaussian-splats-3d` (direkte `Viewer`-API)
 - Orbit-Inspektion (Zoom/Pan/Rotate)
 - 6 Presets: **Original**, **Ink**, **Paper**, **Fog**, **Night Editorial**, **Sketch**
 - Live-Control-Panel (lil-gui) für Kamera, Splat-Look, Atmosphäre und Komposition

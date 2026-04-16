@@ -16,7 +16,7 @@ export class SplatExperience {
   readonly controls: OrbitControls;
 
   private readonly mount: HTMLElement;
-  private dropInViewer: any;
+  private viewer: any;
   private bounds: SceneBounds | null = null;
   private frameHandle = 0;
 
@@ -43,7 +43,12 @@ export class SplatExperience {
   }
 
   async loadSplat(path: string, onProgress?: (percent: number) => void): Promise<void> {
-    this.dropInViewer = new GaussianSplats3D.DropInViewer({
+    this.viewer = new GaussianSplats3D.Viewer({
+      selfDrivenMode: false,
+      useBuiltInControls: false,
+      renderer: this.renderer,
+      camera: this.camera,
+      threeScene: this.scene,
       gpuAcceleratedSort: true,
       sharedMemoryForWorkers: false,
       integerBasedSort: false,
@@ -53,8 +58,7 @@ export class SplatExperience {
       kernel2DSize: 0.6,
     });
 
-    this.scene.add(this.dropInViewer);
-    await this.dropInViewer.addSplatScene(path, {
+    await this.viewer.addSplatScene(path, {
       showLoadingUI: false,
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
@@ -67,7 +71,7 @@ export class SplatExperience {
       },
     });
 
-    const splatMesh = this.dropInViewer?.viewer?.getSplatMesh?.();
+    const splatMesh = this.viewer?.getSplatMesh?.();
     if (!splatMesh) return;
 
     this.bounds = computeSceneBounds(splatMesh);
@@ -85,8 +89,8 @@ export class SplatExperience {
     const tick = () => {
       this.frameHandle = requestAnimationFrame(tick);
       this.controls.update();
-      this.dropInViewer?.viewer?.update?.(this.renderer, this.camera);
-      this.renderer.render(this.scene, this.camera);
+      this.viewer?.update?.();
+      this.viewer?.render?.();
     };
 
     tick();
@@ -101,7 +105,7 @@ export class SplatExperience {
     window.removeEventListener('resize', this.onResize);
     this.controls.dispose();
     this.renderer.dispose();
-    this.dropInViewer?.dispose?.();
+    this.viewer?.dispose?.();
   }
 
   private onResize = (): void => {
