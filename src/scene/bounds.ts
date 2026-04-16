@@ -9,8 +9,12 @@ export type SceneBounds = {
 };
 
 const temp = new Vector3();
+const OUTLIER_RADIUS_THRESHOLD = 1.8;
+const MIN_SAMPLES_FOR_ROBUST_BOUNDS = 50;
+const LOWER_BOUNDS_PERCENTILE = 0.02;
+const UPPER_BOUNDS_PERCENTILE = 0.98;
 
-const isFinitePoint = (value: Vector3): boolean =>
+const hasAllFiniteCoordinates = (value: Vector3): boolean =>
   Number.isFinite(value.x) && Number.isFinite(value.y) && Number.isFinite(value.z);
 
 const percentile = (values: number[], ratio: number): number => {
@@ -24,7 +28,9 @@ export const computeSceneBounds = (splatMesh: any, maxSamples = 18000): SceneBou
   const center = new Vector3();
   const size = new Vector3();
   const sphere = new Sphere();
-  const sampledPoints: Vector3[] = [];
+  const sampledX: number[] = [];
+  const sampledY: number[] = [];
+  const sampledZ: number[] = [];
 
   const splatCount: number = Math.max(0, splatMesh?.getSplatCount?.() ?? 0);
   if (splatCount === 0) {
@@ -40,21 +46,25 @@ export const computeSceneBounds = (splatMesh: any, maxSamples = 18000): SceneBou
 
   for (let i = 0; i < splatCount; i += step) {
     splatMesh.getSplatCenter(i, temp, true);
-    if (!isFinitePoint(temp)) continue;
+    if (!hasAllFiniteCoordinates(temp)) continue;
     box.expandByPoint(temp);
-    sampledPoints.push(temp.clone());
+    sampledX.push(temp.x);
+    sampledY.push(temp.y);
+    sampledZ.push(temp.z);
     sampled++;
   }
 
   if (sampled < splatCount) {
     splatMesh.getSplatCenter(splatCount - 1, temp, true);
-    if (isFinitePoint(temp)) {
+    if (hasAllFiniteCoordinates(temp)) {
       box.expandByPoint(temp);
-      sampledPoints.push(temp.clone());
+      sampledX.push(temp.x);
+      sampledY.push(temp.y);
+      sampledZ.push(temp.z);
     }
   }
 
-  if (sampledPoints.length === 0 || box.isEmpty()) {
+  if (sampledX.length === 0 || box.isEmpty()) {
     box.set(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));
     box.getCenter(center);
     box.getSize(size);
@@ -63,13 +73,21 @@ export const computeSceneBounds = (splatMesh: any, maxSamples = 18000): SceneBou
   }
 
   const robustBox = new Box3();
-  if (sampledPoints.length >= 50) {
-    const xs = sampledPoints.map((point) => point.x).sort((a, b) => a - b);
-    const ys = sampledPoints.map((point) => point.y).sort((a, b) => a - b);
-    const zs = sampledPoints.map((point) => point.z).sort((a, b) => a - b);
+  if (sampledX.length >= MIN_SAMPLES_FOR_ROBUST_BOUNDS) {
+    sampledX.sort((a, b) => a - b);
+    sampledY.sort((a, b) => a - b);
+    sampledZ.sort((a, b) => a - b);
     robustBox.set(
-      new Vector3(percentile(xs, 0.02), percentile(ys, 0.02), percentile(zs, 0.02)),
-      new Vector3(percentile(xs, 0.98), percentile(ys, 0.98), percentile(zs, 0.98)),
+      new Vector3(
+        percentile(sampledX, LOWER_BOUNDS_PERCENTILE),
+        percentile(sampledY, LOWER_BOUNDS_PERCENTILE),
+        percentile(sampledZ, LOWER_BOUNDS_PERCENTILE),
+      ),
+      new Vector3(
+        percentile(sampledX, UPPER_BOUNDS_PERCENTILE),
+        percentile(sampledY, UPPER_BOUNDS_PERCENTILE),
+        percentile(sampledZ, UPPER_BOUNDS_PERCENTILE),
+      ),
     );
   } else {
     robustBox.copy(box);
@@ -79,7 +97,7 @@ export const computeSceneBounds = (splatMesh: any, maxSamples = 18000): SceneBou
   robustBox.getBoundingSphere(robustSphere);
   box.getBoundingSphere(sphere);
 
-  const shouldUseRobust = robustSphere.radius > 0 && sphere.radius > robustSphere.radius * 1.8;
+  const shouldUseRobust = robustSphere.radius > 0 && sphere.radius > robustSphere.radius * OUTLIER_RADIUS_THRESHOLD;
   const selectedBox = shouldUseRobust ? robustBox : box;
   const selectedSphere = shouldUseRobust ? robustSphere : sphere;
 
@@ -87,5 +105,11 @@ export const computeSceneBounds = (splatMesh: any, maxSamples = 18000): SceneBou
   selectedBox.getSize(size);
   sphere.copy(selectedSphere);
 
-  return { box: selectedBox.clone(), center, size, radius: sphere.radius, sphere };
+  return {
+    box: selectedBox.clone(),
+    center: center.clone(),
+    size: size.clone(),
+    radius: sphere.radius,
+    sphere: sphere.clone(),
+  };
 };
