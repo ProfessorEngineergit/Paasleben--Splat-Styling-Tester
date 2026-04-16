@@ -38,6 +38,7 @@ export class SplatExperience {
   private readonly gltfLoader = new GLTFLoader();
   private quaderRoot: Group | null = null;
   private readonly quaderSigns = new Group();
+  private quaderLoadVersion = 0;
   private bounds: SceneBounds | null = null;
   private frameHandle = 0;
 
@@ -152,9 +153,10 @@ export class SplatExperience {
   }
 
   private async loadQuaderOverlay(): Promise<void> {
-    this.clearQuaderOverlay();
+    const loadVersion = ++this.quaderLoadVersion;
+    this.clearQuaderOverlay(false);
     const glb = await this.tryLoadQuaderGlb();
-    if (!glb) return;
+    if (!glb || loadVersion !== this.quaderLoadVersion) return;
 
     this.quaderRoot = glb.scene;
     this.scene.add(this.quaderRoot);
@@ -229,7 +231,6 @@ export class SplatExperience {
     const material = new MeshBasicMaterial({
       map: texture,
       transparent: true,
-      depthWrite: false,
     });
     const sign = new Mesh(geometry, material);
     sign.renderOrder = 12;
@@ -242,7 +243,10 @@ export class SplatExperience {
     });
   }
 
-  private clearQuaderOverlay(): void {
+  private clearQuaderOverlay(cancelPendingLoad = true): void {
+    if (cancelPendingLoad) {
+      this.quaderLoadVersion++;
+    }
     this.quaderSigns.children.forEach((child) => {
       const mesh = child as Mesh;
       mesh.geometry?.dispose();
