@@ -40,6 +40,7 @@ export class SplatExperience {
   private quaderRoot: Group | null = null;
   private readonly quaderSigns = new Group();
   private quaderLoadVersion = 0;
+  private generatedSignCount = 0;
   private bounds: SceneBounds | null = null;
   private frameHandle = 0;
 
@@ -82,13 +83,17 @@ export class SplatExperience {
 
   async loadSplat(path: string, onProgress?: (percent: number) => void): Promise<void> {
     this.dropInViewer = new GaussianSplats3D.DropInViewer({
+      selfDrivenMode: false,
+      useBuiltInControls: false,
+      renderer: this.renderer,
+      camera: this.camera,
       gpuAcceleratedSort: true,
       sharedMemoryForWorkers: false,
       integerBasedSort: false,
       sceneRevealMode: GaussianSplats3D.SceneRevealMode.Instant,
       sphericalHarmonicsDegree: 0,
-      enableOptionalEffects: true,
-      kernel2DSize: 0.3,
+      enableOptionalEffects: false,
+      kernel2DSize: 0.6,
     });
 
     this.scene.add(this.dropInViewer);
@@ -127,6 +132,7 @@ export class SplatExperience {
       this.frameHandle = requestAnimationFrame(tick);
       const settings = settingsGetter();
       this.applySettings(settings);
+      this.dropInViewer?.viewer?.update?.();
       this.controls.update();
       this.postProcessor.update(settings, this.bounds, this.camera, this.clock.getElapsedTime());
       this.atmosphereLayers.update(settings, this.camera, this.clock.getElapsedTime());
@@ -161,6 +167,7 @@ export class SplatExperience {
   private async loadQuaderOverlay(): Promise<void> {
     const loadVersion = ++this.quaderLoadVersion;
     this.clearQuaderOverlay(false);
+    this.generatedSignCount = 0;
     const glb = await this.tryLoadQuaderGlb();
     if (!glb || loadVersion !== this.quaderLoadVersion) return;
 
@@ -175,8 +182,7 @@ export class SplatExperience {
       if (bounds.isEmpty()) return;
       mesh.visible = false;
 
-      const label = mesh.name?.trim() || mesh.parent?.name?.trim();
-      if (!label) return;
+      const label = this.resolveSignLabel(mesh);
 
       const size = bounds.getSize(new Vector3());
       const center = bounds.getCenter(new Vector3());
@@ -184,6 +190,15 @@ export class SplatExperience {
       sign.position.set(center.x, bounds.max.y + Math.max(size.y * 0.18, 0.1), center.z);
       this.quaderSigns.add(sign);
     });
+  }
+
+  private resolveSignLabel(mesh: Mesh): string {
+    const ownName = mesh.name?.trim();
+    if (ownName) return ownName;
+    const parentName = mesh.parent?.name?.trim();
+    if (parentName) return parentName;
+    this.generatedSignCount += 1;
+    return `Bereich ${this.generatedSignCount}`;
   }
 
   private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {

@@ -213,7 +213,7 @@ export const PRESETS: Record<string, StylePreset> = {
   },
 };
 
-export const DEFAULT_PRESET = 'Original';
+export const DEFAULT_PRESET = 'Paper';
 
 export const PRESET_NAMES = Object.keys(PRESETS);
 
