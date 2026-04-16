@@ -97,7 +97,7 @@ export const createAtmosphereShader = () => ({
       float vignette = smoothstep(0.05, 1.2, distance(vUv, vec2(0.5)));
       color = mix(color, color * (1.0 - vignetteStrength), vignette);
 
-      gl_FragColor = vec4(clamp(color, 0.0, 1.0), base.a);
+      gl_FragColor = vec4(clamp(color, 0.0, 1.0), 1.0);
     }
   `,
 });

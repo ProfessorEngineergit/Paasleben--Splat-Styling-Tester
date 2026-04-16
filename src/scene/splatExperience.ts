@@ -131,6 +131,7 @@ export class SplatExperience {
       const settings = settingsGetter();
       this.applySettings(settings);
       this.controls.update();
+      this.dropInViewer?.viewer?.update?.(this.renderer, this.camera);
       this.postProcessor.update(settings, this.bounds, this.camera, this.clock.getElapsedTime());
       this.atmosphereLayers.update(settings, this.camera, this.clock.getElapsedTime());
       this.updateQuaderSignsFacingCamera();
