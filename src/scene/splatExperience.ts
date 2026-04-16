@@ -49,7 +49,7 @@ export class SplatExperience {
       renderer: this.renderer,
       camera: this.camera,
       threeScene: this.scene,
-      gpuAcceleratedSort: false,
+      gpuAcceleratedSort: true,
       sharedMemoryForWorkers: false,
       integerBasedSort: false,
       sceneRevealMode: GaussianSplats3D.SceneRevealMode.Instant,
