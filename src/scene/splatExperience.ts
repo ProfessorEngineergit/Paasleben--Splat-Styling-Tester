@@ -1,13 +1,24 @@
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import {
+  AmbientLight,
+  Box3,
+  CanvasTexture,
   Clock,
   Color,
+  DirectionalLight,
+  Group,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  PlaneGeometry,
   PerspectiveCamera,
+  SRGBColorSpace,
   Scene,
   Vector3,
   WebGLRenderer,
 } from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { StyleSettings } from '../presets/types';
 import { computeSceneBounds, type SceneBounds } from './bounds';
 import { AtmosphereLayers } from './atmosphereLayers';
@@ -24,6 +35,9 @@ export class SplatExperience {
   private readonly clock = new Clock();
   private readonly mount: HTMLElement;
   private dropInViewer: any;
+  private readonly gltfLoader = new GLTFLoader();
+  private quaderRoot: Group | null = null;
+  private readonly quaderSigns = new Group();
   private bounds: SceneBounds | null = null;
   private frameHandle = 0;
 
@@ -32,6 +46,10 @@ export class SplatExperience {
 
     this.scene = new Scene();
     this.scene.background = new Color('#ece8df');
+    this.scene.add(new AmbientLight('#ffffff', 1.15));
+    const keyLight = new DirectionalLight('#ffffff', 1.1);
+    keyLight.position.set(5, 9, 6);
+    this.scene.add(keyLight);
 
     this.camera = new PerspectiveCamera(52, 1, 0.1, 1200);
     this.camera.position.set(0, 2.5, 8);
@@ -48,6 +66,7 @@ export class SplatExperience {
 
     this.atmosphereLayers = new AtmosphereLayers();
     this.scene.add(this.atmosphereLayers.group);
+    this.scene.add(this.quaderSigns);
 
     this.postProcessor = new PostProcessor(this.renderer, this.scene, this.camera);
 
@@ -92,6 +111,7 @@ export class SplatExperience {
     this.camera.updateProjectionMatrix();
 
     this.atmosphereLayers.layout(this.bounds);
+    await this.loadQuaderOverlay();
     this.controls.update();
   }
 
@@ -103,6 +123,7 @@ export class SplatExperience {
       this.controls.update();
       this.postProcessor.update(settings, this.bounds, this.camera, this.clock.getElapsedTime());
       this.atmosphereLayers.update(settings, this.camera, this.clock.getElapsedTime());
+      this.updateQuaderSignsFacingCamera();
       this.postProcessor.render();
     };
 
@@ -126,7 +147,123 @@ export class SplatExperience {
     this.controls.dispose();
     this.postProcessor.composer.dispose();
     this.renderer.dispose();
+    this.clearQuaderOverlay();
     this.dropInViewer?.dispose?.();
+  }
+
+  private async loadQuaderOverlay(): Promise<void> {
+    this.clearQuaderOverlay();
+    const glb = await this.tryLoadQuaderGlb();
+    if (!glb) return;
+
+    this.quaderRoot = glb.scene;
+    this.scene.add(this.quaderRoot);
+
+    this.quaderRoot.traverse((object) => {
+      const mesh = object as Mesh;
+      if (!mesh.isMesh) return;
+
+      const bounds = new Box3().setFromObject(mesh);
+      if (bounds.isEmpty()) return;
+
+      const label = mesh.name?.trim() || mesh.parent?.name?.trim();
+      if (!label) return;
+
+      mesh.visible = false;
+      const size = bounds.getSize(new Vector3());
+      const center = bounds.getCenter(new Vector3());
+      const sign = this.createTexturedSign(label, Math.max(size.x, 0.5));
+      sign.position.set(center.x, bounds.max.y + Math.max(size.y * 0.18, 0.1), center.z);
+      this.quaderSigns.add(sign);
+    });
+  }
+
+  private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {
+    const base = import.meta.env.BASE_URL;
+    const candidates = [
+      `${base}Quader.glb`,
+      `${base}quader.glb`,
+      `${base}Quader/Quader.glb`,
+      `${base}models/Quader.glb`,
+    ];
+
+    for (const path of candidates) {
+      try {
+        const gltf = await this.gltfLoader.loadAsync(path);
+        return { scene: gltf.scene };
+      } catch {
+        // Try next candidate path.
+      }
+    }
+    return null;
+  }
+
+  private createTexturedSign(label: string, widthHint: number): Mesh {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 256;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      return new Mesh(new PlaneGeometry(1, 0.3), new MeshBasicMaterial({ color: '#ffffff' }));
+    }
+
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = 'rgba(255,255,255,0.95)';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.strokeStyle = 'rgba(25,25,25,0.95)';
+    context.lineWidth = 10;
+    context.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
+
+    context.fillStyle = '#101010';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = 'bold 118px Arial, sans-serif';
+    context.fillText(label, canvas.width / 2, canvas.height / 2, canvas.width - 50);
+
+    const texture = new CanvasTexture(canvas);
+    texture.colorSpace = SRGBColorSpace;
+
+    const planeWidth = Math.min(3, Math.max(0.65, widthHint * 1.25));
+    const planeHeight = planeWidth * 0.25;
+    const geometry = new PlaneGeometry(planeWidth, planeHeight);
+    const material = new MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      depthWrite: false,
+    });
+    const sign = new Mesh(geometry, material);
+    sign.renderOrder = 12;
+    return sign;
+  }
+
+  private updateQuaderSignsFacingCamera(): void {
+    this.quaderSigns.children.forEach((child) => {
+      child.lookAt(this.camera.position.x, child.position.y, this.camera.position.z);
+    });
+  }
+
+  private clearQuaderOverlay(): void {
+    this.quaderSigns.children.forEach((child) => {
+      const mesh = child as Mesh;
+      mesh.geometry?.dispose();
+      const material = mesh.material as Material | Material[] | undefined;
+      if (Array.isArray(material)) {
+        material.forEach((entry) => {
+          const maybeMap = (entry as MeshBasicMaterial).map;
+          if (maybeMap) maybeMap.dispose();
+          entry.dispose();
+        });
+      } else if (material) {
+        const maybeMap = (material as MeshBasicMaterial).map;
+        if (maybeMap) maybeMap.dispose();
+        material.dispose();
+      }
+    });
+    this.quaderSigns.clear();
+    if (this.quaderRoot) {
+      this.scene.remove(this.quaderRoot);
+      this.quaderRoot = null;
+    }
   }
 
   private applySettings(settings: StyleSettings): void {
