@@ -83,10 +83,6 @@ export class SplatExperience {
 
   async loadSplat(path: string, onProgress?: (percent: number) => void): Promise<void> {
     this.dropInViewer = new GaussianSplats3D.DropInViewer({
-      selfDrivenMode: false,
-      useBuiltInControls: false,
-      renderer: this.renderer,
-      camera: this.camera,
       gpuAcceleratedSort: true,
       sharedMemoryForWorkers: false,
       integerBasedSort: false,
@@ -132,7 +128,6 @@ export class SplatExperience {
       this.frameHandle = requestAnimationFrame(tick);
       const settings = settingsGetter();
       this.applySettings(settings);
-      this.dropInViewer?.viewer?.update?.();
       this.controls.update();
       this.postProcessor.update(settings, this.bounds, this.camera, this.clock.getElapsedTime());
       this.atmosphereLayers.update(settings, this.camera, this.clock.getElapsedTime());
