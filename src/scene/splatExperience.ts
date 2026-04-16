@@ -188,12 +188,19 @@ export class SplatExperience {
   }
 
   private resolveSignLabel(mesh: Mesh): string {
-    const ownName = mesh.name?.trim();
+    const ownName = this.normalizeSignLabel(mesh.name);
     if (ownName) return ownName;
-    const parentName = mesh.parent?.name?.trim();
+    const parentName = this.normalizeSignLabel(mesh.parent?.name);
     if (parentName) return parentName;
     this.generatedSignCount += 1;
     return `Bereich ${this.generatedSignCount}`;
+  }
+
+  private normalizeSignLabel(source: string | undefined): string {
+    return (source ?? '')
+      .replace(/[._]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private async tryLoadQuaderGlb(): Promise<{ scene: Group } | null> {

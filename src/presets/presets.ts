@@ -11,10 +11,10 @@ export const PRESETS: Record<string, StylePreset> = {
       autoRotateSpeed: 0.3,
       splatScale: 1,
       opacity: 1,
-      contrast: 1,
-      brightness: 1,
-      gamma: 1,
-      saturation: 1,
+      contrast: 1.15,
+      brightness: 1.2,
+      gamma: 0.92,
+      saturation: 1.05,
       monochrome: false,
       invert: false,
       fogDensity: 0,
@@ -26,12 +26,12 @@ export const PRESETS: Record<string, StylePreset> = {
       cloudOpacity: 0,
       cloudSpeed: 0.03,
       cloudScale: 1.2,
-      backgroundColor: '#101010',
+      backgroundColor: '#e2ddd3',
       highlightTint: '#ffffff',
-      shadowTint: '#ffffff',
+      shadowTint: '#e6e6e6',
       vignetteStrength: 0,
       grainStrength: 0,
-      bloomStrength: 0,
+      bloomStrength: 0.04,
       showAtmosphereLayers: false,
       posterize: 0,
     },
@@ -213,7 +213,7 @@ export const PRESETS: Record<string, StylePreset> = {
   },
 };
 
-export const DEFAULT_PRESET = 'Paper';
+export const DEFAULT_PRESET = 'Original';
 
 export const PRESET_NAMES = Object.keys(PRESETS);
 
