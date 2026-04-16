@@ -11,7 +11,7 @@ export const PRESETS: Record<string, StylePreset> = {
       autoRotateSpeed: 0.3,
       splatScale: 1.08,
       opacity: 1,
-      contrast: 1.32,
+      contrast: 1.24,
       brightness: 1.02,
       gamma: 1,
       saturation: 1.08,
