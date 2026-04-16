@@ -9,6 +9,7 @@ type ControlPanelOptions = {
   onCopySettings: () => void;
   onFullscreen: () => void;
   onScreenshot: () => void;
+  onSettingsChange?: () => void;
 };
 
 export type ControlPanel = {
@@ -24,17 +25,17 @@ export const createControlPanel = (options: ControlPanelOptions): ControlPanel =
   general.add(options.settings, 'preset', PRESET_NAMES).name('Preset').onChange((value: string) => {
     options.onPresetChange(value);
   });
-  general.add(options.settings, 'autoRotate').name('Auto-Rotate');
+  general.add(options.settings, 'autoRotate').name('Auto-Rotate').onChange(() => options.onSettingsChange?.());
   general.add({ reset: options.onResetToPreset }, 'reset').name('Reset to preset');
   general.add({ screenshot: options.onScreenshot }, 'screenshot').name('Screenshot');
   general.add({ copy: options.onCopySettings }, 'copy').name('Copy settings JSON');
   general.add({ fullscreen: options.onFullscreen }, 'fullscreen').name('Fullscreen');
 
   const camera = gui.addFolder('Kamera');
-  camera.add(options.settings, 'fov', 25, 95, 1).name('FOV');
-  camera.add(options.settings, 'minDistance', 0.2, 20, 0.1).name('Min Dist');
-  camera.add(options.settings, 'maxDistance', 2, 80, 0.5).name('Max Dist');
-  camera.add(options.settings, 'autoRotateSpeed', -5, 5, 0.01).name('Rotate Speed');
+  camera.add(options.settings, 'fov', 25, 95, 1).name('FOV').onChange(() => options.onSettingsChange?.());
+  camera.add(options.settings, 'minDistance', 0.2, 20, 0.1).name('Min Dist').onChange(() => options.onSettingsChange?.());
+  camera.add(options.settings, 'maxDistance', 2, 80, 0.5).name('Max Dist').onChange(() => options.onSettingsChange?.());
+  camera.add(options.settings, 'autoRotateSpeed', -5, 5, 0.01).name('Rotate Speed').onChange(() => options.onSettingsChange?.());
 
   const splat = gui.addFolder('Splat-Look');
   splat.add(options.settings, 'splatScale', 0.5, 2.2, 0.01).name('Splat Size');
@@ -60,7 +61,7 @@ export const createControlPanel = (options: ControlPanelOptions): ControlPanel =
   atmosphere.add(options.settings, 'showAtmosphereLayers').name('Show Layers');
 
   const composition = gui.addFolder('Komposition');
-  composition.addColor(options.settings, 'backgroundColor').name('BG Color');
+  composition.addColor(options.settings, 'backgroundColor').name('BG Color').onChange(() => options.onSettingsChange?.());
   composition.addColor(options.settings, 'highlightTint').name('Highlight');
   composition.addColor(options.settings, 'shadowTint').name('Shadow');
   composition.add(options.settings, 'vignetteStrength', 0, 1, 0.01).name('Vignette');
