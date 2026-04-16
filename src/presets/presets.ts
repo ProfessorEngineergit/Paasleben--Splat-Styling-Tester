@@ -1,6 +1,41 @@
 import type { StylePreset, StyleSettings } from './types';
 
 export const PRESETS: Record<string, StylePreset> = {
+  Original: {
+    name: 'Original',
+    values: {
+      autoRotate: false,
+      fov: 52,
+      minDistance: 1.2,
+      maxDistance: 24,
+      autoRotateSpeed: 0.3,
+      splatScale: 1,
+      opacity: 1,
+      contrast: 1,
+      brightness: 1,
+      gamma: 1,
+      saturation: 1,
+      monochrome: false,
+      invert: false,
+      fogDensity: 0,
+      fogNear: 0.4,
+      fogFar: 1.3,
+      edgeFadeStrength: 0,
+      edgeFadeDistance: 0.75,
+      horizonHaze: 0,
+      cloudOpacity: 0,
+      cloudSpeed: 0.03,
+      cloudScale: 1.2,
+      backgroundColor: '#101010',
+      highlightTint: '#ffffff',
+      shadowTint: '#ffffff',
+      vignetteStrength: 0,
+      grainStrength: 0,
+      bloomStrength: 0,
+      showAtmosphereLayers: false,
+      posterize: 0,
+    },
+  },
   Ink: {
     name: 'Ink',
     values: {
@@ -178,7 +213,7 @@ export const PRESETS: Record<string, StylePreset> = {
   },
 };
 
-export const DEFAULT_PRESET = 'Paper';
+export const DEFAULT_PRESET = 'Original';
 
 export const PRESET_NAMES = Object.keys(PRESETS);
 
