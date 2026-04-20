@@ -32,11 +32,13 @@ const boot = async () => {
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
       position: [0, 0, 0],
-      rotation: [0, 0, 0, 1],
+      rotation: [0, 0, 1, 0],
       scale: [1.2, 1.2, 1.2],
     });
 
     viewer.start();
+    viewer.showInfo = true;
+    viewer.infoPanel?.show();
     status.remove();
   } catch (error) {
     status.textContent = `Fehler beim Laden: ${error instanceof Error ? error.message : 'Unbekannt'}`;
