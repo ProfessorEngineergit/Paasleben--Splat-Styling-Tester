@@ -3,8 +3,8 @@ import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.splat`;
 
-const boot = async (): Promise<void> => {
-  const root = document.querySelector<HTMLDivElement>('#app');
+const boot = async () => {
+  const root = document.querySelector('#app');
   if (!root) return;
 
   root.innerHTML = `
@@ -12,8 +12,8 @@ const boot = async (): Promise<void> => {
     <div id="status">Lade Splat…</div>
   `;
 
-  const viewport = root.querySelector<HTMLDivElement>('#viewport');
-  const status = root.querySelector<HTMLDivElement>('#status');
+  const viewport = root.querySelector('#viewport');
+  const status = root.querySelector('#status');
   if (!viewport || !status) return;
 
   const viewer = new GaussianSplats3D.Viewer({
@@ -22,6 +22,8 @@ const boot = async (): Promise<void> => {
     rootElement: viewport,
     sharedMemoryForWorkers: false,
     sceneRevealMode: GaussianSplats3D.SceneRevealMode.Instant,
+    initialCameraPosition: [0, 0, 8],
+    initialCameraLookAt: [0, 0, 0],
   });
 
   try {
@@ -29,8 +31,12 @@ const boot = async (): Promise<void> => {
       showLoadingUI: true,
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
+      position: [0, 0, 0],
+      rotation: [0, 0, 0, 1],
+      scale: [1.2, 1.2, 1.2],
     });
 
+    viewer.start();
     status.remove();
   } catch (error) {
     status.textContent = `Fehler beim Laden: ${error instanceof Error ? error.message : 'Unbekannt'}`;
