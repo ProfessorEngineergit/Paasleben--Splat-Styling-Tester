@@ -4,8 +4,7 @@
 
 html,
 body,
-#app,
-#viewport {
+#app {
   width: 100%;
   height: 100%;
   margin: 0;
@@ -13,19 +12,161 @@ body,
 
 body {
   overflow: hidden;
-  background: #000;
   color: #fff;
-  font-family: system-ui, sans-serif;
+  font-family: Inter, system-ui, sans-serif;
+  background: #0d0f14;
+}
+
+#app {
+  --paper-opacity: 0;
+  position: relative;
+  isolation: isolate;
+}
+
+#app::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(40, 28, 16, 0.18) 1px, transparent 0),
+    repeating-linear-gradient(
+      0deg,
+      rgba(140, 118, 92, 0.1) 0,
+      rgba(140, 118, 92, 0.1) 1px,
+      rgba(255, 255, 255, 0) 2px,
+      rgba(255, 255, 255, 0) 4px
+    ),
+    linear-gradient(120deg, rgba(250, 243, 224, 0.28), rgba(231, 220, 195, 0.28));
+  background-size: 4px 4px, 100% 100%, 100% 100%;
+  mix-blend-mode: multiply;
+  transition: opacity 140ms ease;
+}
+
+#app.texture-global::before {
+  opacity: var(--paper-opacity);
+}
+
+#layout {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+}
+
+#control-panel {
+  padding: 1.1rem 1rem;
+  background: linear-gradient(160deg, rgba(18, 20, 27, 0.97), rgba(8, 9, 14, 0.97));
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  overflow-y: auto;
+  z-index: 10;
+}
+
+#control-panel h1 {
+  margin: 0 0 0.45rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+#load-state {
+  margin: 0 0 1rem;
+  opacity: 0.82;
+  font-size: 0.92rem;
+}
+
+.panel-section {
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.panel-section h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.92rem;
+  opacity: 0.92;
+}
+
+.panel-section label,
+.panel-section p {
+  margin: 0 0 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  opacity: 0.94;
+}
+
+.panel-section p:last-child,
+.panel-section label:last-child {
+  margin-bottom: 0;
+}
+
+.panel-section input,
+.panel-section select {
+  width: 100%;
+}
+
+.panel-section input[type='checkbox'] {
+  width: auto;
+  align-self: flex-start;
+}
+
+#viewport-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+#viewport {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
 #viewport canvas {
   display: block;
+  width: 100%;
+  height: 100%;
 }
 
-#status {
-  position: fixed;
+.paper-overlay {
+  position: absolute;
   inset: 0;
-  display: grid;
-  place-items: center;
-  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  opacity: 0;
+  z-index: 4;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(40, 28, 16, 0.2) 1px, transparent 0),
+    repeating-linear-gradient(
+      0deg,
+      rgba(140, 118, 92, 0.14) 0,
+      rgba(140, 118, 92, 0.14) 1px,
+      rgba(255, 255, 255, 0) 2px,
+      rgba(255, 255, 255, 0) 4px
+    ),
+    linear-gradient(120deg, rgba(250, 243, 224, 0.34), rgba(231, 220, 195, 0.34));
+  background-size: 4px 4px, 100% 100%, 100% 100%;
+  mix-blend-mode: multiply;
+  transition: opacity 140ms ease;
+}
+
+#viewport-wrapper.texture-viewport .paper-overlay {
+  opacity: var(--paper-opacity);
+}
+
+@media (max-width: 920px) {
+  #layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 42dvh 58dvh;
+  }
+
+  #control-panel {
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  }
 }
