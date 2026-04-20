@@ -146,6 +146,7 @@ const boot = async () => {
   const up = new THREE.Vector3(0, 1, 0);
   const previousPointer = new THREE.Vector2();
   let isLeftDragging = false;
+  let isSplatSceneLoaded = false;
 
   const applyRestrictedTranslation = (deltaX, deltaY) => {
     forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -230,7 +231,7 @@ const boot = async () => {
       STYLE_STATE.paperTextureEnabled && STYLE_STATE.textureTarget === 'viewport',
     );
 
-    if (viewer.splatMesh) {
+    if (isSplatSceneLoaded && viewer.splatMesh) {
       viewer.splatMesh.setSplatScale(STYLE_STATE.splatScale);
     }
   };
@@ -297,6 +298,8 @@ const boot = async () => {
       rotation: [0, 0, 1, 0],
       scale: [1.2, 1.2, 1.2],
     });
+    isSplatSceneLoaded = true;
+    applyStylingState();
 
     loadState.textContent = 'Splat geladen';
 
