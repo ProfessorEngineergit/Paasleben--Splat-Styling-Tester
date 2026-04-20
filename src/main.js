@@ -51,7 +51,7 @@ const boot = async () => {
             <input id="saturation" type="range" min="0" max="1.6" step="0.01" value="0.82" />
           </label>
           <label>
-            Splatt-Größe
+            Splat-Größe
             <input id="splat-scale" type="range" min="0.6" max="1.8" step="0.01" value="1.1" />
           </label>
         </div>
