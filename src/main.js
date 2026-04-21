@@ -22,7 +22,8 @@ const STYLE_STATE = {
   contrast: 1.1,
   saturation: 0.85,
   splatScale: 1.1,
-      splatRotation: 16,
+  splatRotation: 16,
+};
 
 const boot = async () => {
   const root = document.querySelector('#app');
