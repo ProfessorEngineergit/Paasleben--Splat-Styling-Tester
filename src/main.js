@@ -1,6 +1,8 @@
 import './style.css';
 import * as THREE from 'three';
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import gsap from 'gsap';
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.splat`;
 
@@ -12,15 +14,15 @@ const MOVE_BOUNDS = {
 };
 
 const STYLE_STATE = {
-  backgroundColor: '#0d0f14',
-  paperTextureEnabled: true,
+  backgroundColor: '#faf8f2',
+  paperTextureEnabled: false,
   textureTarget: 'viewport',
-  textureIntensity: 0.24,
+  textureIntensity: 0.35,
   sketchLookEnabled: true,
-  contrast: 1.15,
-  saturation: 0.82,
+  contrast: 1.1,
+  saturation: 0.85,
   splatScale: 1.1,
-};
+      splatRotation: 16,
 
 const boot = async () => {
   const root = document.querySelector('#app');
@@ -28,6 +30,7 @@ const boot = async () => {
 
   root.innerHTML = `
     <div id="layout">
+      <button id="panel-toggle">Styling</button>
       <aside id="control-panel">
         <h1>Splat Styling</h1>
         <p id="load-state">Lade Splat…</p>
@@ -36,7 +39,7 @@ const boot = async () => {
           <h2>Grundlook</h2>
           <label>
             Hintergrundfarbe
-            <input id="background-color" type="color" value="#0d0f14" />
+            <input id="background-color" type="color" value="#faf8f2" />
           </label>
           <label>
             Zeichnerischer Look
@@ -54,13 +57,17 @@ const boot = async () => {
             Splat-Größe
             <input id="splat-scale" type="range" min="0.6" max="1.8" step="0.01" value="1.1" />
           </label>
+          <label>
+            <span>Splat Rotation: <span id="splat-rotation-value">16°</span></span>
+            <input id="splat-rotation" type="range" min="-180" max="180" step="1" value="16" />
+          </label>
         </div>
 
         <div class="panel-section">
           <h2>Papier-Textur</h2>
           <label>
             Textur aktivieren
-            <input id="paper-texture-enabled" type="checkbox" checked />
+            <input id="paper-texture-enabled" type="checkbox" />
           </label>
           <label>
             Textur anwenden auf
@@ -84,6 +91,7 @@ const boot = async () => {
 
       <div id="viewport-wrapper">
         <div id="viewport"></div>
+        <div id="labels-container"></div>
         <div id="viewport-texture-overlay" class="paper-overlay"></div>
       </div>
     </div>
@@ -94,7 +102,8 @@ const boot = async () => {
   const loadState = root.querySelector('#load-state');
   if (!viewport || !viewportWrapper || !loadState) return;
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setClearColor(0x000000, 0); // Transparent renderer background
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   viewport.appendChild(renderer.domElement);
 
@@ -205,6 +214,7 @@ const boot = async () => {
   const applyStylingState = () => {
     viewport.style.backgroundColor = STYLE_STATE.backgroundColor;
     document.body.style.backgroundColor = STYLE_STATE.backgroundColor;
+    renderer.setClearColor(STYLE_STATE.backgroundColor, 0);
 
     const filters = [
       `contrast(${STYLE_STATE.contrast})`,
@@ -233,6 +243,10 @@ const boot = async () => {
 
     if (isSplatSceneLoaded && viewer.splatMesh) {
       viewer.splatMesh.setSplatScale(STYLE_STATE.splatScale);
+      
+      const flipX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), Math.PI);
+      const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), THREE.MathUtils.degToRad(STYLE_STATE.splatRotation));
+      viewer.splatMesh.quaternion.copy(flipX).premultiply(rotY);
     }
   };
 
@@ -242,6 +256,7 @@ const boot = async () => {
     contrast: root.querySelector('#contrast'),
     saturation: root.querySelector('#saturation'),
     splatScale: root.querySelector('#splat-scale'),
+    splatRotation: root.querySelector('#splat-rotation'),
     paperTextureEnabled: root.querySelector('#paper-texture-enabled'),
     textureTarget: root.querySelector('#texture-target'),
     textureIntensity: root.querySelector('#texture-intensity'),
@@ -272,6 +287,14 @@ const boot = async () => {
     applyStylingState();
   });
 
+  controls.splatRotation?.addEventListener('input', () => {
+    const val = Number.parseFloat(controls.splatRotation.value);
+    STYLE_STATE.splatRotation = val;
+    const valDisplay = document.querySelector('#splat-rotation-value');
+    if (valDisplay) valDisplay.textContent = val + '°';
+    applyStylingState();
+  });
+
   controls.paperTextureEnabled?.addEventListener('input', () => {
     STYLE_STATE.paperTextureEnabled = controls.paperTextureEnabled.checked;
     applyStylingState();
@@ -287,7 +310,147 @@ const boot = async () => {
     applyStylingState();
   });
 
+  const panelToggle = root.querySelector('#panel-toggle');
+  const controlPanel = root.querySelector('#control-panel');
+  panelToggle?.addEventListener('click', () => {
+    controlPanel?.classList.toggle('collapsed');
+  });
+
   applyStylingState();
+
+  const labelsToUpdate = [];
+  const labelsContainer = document.querySelector('#labels-container');
+  const detailOverlay = document.querySelector('#detail-overlay');
+
+  let initialCameraPos = new THREE.Vector3(0, 0.5, 8);
+  let initialTargetPos = new THREE.Vector3(0, 0, 0);
+
+  document.querySelector('#overlay-close')?.addEventListener('click', () => {
+    detailOverlay.classList.add('hidden');
+    
+    const controlPanel = document.querySelector('#control-panel');
+    const panelToggle = document.querySelector('#panel-toggle');
+    if (controlPanel) {
+      controlPanel.style.transition = '';
+      controlPanel.style.opacity = '';
+      controlPanel.style.pointerEvents = '';
+      controlPanel.style.transform = '';
+    }
+    if (panelToggle) {
+      panelToggle.style.opacity = '1';
+      panelToggle.style.pointerEvents = 'auto';
+    }
+
+    gsap.to(orbitControls.target, {
+      x: initialTargetPos.x, y: initialTargetPos.y, z: initialTargetPos.z,
+      duration: 1.5,
+      ease: 'power2.inOut'
+    });
+    gsap.to(camera.position, {
+      x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z,
+      duration: 1.5,
+      ease: 'power2.inOut',
+      onUpdate: () => orbitControls.update(),
+      onComplete: () => {
+        labelsContainer.style.pointerEvents = 'none'; // Re-enabled by CSS rule or keep it 'none' because CSS rules it. Wait, the labels themselves have pointer-events: auto. The container shouldn't block.
+        labelsContainer.style.opacity = '1';
+      }
+    });
+  });
+
+  const gltfLoader = new GLTFLoader();
+  gltfLoader.load(`${import.meta.env.BASE_URL}Paasleben.glb`, (gltf) => {
+    // Schilder: 90 Grad drehen + 180 Grad Flip = -90 Grad ( -Math.PI / 2 ), damit der Eingang "am Anfang" ist
+    gltf.scene.rotation.y = -Math.PI / 2;
+
+    if (viewer.scene) {
+      viewer.scene.add(gltf.scene);
+    }
+    gltf.scene.updateMatrixWorld(true);
+
+    gltf.scene.traverse((node) => {
+      if (node.isMesh || node.isObject3D) {
+        if (node.isMesh) node.visible = false;
+        
+        // Create label only for meaningful nodes if preferred, but instructions say "each node/mesh"
+        // Let's filter slightly so root node isn't included if not mesh, but "each node/mesh" -> let's do nodes with "Mesh" or just isMesh to be safe.
+        if (node.isMesh) {
+          const position = new THREE.Vector3();
+          node.getWorldPosition(position);
+
+          // Name and startup camera handling
+          let displayName = node.name || 'Unnamed';
+          // Entferne angehängte Zahlen wie .001, _002 oder Leerzeichen gefolgt von Zahlen für alle Schilder
+          displayName = displayName.replace(/[\s_.]*\d+$/, '').trim();
+          
+          if (displayName.toLowerCase().includes('eingang')) {
+            displayName = 'Willkommen';
+            // Kamera-Startposition: Etwas weiter oben (y+3.5) und nach hinten (z+6), um mit ~30 Grad nach unten zu schauen
+            initialTargetPos.copy(position);
+            initialCameraPos.set(position.x, position.y + 3.5, position.z + 6);
+            camera.position.copy(initialCameraPos);
+            orbitControls.target.copy(initialTargetPos);
+            orbitControls.update();
+          }
+
+          const label = document.createElement('div');
+          label.className = 'splat-label';
+          label.textContent = displayName;
+          labelsContainer.appendChild(label);
+          
+          label.addEventListener('click', () => {
+            labelsContainer.style.pointerEvents = 'none';
+            labelsContainer.style.opacity = '0';
+            
+            const controlPanel = document.querySelector('#control-panel');
+            const panelToggle = document.querySelector('#panel-toggle');
+            if (controlPanel) {
+              controlPanel.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+              controlPanel.style.opacity = '0';
+              controlPanel.style.pointerEvents = 'none';
+              if (!controlPanel.classList.contains('collapsed')) {
+                controlPanel.style.transform = 'translateX(-20px)';
+              }
+            }
+            if (panelToggle) {
+              panelToggle.style.transition = 'opacity 0.5s ease-out';
+              panelToggle.style.opacity = '0';
+              panelToggle.style.pointerEvents = 'none';
+            }
+            
+            gsap.to(orbitControls.target, {
+              x: position.x,
+              y: position.y,
+              z: position.z,
+              duration: 1.5,
+              ease: 'power2.inOut'
+            });
+
+            const dir = new THREE.Vector3().subVectors(camera.position, orbitControls.target).normalize();
+            // Don't get closer than minDistance
+            const dist = Math.max(orbitControls.minDistance, 5); 
+            const newPos = position.clone().add(dir.multiplyScalar(dist));
+            
+            gsap.to(camera.position, {
+              x: newPos.x,
+              y: newPos.y,
+              z: newPos.z,
+              duration: 1.5,
+              ease: 'power2.inOut',
+              onUpdate: () => orbitControls.update(),
+              onComplete: () => {
+                const title = document.querySelector('#overlay-title');
+                if (title) title.textContent = displayName;
+                detailOverlay.classList.remove('hidden');
+              }
+            });
+          });
+          
+          labelsToUpdate.push({ element: label, position });
+        }
+      }
+    });
+  });
 
   try {
     await viewer.addSplatScene(SCENE_SPLAT_PATH, {
@@ -295,7 +458,7 @@ const boot = async () => {
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
       position: [0, 0, 0],
-      rotation: [0, 0, 1, 0],
+      rotation: [0.38268, 0, 0.92388, 0], // 45 Grad links + original 180 Z-Flip
       scale: [1.2, 1.2, 1.2],
     });
     isSplatSceneLoaded = true;
@@ -307,6 +470,24 @@ const boot = async () => {
       orbitControls.update();
       viewer.update();
       viewer.render();
+
+      const widthHalf = viewport.clientWidth / 2;
+      const heightHalf = viewport.clientHeight / 2;
+
+      labelsToUpdate.forEach((labelObj) => {
+        const v = labelObj.position.clone();
+        v.project(camera);
+
+        if (v.z > 1 || v.z < -1) {
+          labelObj.element.style.display = 'none';
+        } else {
+          labelObj.element.style.display = 'block';
+          const x = (v.x * widthHalf) + widthHalf;
+          const y = -(v.y * heightHalf) + heightHalf;
+          labelObj.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+        }
+      });
+
       requestAnimationFrame(animate);
     };
 
