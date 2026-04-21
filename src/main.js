@@ -14,15 +14,15 @@ const MOVE_BOUNDS = {
 };
 
 const STYLE_STATE = {
-  backgroundColor: '#faf8f2',
+  backgroundColor: '#121214',
   paperTextureEnabled: false,
   textureTarget: 'viewport',
   textureIntensity: 0.35,
   sketchLookEnabled: true,
-  contrast: 1.1,
+  contrast: 1.15,
   saturation: 0.85,
-  splatScale: 1.1,
-  splatRotation: 16,
+  splatScale: 1.4,
+  splatRotation: -28,
 };
 
 const boot = async () => {
@@ -31,64 +31,7 @@ const boot = async () => {
 
   root.innerHTML = `
     <div id="layout">
-      <button id="panel-toggle">Styling</button>
-      <aside id="control-panel">
-        <h1>Splat Styling</h1>
-        <p id="load-state">Lade Splat…</p>
-
-        <div class="panel-section">
-          <h2>Grundlook</h2>
-          <label>
-            Hintergrundfarbe
-            <input id="background-color" type="color" value="#faf8f2" />
-          </label>
-          <label>
-            Zeichnerischer Look
-            <input id="sketch-look" type="checkbox" checked />
-          </label>
-          <label>
-            Kontrast
-            <input id="contrast" type="range" min="0.7" max="1.8" step="0.01" value="1.15" />
-          </label>
-          <label>
-            Sättigung
-            <input id="saturation" type="range" min="0" max="1.6" step="0.01" value="0.82" />
-          </label>
-          <label>
-            Splat-Größe
-            <input id="splat-scale" type="range" min="0.6" max="1.8" step="0.01" value="1.1" />
-          </label>
-          <label>
-            <span>Splat Rotation: <span id="splat-rotation-value">16°</span></span>
-            <input id="splat-rotation" type="range" min="-180" max="180" step="1" value="16" />
-          </label>
-        </div>
-
-        <div class="panel-section">
-          <h2>Papier-Textur</h2>
-          <label>
-            Textur aktivieren
-            <input id="paper-texture-enabled" type="checkbox" />
-          </label>
-          <label>
-            Textur anwenden auf
-            <select id="texture-target">
-              <option value="viewport" selected>Nur Splats/Viewport</option>
-              <option value="global">Gesamte Ansicht</option>
-            </select>
-          </label>
-          <label>
-            Textur-Intensität
-            <input id="texture-intensity" type="range" min="0" max="0.6" step="0.01" value="0.24" />
-          </label>
-        </div>
-
-        <div class="panel-section">
-          <h2>Steuerung</h2>
-          <p>LMB ziehen: links/rechts + vor/zurück (restriktive Boundary)</p>
-          <p>RMB ziehen: Rotation</p>
-        </div>
-      </aside>
+      
 
       <div id="viewport-wrapper">
         <div id="viewport"></div>
@@ -130,8 +73,8 @@ const boot = async () => {
   orbitControls.enableDamping = true;
   orbitControls.enableZoom = false;
   orbitControls.enablePan = false;
-  orbitControls.minDistance = 4;
-  orbitControls.maxDistance = 12;
+  orbitControls.minDistance = 1;
+  orbitControls.maxDistance = 15;
   orbitControls.minPolarAngle = Math.PI * 0.3;
   orbitControls.maxPolarAngle = Math.PI * 0.7;
   orbitControls.mouseButtons = {
@@ -250,96 +193,19 @@ const boot = async () => {
     }
   };
 
-  const controls = {
-    backgroundColor: root.querySelector('#background-color'),
-    sketchLook: root.querySelector('#sketch-look'),
-    contrast: root.querySelector('#contrast'),
-    saturation: root.querySelector('#saturation'),
-    splatScale: root.querySelector('#splat-scale'),
-    splatRotation: root.querySelector('#splat-rotation'),
-    paperTextureEnabled: root.querySelector('#paper-texture-enabled'),
-    textureTarget: root.querySelector('#texture-target'),
-    textureIntensity: root.querySelector('#texture-intensity'),
-  };
-
-  controls.backgroundColor?.addEventListener('input', () => {
-    STYLE_STATE.backgroundColor = controls.backgroundColor.value;
-    applyStylingState();
-  });
-
-  controls.sketchLook?.addEventListener('input', () => {
-    STYLE_STATE.sketchLookEnabled = controls.sketchLook.checked;
-    applyStylingState();
-  });
-
-  controls.contrast?.addEventListener('input', () => {
-    STYLE_STATE.contrast = Number.parseFloat(controls.contrast.value);
-    applyStylingState();
-  });
-
-  controls.saturation?.addEventListener('input', () => {
-    STYLE_STATE.saturation = Number.parseFloat(controls.saturation.value);
-    applyStylingState();
-  });
-
-  controls.splatScale?.addEventListener('input', () => {
-    STYLE_STATE.splatScale = Number.parseFloat(controls.splatScale.value);
-    applyStylingState();
-  });
-
-  controls.splatRotation?.addEventListener('input', () => {
-    const val = Number.parseFloat(controls.splatRotation.value);
-    STYLE_STATE.splatRotation = val;
-    const valDisplay = document.querySelector('#splat-rotation-value');
-    if (valDisplay) valDisplay.textContent = val + '°';
-    applyStylingState();
-  });
-
-  controls.paperTextureEnabled?.addEventListener('input', () => {
-    STYLE_STATE.paperTextureEnabled = controls.paperTextureEnabled.checked;
-    applyStylingState();
-  });
-
-  controls.textureTarget?.addEventListener('input', () => {
-    STYLE_STATE.textureTarget = controls.textureTarget.value;
-    applyStylingState();
-  });
-
-  controls.textureIntensity?.addEventListener('input', () => {
-    STYLE_STATE.textureIntensity = Number.parseFloat(controls.textureIntensity.value);
-    applyStylingState();
-  });
-
-  const panelToggle = root.querySelector('#panel-toggle');
-  const controlPanel = root.querySelector('#control-panel');
-  panelToggle?.addEventListener('click', () => {
-    controlPanel?.classList.toggle('collapsed');
-  });
-
   applyStylingState();
 
   const labelsToUpdate = [];
   const labelsContainer = document.querySelector('#labels-container');
   const detailOverlay = document.querySelector('#detail-overlay');
 
-  let initialCameraPos = new THREE.Vector3(0, 0.5, 8);
+  let initialCameraPos = new THREE.Vector3(0, 0.5, 4);
   let initialTargetPos = new THREE.Vector3(0, 0, 0);
 
   document.querySelector('#overlay-close')?.addEventListener('click', () => {
     detailOverlay.classList.add('hidden');
     
-    const controlPanel = document.querySelector('#control-panel');
-    const panelToggle = document.querySelector('#panel-toggle');
-    if (controlPanel) {
-      controlPanel.style.transition = '';
-      controlPanel.style.opacity = '';
-      controlPanel.style.pointerEvents = '';
-      controlPanel.style.transform = '';
-    }
-    if (panelToggle) {
-      panelToggle.style.opacity = '1';
-      panelToggle.style.pointerEvents = 'auto';
-    }
+    
 
     gsap.to(orbitControls.target, {
       x: initialTargetPos.x, y: initialTargetPos.y, z: initialTargetPos.z,
@@ -385,9 +251,9 @@ const boot = async () => {
           
           if (displayName.toLowerCase().includes('eingang')) {
             displayName = 'Willkommen';
-            // Kamera-Startposition: Etwas weiter oben (y+3.5) und nach hinten (z+6), um mit ~30 Grad nach unten zu schauen
+            // Kamera-Startposition: etwas dunkler und reingezoomt
             initialTargetPos.copy(position);
-            initialCameraPos.set(position.x, position.y + 3.5, position.z + 6);
+            initialCameraPos.set(position.x, position.y + 1.2, position.z + 3.5);
             camera.position.copy(initialCameraPos);
             orbitControls.target.copy(initialTargetPos);
             orbitControls.update();
@@ -397,26 +263,21 @@ const boot = async () => {
           label.className = 'splat-label';
           label.textContent = displayName;
           labelsContainer.appendChild(label);
+
+          label.addEventListener('mouseenter', () => {
+            const cursor = document.querySelector('#custom-cursor');
+            cursor?.classList.add('hovering');
+          });
+          label.addEventListener('mouseleave', () => {
+            const cursor = document.querySelector('#custom-cursor');
+            cursor?.classList.remove('hovering');
+          });
           
           label.addEventListener('click', () => {
             labelsContainer.style.pointerEvents = 'none';
             labelsContainer.style.opacity = '0';
             
-            const controlPanel = document.querySelector('#control-panel');
-            const panelToggle = document.querySelector('#panel-toggle');
-            if (controlPanel) {
-              controlPanel.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
-              controlPanel.style.opacity = '0';
-              controlPanel.style.pointerEvents = 'none';
-              if (!controlPanel.classList.contains('collapsed')) {
-                controlPanel.style.transform = 'translateX(-20px)';
-              }
-            }
-            if (panelToggle) {
-              panelToggle.style.transition = 'opacity 0.5s ease-out';
-              panelToggle.style.opacity = '0';
-              panelToggle.style.pointerEvents = 'none';
-            }
+            
             
             gsap.to(orbitControls.target, {
               x: position.x,
@@ -427,8 +288,8 @@ const boot = async () => {
             });
 
             const dir = new THREE.Vector3().subVectors(camera.position, orbitControls.target).normalize();
-            // Don't get closer than minDistance
-            const dist = Math.max(orbitControls.minDistance, 5); 
+            // Näher ranzoomen beim Klick, minDistance erlaubt es jetzt
+            const dist = Math.max(orbitControls.minDistance, 2.5); 
             const newPos = position.clone().add(dir.multiplyScalar(dist));
             
             gsap.to(camera.position, {
@@ -498,3 +359,42 @@ const boot = async () => {
 };
 
 void boot();
+
+// --- Custom Cursor Logic ---
+const cursor = document.querySelector('#custom-cursor');
+let isMouseDown = false;
+
+window.addEventListener('mousemove', (e) => {
+  if (cursor) {
+    cursor.style.left = `${e.clientX}px`;
+    cursor.style.top = `${e.clientY}px`;
+  }
+});
+
+window.addEventListener('mousedown', (e) => {
+  isMouseDown = true;
+  if(e.button === 0 || e.button === 2) {
+    cursor?.classList.add('rotating');
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  isMouseDown = false;
+  cursor?.classList.remove('rotating');
+});
+
+// Setup hovering logic dynamically for splat-labels
+const checkHover = () => {
+    const labels = document.querySelectorAll('.splat-label');
+    labels.forEach(l => {
+      l.addEventListener('mouseenter', () => cursor?.classList.add('hovering'));
+      l.addEventListener('mouseleave', () => cursor?.classList.remove('hovering'));
+    });
+    
+    const closeBtn = document.querySelector('#overlay-close');
+    if(closeBtn) {
+      closeBtn.addEventListener('mouseenter', () => cursor?.classList.add('hovering'));
+      closeBtn.addEventListener('mouseleave', () => cursor?.classList.remove('hovering'));
+    }
+}
+setTimeout(checkHover, 2500); // Check after labels get added
