@@ -245,9 +245,9 @@ const boot = async () => {
     if (isSplatSceneLoaded && viewer.splatMesh) {
       viewer.splatMesh.setSplatScale(STYLE_STATE.splatScale);
       
-      const flipX = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0), Math.PI);
-      const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), THREE.MathUtils.degToRad(STYLE_STATE.splatRotation));
-      viewer.splatMesh.quaternion.copy(flipX).premultiply(rotY);
+      const flipZ = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI);
+      const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(STYLE_STATE.splatRotation));
+      viewer.splatMesh.quaternion.copy(flipZ).premultiply(rotY);
     }
   };
 
