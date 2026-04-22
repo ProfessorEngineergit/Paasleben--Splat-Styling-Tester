@@ -14,13 +14,13 @@ const MOVE_BOUNDS = {
 };
 
 const STYLE_STATE = {
-  backgroundColor: '#121214',
-  paperTextureEnabled: false,
+  backgroundColor: '#0a0a0b',
+  paperTextureEnabled: true,
   textureTarget: 'viewport',
-  textureIntensity: 0.35,
+  textureIntensity: 0.15,
   sketchLookEnabled: true,
-  contrast: 1.15,
-  saturation: 0.85,
+  contrast: 1.25,
+  saturation: 0.75,
   splatScale: 1.4,
   splatRotation: -28,
 };
@@ -43,8 +43,7 @@ const boot = async () => {
 
   const viewport = root.querySelector('#viewport');
   const viewportWrapper = root.querySelector('#viewport-wrapper');
-  const loadState = root.querySelector('#load-state');
-  if (!viewport || !viewportWrapper || !loadState) return;
+  if (!viewport || !viewportWrapper) return;
 
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setClearColor(0x000000, 0); // Transparent renderer background
@@ -188,8 +187,9 @@ const boot = async () => {
     if (isSplatSceneLoaded && viewer.splatMesh) {
       viewer.splatMesh.setSplatScale(STYLE_STATE.splatScale);
       
+      const flipZ = new THREE.Quaternion(0, 0, 1, 0);
       const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(STYLE_STATE.splatRotation));
-      viewer.splatMesh.quaternion.copy(rotY);
+      viewer.splatMesh.quaternion.copy(flipZ).premultiply(rotY);
     }
   };
 
@@ -199,7 +199,7 @@ const boot = async () => {
   const labelsContainer = document.querySelector('#labels-container');
   const detailOverlay = document.querySelector('#detail-overlay');
 
-  let initialCameraPos = new THREE.Vector3(0, 0.5, 4);
+  let initialCameraPos = new THREE.Vector3(0, 0.4, 2.5);
   let initialTargetPos = new THREE.Vector3(0, 0, 0);
 
   document.querySelector('#overlay-close')?.addEventListener('click', () => {
@@ -253,7 +253,7 @@ const boot = async () => {
             displayName = 'Willkommen';
             // Kamera-Startposition: etwas dunkler und reingezoomt
             initialTargetPos.copy(position);
-            initialCameraPos.set(position.x, position.y + 1.2, position.z + 3.5);
+            initialCameraPos.set(position.x, position.y + 0.8, position.z + 2.5);
             camera.position.copy(initialCameraPos);
             orbitControls.target.copy(initialTargetPos);
             orbitControls.update();
@@ -319,13 +319,11 @@ const boot = async () => {
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
       position: [0, 0, 0],
-      rotation: [0.38268, 0, 0.92388, 0], // 45 Grad links + original 180 Z-Flip
+      rotation: [0, 0, 1, 0], // Base Z-Flip
       scale: [1.2, 1.2, 1.2],
     });
     isSplatSceneLoaded = true;
     applyStylingState();
-
-    loadState.textContent = 'Splat geladen';
 
     const animate = () => {
       orbitControls.update();
@@ -354,7 +352,7 @@ const boot = async () => {
 
     animate();
   } catch (error) {
-    loadState.textContent = `Fehler beim Laden: ${error instanceof Error ? error.message : 'Unbekannt'}`;
+    console.error(`Fehler beim Laden: ${error instanceof Error ? error.message : 'Unbekannt'}`);
   }
 };
 
