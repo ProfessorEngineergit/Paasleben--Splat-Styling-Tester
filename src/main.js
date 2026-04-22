@@ -14,13 +14,13 @@ const MOVE_BOUNDS = {
 };
 
 const STYLE_STATE = {
-  backgroundColor: '#0a0a0b',
+  backgroundColor: '#f5f5f0',
   paperTextureEnabled: true,
   textureTarget: 'viewport',
-  textureIntensity: 0.15,
-  sketchLookEnabled: true,
-  contrast: 1.25,
-  saturation: 0.75,
+  textureIntensity: 0.1,
+  sketchLookEnabled: false,
+  contrast: 1.05,
+  saturation: 1.05,
   splatScale: 1.4,
   splatRotation: -28,
 };
