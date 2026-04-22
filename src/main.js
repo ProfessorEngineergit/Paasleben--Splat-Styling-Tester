@@ -85,13 +85,16 @@ const boot = async () => {
   const resize = () => {
     const width = viewport.clientWidth;
     const height = viewport.clientHeight;
+    if (width === 0 || height === 0) return;
     camera.aspect = width / Math.max(height, 1);
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
   };
 
+  const resizeObserver = new ResizeObserver(() => resize());
+  resizeObserver.observe(viewport);
+
   resize();
-  window.addEventListener('resize', resize);
 
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
