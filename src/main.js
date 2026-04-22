@@ -186,10 +186,6 @@ const boot = async () => {
 
     if (isSplatSceneLoaded && viewer.splatMesh) {
       viewer.splatMesh.setSplatScale(STYLE_STATE.splatScale);
-      
-      const flipZ = new THREE.Quaternion(0, 0, 1, 0);
-      const rotY = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), THREE.MathUtils.degToRad(STYLE_STATE.splatRotation));
-      viewer.splatMesh.quaternion.copy(flipZ).premultiply(rotY);
     }
   };
 
@@ -314,12 +310,14 @@ const boot = async () => {
   });
 
   try {
+    const initRotRad = THREE.MathUtils.degToRad(-28);
+    const halfRad = initRotRad / 2;
     await viewer.addSplatScene(SCENE_SPLAT_PATH, {
       showLoadingUI: true,
       progressiveLoad: true,
       splatAlphaRemovalThreshold: 0,
       position: [0, 0, 0],
-      rotation: [0, 0, 1, 0], // Base Z-Flip
+      rotation: [Math.sin(halfRad), 0, Math.cos(halfRad), 0],
       scale: [1.2, 1.2, 1.2],
     });
     isSplatSceneLoaded = true;
