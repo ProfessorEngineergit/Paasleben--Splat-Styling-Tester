@@ -56,21 +56,7 @@ body {
   grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
 }
 
-#control-panel {
-  padding: 1.1rem 1rem;
-  background: linear-gradient(160deg, rgba(250, 248, 245, 0.97), rgba(240, 238, 235, 0.97));
-  border-right: 1px solid rgba(0, 0, 0, 0.08);
-  overflow-y: auto;
-  z-index: 10;
-  color: #333;
-}
 
-#control-panel h1 {
-  margin: 0 0 0.45rem;
-  font-size: 1.15rem;
-  font-weight: 700;
-  color: #1a1a1a;
-}
 
 #load-state {
   margin: 0 0 1rem;
@@ -162,17 +148,7 @@ body {
   opacity: var(--paper-opacity);
 }
 
-@media (max-width: 920px) {
-  #layout {
-    grid-template-columns: 1fr;
-    grid-template-rows: 42dvh 58dvh;
-  }
 
-  #control-panel {
-    border-right: 0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  }
-}
 
 #labels-container {
   position: absolute;
