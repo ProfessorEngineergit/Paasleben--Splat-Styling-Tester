@@ -1,5 +1,7 @@
 # Splat Viewer (vorläufig)
 
+JUST UPLOADED VERSION, NOT FINAL!!!
+
 Vorläufige Minimal-Version: Das Projekt rendert nur noch die Splat-Szene im Browser.
 
 ## Setup
