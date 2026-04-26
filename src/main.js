@@ -4,225 +4,97 @@ import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 
+import { PaasLoader } from './lib/paas-loader.js';
+import { PaasCursor } from './lib/paas-cursor.js';
+import { PaasPanel } from './lib/paas-panel.js';
+
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.splat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
 
-const SCENE_STYLE = {
-  paper: '#EBDBBC',
-  ink: '#191919',
-  coral: '#CC785C',
-  mist: '#F5F5F4',
-  contrast: 1.02,
-  saturation: 0.9,
-  splatScale: 1.28,
+const STYLE = {
+  bg: '#f4ecd8',
+  splatScale: 1.32,
   splatRotation: -28,
 };
 
-const HOME_CAMERA = {
-  position: { x: -4.6, y: 1.82, z: 4.05 },
+const REFERENCE_CAMERA = {
+  position: { x: -4.6, y: 1.79, z: 4.02 },
   target: { x: -2.85, y: 0.26, z: 2.8 },
 };
 
-const STORY = [
-  {
-    key: 'arrival',
-    eyebrow: 'I',
-    title: 'Ankommen',
-    short: 'Vom Alltag in ein langsameres Tempo.',
-    body: 'PAASLEBEN liegt in Grasleben und wirkt wie eine bewusste Schwelle: raus aus Meeting-Routinen, rein in ein Areal, das Fokus, Natur und Bewegung zusammenbringt.',
-  },
-  {
-    key: 'focus',
-    eyebrow: 'II',
-    title: 'Focus-Zeit',
-    short: 'Arbeiten am Wesentlichen.',
-    body: 'Die Website von Maren Paas beschreibt PAASLEBEN als Ort fur Focus-Zeiten, an dem Fuhrungsteams Abstand gewinnen, Prioritaten sortieren und Entscheidungen konzentriert vorbereiten.',
-  },
-  {
-    key: 'horses',
-    eyebrow: 'III',
-    title: 'Pferde & Resonanz',
-    short: 'Direktes Feedback ohne Rollenmaske.',
-    body: 'Maren Paas arbeitet im Coaching auch mit Pferden. Das passt zur 3D-Erfahrung: weniger erklaren, mehr beobachten, wie Haltung, Abstand und Aufmerksamkeit den Raum verandern.',
-  },
-  {
-    key: 'landart',
-    eyebrow: 'IV',
-    title: 'Skulpturen, Lofts, Land-Art',
-    short: 'Umbau als Haltung.',
-    body: 'Offentliche Retreat-Beschreibungen nennen aussergewohnliche Lofts, Skulpturen und Land-Art. Das Redesign nimmt diese kuratierte, fast kartografische Stimmung auf.',
-  },
-  {
-    key: 'offsite',
-    eyebrow: 'V',
-    title: 'Offsite',
-    short: 'Ein Ort fur Teams, die anders arbeiten wollen.',
-    body: 'Die Seite ist nun weniger Tester und mehr Einladung: ein interaktiver Lageplan fur von Maren Paas gecoachte Unternehmen, mit ruhiger Orientierung statt UI-Larm.',
-  },
-];
-
-const SPOT_COPY = [
-  {
-    name: 'Ankunft',
-    subtitle: 'Der erste Blick auf das Areal.',
-    chapters: ['Ankommen', 'Orientierung', 'Tempo wechseln'],
-  },
-  {
-    name: 'Focus-Haus',
-    subtitle: 'Raum fur Klarheit, Entscheidungen und Ruckzug.',
-    chapters: ['Konzentrieren', 'Sortieren', 'Entscheiden'],
-  },
-  {
-    name: 'Hof & Mitte',
-    subtitle: 'Der soziale Schwerpunkt zwischen Arbeit und Aufenthalt.',
-    chapters: ['Sammeln', 'Ubergange', 'Gesprache'],
-  },
-  {
-    name: 'Pferde-Zeit',
-    subtitle: 'Coaching im direkten Kontakt mit Resonanz.',
-    chapters: ['Wahrnehmung', 'Haltung', 'Feedback'],
-  },
-  {
-    name: 'Loft',
-    subtitle: 'Umbau, Gastlichkeit und Arbeitsruhe.',
-    chapters: ['Ruckzug', 'Material', 'Nacht'],
-  },
-  {
-    name: 'Land-Art',
-    subtitle: 'Skulpturen und Natur als offene Denkflache.',
-    chapters: ['Blickachsen', 'Spuren', 'Weite'],
-  },
-];
-
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-const roman = (index) => ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'][index] ?? `${index + 1}`;
-
-const normalizeName = (rawName, index) => {
-  const fallback = SPOT_COPY[index % SPOT_COPY.length].name;
-  const cleaned = (rawName || fallback).replace(/[\s_.-]*\d+$/, '').trim();
-  if (!cleaned) return fallback;
-  if (cleaned.toLowerCase().includes('eingang')) return 'Ankunft';
-  return cleaned;
+const MOVE_BOUNDS = {
+  minX: -3.5, maxX: 3.5, minZ: -3.5, maxZ: 3.5,
 };
 
-const buildSpotNarrative = (spot, index) => {
-  const template = SPOT_COPY[index % SPOT_COPY.length];
-  const chapters = template.chapters.map((title, chapterIndex) => ({
-    title,
-    text: [
-      `${spot.name} markiert einen Lesepunkt im 3D-Raum.`,
-      STORY[(index + chapterIndex) % STORY.length].body,
-      'Die Kamerafahrt bleibt bewusst ruhig, damit die Materialitat der Splat-Szene und die Orientierung im Areal im Vordergrund stehen.',
-    ].join(' '),
-  }));
+const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const COARSE_POINTER = matchMedia('(pointer: coarse)').matches;
 
-  return chapters;
+const STANDPUNKT_SUBLINES = [
+  'Ankommen, orientieren, Blickachsen lesen.',
+  'Materialität, Licht und Bewegung in Balance.',
+  'Raumkanten, Übergänge und Aufenthaltsqualität.',
+  'Rhythmus aus Wegeführung, Dichte und Öffnung.',
+  'Fokuspunkt mit klarer Lesbarkeit der Szene.',
+];
+
+const STORY_PARAGRAPHS = [
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus efficitur, turpis vitae fringilla volutpat, lectus massa posuere mi, id facilisis purus sem et ante.',
+  'Praesent at nulla ac lacus dictum tempor. Integer pharetra varius mi, sed cursus arcu efficitur eget. Quisque ultricies libero nec justo pretium, sit amet ullamcorper arcu eleifend.',
+  'Suspendisse potenti. Morbi quis turpis eget lorem pulvinar tincidunt. Nunc cursus ligula eget arcu aliquet, sed efficitur leo dignissim. Cras id lorem viverra, feugiat elit non.',
+  'Donec in justo sem. Integer porta, magna non tristique fermentum, purus tortor facilisis tortor, non gravida urna eros in urna.',
+];
+
+const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+const buildBody = (idx) => {
+  const a = STORY_PARAGRAPHS[idx % STORY_PARAGRAPHS.length];
+  const b = STORY_PARAGRAPHS[(idx + 1) % STORY_PARAGRAPHS.length];
+  const c = STORY_PARAGRAPHS[(idx + 2) % STORY_PARAGRAPHS.length];
+  return `${a}\n\n${b}\n\n${c}`;
+};
+
+const cleanName = (raw) => {
+  let name = (raw || 'Standpunkt').replace(/[\s_.]*\d+$/, '').trim();
+  if (!name) name = 'Standpunkt';
+  if (name.toLowerCase().includes('eingang')) name = 'Willkommen';
+  return name;
 };
 
 const boot = async () => {
   const root = document.querySelector('#app');
-  if (!root) return;
+  const viewport = document.querySelector('#viewport');
+  const sceneVeil = document.querySelector('.scene-veil');
+  const markerLayer = document.querySelector('#marker-layer');
+  if (!root || !viewport || !sceneVeil || !markerLayer) return;
 
-  root.innerHTML = `
-    <div id="experience-shell">
-      <div class="paper-field" aria-hidden="true"></div>
+  // ── Loader ─────────────────────────────
+  const manager = new THREE.LoadingManager();
+  const loader = new PaasLoader({
+    text: 'Ein Ort zum Atmen. Ein Ort für Skulpturen.',
+    manager,
+  });
 
-      <header id="topbar">
-        <button id="menu-button" class="map-word-button" type="button" aria-label="Ortskapitel anzeigen">
-          <span>ME</span><span>NU</span>
-        </button>
-        <p class="topbar-location">Grasleben · Naturareal · Offsite</p>
-        <button id="map-button" class="map-word-button map-word-button-right" type="button" aria-label="Standorte anzeigen">
-          <span>CARTE</span>
-        </button>
-      </header>
-
-      <section id="scene-stage" aria-label="Interaktive 3D-Karte von PAASLEBEN">
-        <div id="viewport-wrapper">
-          <div id="viewport"></div>
-          <div id="labels-container"></div>
-        </div>
-
-        <article id="intro-panel" class="editorial-panel">
-          <p class="eyebrow">PAASLEBEN</p>
-          <h1>Ein Ort fur Fokus, Natur und Fuhrung.</h1>
-          <p>
-            Interaktive 3D-Erkundung des umgebauten Areals in Grasleben: Offsites,
-            Focus-Zeiten, Coaching mit Pferden und ein Ort, an dem Arbeit Abstand bekommt.
-          </p>
-          <div class="fact-row" aria-label="Kurzprofil">
-            <span>Focus-Zeit</span>
-            <span>Pferde-Zeit</span>
-            <span>Land-Art</span>
-          </div>
-          <div class="panel-actions">
-            <button id="start-tour" class="primary-action" type="button">Rundgang</button>
-            <button id="reset-view" class="line-action" type="button">Ansicht resetten</button>
-          </div>
-        </article>
-
-        <nav id="chapter-rail" aria-label="PAASLEBEN Kapitel"></nav>
-
-        <aside id="place-sheet" aria-label="Standorte und Kontext">
-          <div class="sheet-header">
-            <p class="eyebrow">Standorte</p>
-            <button id="sheet-close" class="icon-button" type="button" aria-label="Standortliste schliessen">×</button>
-          </div>
-          <div id="spot-list"></div>
-          <article id="spot-detail">
-            <p class="detail-index">I</p>
-            <h2>PAASLEBEN lesen</h2>
-            <p>Wahle einen Punkt in der Szene oder links in der Liste. Die Kamera bewegt sich sanft zum Standort, der Text ordnet den Ort ein.</p>
-          </article>
-        </aside>
-
-        <footer id="map-scale" aria-hidden="true">
-          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-        </footer>
-      </section>
-    </div>
-  `;
-
-  const viewport = root.querySelector('#viewport');
-  const labelsContainer = root.querySelector('#labels-container');
-  const spotList = root.querySelector('#spot-list');
-  const spotDetail = root.querySelector('#spot-detail');
-  const chapterRail = root.querySelector('#chapter-rail');
-  const placeSheet = root.querySelector('#place-sheet');
-  const menuButton = root.querySelector('#menu-button');
-  const mapButton = root.querySelector('#map-button');
-  const sheetClose = root.querySelector('#sheet-close');
-  const startTourButton = root.querySelector('#start-tour');
-  const resetViewButton = root.querySelector('#reset-view');
-
-  if (
-    !(viewport instanceof HTMLElement)
-    || !(labelsContainer instanceof HTMLElement)
-    || !(spotList instanceof HTMLElement)
-    || !(spotDetail instanceof HTMLElement)
-    || !(chapterRail instanceof HTMLElement)
-    || !(placeSheet instanceof HTMLElement)
-  ) return;
-
+  // ── Renderer / Camera ──────────────────
   const renderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
     powerPreference: 'high-performance',
   });
-
-  renderer.setClearColor(SCENE_STYLE.paper, 0);
+  renderer.setClearColor(STYLE.bg, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.domElement.setAttribute('aria-label', 'Interaktive 3D-Ansicht von PAASLEBEN');
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
 
-  let currentPixelRatio = Math.min(window.devicePixelRatio, 1.35);
-  const minPixelRatio = 0.72;
-  const maxPixelRatio = Math.min(window.devicePixelRatio, 1.55);
-  renderer.setPixelRatio(currentPixelRatio);
+  let pixelRatio = Math.min(window.devicePixelRatio, COARSE_POINTER ? 1.5 : 2);
+  renderer.setPixelRatio(pixelRatio);
   viewport.appendChild(renderer.domElement);
 
-  const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 500);
-  camera.position.set(HOME_CAMERA.position.x, HOME_CAMERA.position.y, HOME_CAMERA.position.z);
+  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 500);
+  camera.position.set(
+    REFERENCE_CAMERA.position.x,
+    REFERENCE_CAMERA.position.y,
+    REFERENCE_CAMERA.position.z,
+  );
 
   const viewer = new GaussianSplats3D.Viewer({
     selfDrivenMode: false,
@@ -233,403 +105,497 @@ const boot = async () => {
     sharedMemoryForWorkers: false,
     sceneRevealMode: GaussianSplats3D.SceneRevealMode.Instant,
   });
-
   viewer.showInfo = false;
   viewer.showMeshCursor = false;
   viewer.infoPanel?.hide();
 
-  const controls = new GaussianSplats3D.OrbitControls(camera, renderer.domElement);
-  controls.target.set(HOME_CAMERA.target.x, HOME_CAMERA.target.y, HOME_CAMERA.target.z);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.08;
-  controls.enableZoom = true;
-  controls.enablePan = true;
-  controls.rotateSpeed = 0.48;
-  controls.zoomSpeed = 0.72;
-  controls.panSpeed = 0.42;
-  controls.minDistance = 1.45;
-  controls.maxDistance = 10;
-  controls.minPolarAngle = Math.PI * 0.22;
-  controls.maxPolarAngle = Math.PI * 0.76;
-  controls.mouseButtons = {
-    LEFT: THREE.MOUSE.ROTATE,
-    MIDDLE: THREE.MOUSE.DOLLY,
-    RIGHT: THREE.MOUSE.PAN,
-  };
-  controls.touches = {
-    ONE: THREE.TOUCH.ROTATE,
-    TWO: THREE.TOUCH.DOLLY_PAN,
-  };
-  controls.update();
+  if (viewer.scene && viewer.scene.fog === null) {
+    // some Viewer versions expose .scene only after add; safe-guard:
+    try { viewer.scene.fog = new THREE.Fog(0xf4ecd8, 8, 30); } catch {}
+  }
 
-  const homeCameraPosition = camera.position.clone();
-  const homeTargetPosition = controls.target.clone();
-  const up = new THREE.Vector3(0, 1, 0);
-  const labelProjection = new THREE.Vector3();
-  const labelsToUpdate = [];
-  const spots = [];
+  const orbit = new GaussianSplats3D.OrbitControls(camera, renderer.domElement);
+  orbit.target.set(REFERENCE_CAMERA.target.x, REFERENCE_CAMERA.target.y, REFERENCE_CAMERA.target.z);
+  orbit.enableDamping = true;
+  orbit.enableZoom = false;
+  orbit.enablePan = false;
+  orbit.minDistance = 1.5;
+  orbit.maxDistance = 14;
+  orbit.minPolarAngle = Math.PI * 0.28;
+  orbit.maxPolarAngle = Math.PI * 0.495; // never go below horizon
+  orbit.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.ROTATE,
+  };
+  orbit.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  orbit.update();
+
+  const cameraHome = {
+    position: camera.position.clone(),
+    target: orbit.target.clone(),
+  };
 
   let renderInvalidated = true;
-  let isLoaded = false;
-  let isTweening = false;
-  let activeSpotId = null;
-  let activeChapter = 0;
+  const invalidate = () => { renderInvalidated = true; };
 
-  const invalidate = () => {
-    renderInvalidated = true;
+  const lastCamPos = camera.position.clone();
+  const lastTarget = orbit.target.clone();
+  const lastQuat = camera.quaternion.clone();
+  const hasViewChanged = () => {
+    const a = camera.position.distanceToSquared(lastCamPos) > 1e-7;
+    const b = orbit.target.distanceToSquared(lastTarget) > 1e-7;
+    const c = 1 - Math.abs(camera.quaternion.dot(lastQuat)) > 1e-8;
+    if (a) lastCamPos.copy(camera.position);
+    if (b) lastTarget.copy(orbit.target);
+    if (c) lastQuat.copy(camera.quaternion);
+    return a || b || c;
   };
 
   const resize = () => {
-    const width = viewport.clientWidth;
-    const height = viewport.clientHeight;
-    if (width < 2 || height < 2) return;
-
-    camera.aspect = width / height;
+    const w = viewport.clientWidth;
+    const h = viewport.clientHeight;
+    if (!w || !h) return;
+    camera.aspect = w / h;
     camera.updateProjectionMatrix();
-    renderer.setSize(width, height, false);
+    renderer.setSize(w, h, false);
     invalidate();
   };
-
   new ResizeObserver(resize).observe(viewport);
+  window.addEventListener('orientationchange', () => setTimeout(resize, 100));
   resize();
 
-  const applySceneStyling = () => {
-    viewport.style.backgroundColor = SCENE_STYLE.paper;
-    renderer.domElement.style.filter = `contrast(${SCENE_STYLE.contrast}) saturate(${SCENE_STYLE.saturation})`;
-  };
+  // ── Pan-only drag (no rotate, like before) ─────
+  const previousPointer = new THREE.Vector2();
+  let isDragging = false;
+  let interactionLocked = true; // unlocked when loader done
+  const forward = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
 
-  const applySplatTransform = () => {
-    if (!viewer.splatMesh) return;
-    viewer.splatMesh.quaternion.setFromAxisAngle(up, THREE.MathUtils.degToRad(SCENE_STYLE.splatRotation));
-    viewer.splatMesh.setSplatScale(SCENE_STYLE.splatScale);
+  const applyPan = (dx, dy) => {
+    forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    forward.y = 0;
+    if (forward.lengthSq() < 1e-8) return;
+    forward.normalize();
+    right.copy(up).cross(forward).normalize();
+
+    const move = new THREE.Vector3();
+    move.addScaledVector(right, dx * 0.01);
+    move.addScaledVector(forward, dy * 0.012);
+
+    const prev = orbit.target.clone();
+    orbit.target.add(move);
+    orbit.target.set(
+      clamp(orbit.target.x, MOVE_BOUNDS.minX, MOVE_BOUNDS.maxX),
+      orbit.target.y,
+      clamp(orbit.target.z, MOVE_BOUNDS.minZ, MOVE_BOUNDS.maxZ),
+    );
+    camera.position.add(orbit.target.clone().sub(prev));
     invalidate();
   };
 
-  const setActiveChapter = (index) => {
-    activeChapter = index;
-    root.style.setProperty('--chapter-progress', `${index / Math.max(STORY.length - 1, 1)}`);
-    chapterRail.querySelectorAll('.chapter-button').forEach((button, buttonIndex) => {
-      button.classList.toggle('active', buttonIndex === index);
-    });
+  renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    if (interactionLocked) return;
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    isDragging = true;
+    previousPointer.set(e.clientX, e.clientY);
+    try { renderer.domElement.setPointerCapture(e.pointerId); } catch {}
+  });
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (!isDragging || interactionLocked) return;
+    const dx = e.clientX - previousPointer.x;
+    const dy = e.clientY - previousPointer.y;
+    previousPointer.set(e.clientX, e.clientY);
+    applyPan(dx, dy);
+  });
+  const stop = (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
   };
+  renderer.domElement.addEventListener('pointerup', stop);
+  renderer.domElement.addEventListener('pointercancel', stop);
 
-  const focusHome = () => {
-    isTweening = true;
-    activeSpotId = null;
-    labelsContainer.classList.remove('labels-muted');
-    spotList.querySelectorAll('.spot-button').forEach((button) => button.classList.remove('active'));
+  // ── Standpoints / Markers ──────────────
+  const standpoints = []; // { id, marker, name, subtitle, body, world: Vector3 }
+  const markers = [];     // { data, el }
+  const projTmp = new THREE.Vector3();
 
-    gsap.killTweensOf(camera.position);
-    gsap.killTweensOf(controls.target);
-
-    gsap.to(controls.target, {
-      x: homeTargetPosition.x,
-      y: homeTargetPosition.y,
-      z: homeTargetPosition.z,
-      duration: 1.2,
-      ease: 'power2.inOut',
-      onUpdate: invalidate,
-    });
-
-    gsap.to(camera.position, {
-      x: homeCameraPosition.x,
-      y: homeCameraPosition.y,
-      z: homeCameraPosition.z,
-      duration: 1.2,
-      ease: 'power2.inOut',
-      onUpdate: () => {
-        controls.update();
-        invalidate();
-      },
-      onComplete: () => {
-        isTweening = false;
-      },
-    });
-  };
-
-  const renderSpotDetail = (spot) => {
-    spotDetail.innerHTML = `
-      <p class="detail-index">${spot.marker}</p>
-      <h2>${spot.name}</h2>
-      <p>${spot.subtitle}</p>
-      <div class="detail-chapters">
-        ${spot.chapters.map((chapter) => `
-          <section>
-            <h3>${chapter.title}</h3>
-            <p>${chapter.text}</p>
-          </section>
-        `).join('')}
-      </div>
+  const buildMarkerEl = (sp) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'schild-marker';
+    btn.dataset.marker = '';
+    btn.dataset.id = sp.id;
+    btn.setAttribute('aria-label', `${sp.marker} — ${sp.name} — öffnen`);
+    btn.innerHTML = `
+      <span class="sm-card">
+        <span class="sm-num">Nr. ${sp.marker}</span>
+        <span class="sm-title">${sp.name}</span>
+      </span>
+      <span class="sm-stem" aria-hidden="true"></span>
+      <span class="sm-dot" aria-hidden="true"></span>
     `;
-  };
-
-  const openSheet = () => {
-    placeSheet.classList.add('open');
-    document.body.classList.add('sheet-open');
-  };
-
-  const closeSheet = () => {
-    placeSheet.classList.remove('open');
-    document.body.classList.remove('sheet-open');
-  };
-
-  const focusSpot = (spot, options = {}) => {
-    if (!spot) return;
-
-    const { open = true } = options;
-    activeSpotId = spot.id;
-    labelsContainer.classList.add('labels-muted');
-    renderSpotDetail(spot);
-    if (open) openSheet();
-
-    spotList.querySelectorAll('.spot-button').forEach((button) => {
-      button.classList.toggle('active', button.getAttribute('data-spot-id') === spot.id);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openStandpoint(sp);
     });
-
-    const currentDirection = new THREE.Vector3().subVectors(camera.position, controls.target);
-    if (currentDirection.lengthSq() < 1e-7) currentDirection.set(0.2, 0.16, 1);
-    currentDirection.normalize();
-
-    const targetPosition = spot.position.clone();
-    const distance = window.matchMedia('(max-width: 760px)').matches ? 3.15 : 2.55;
-    const nextCameraPosition = targetPosition.clone().add(currentDirection.multiplyScalar(distance));
-    nextCameraPosition.y = Math.max(nextCameraPosition.y, targetPosition.y + 0.7);
-
-    isTweening = true;
-    gsap.killTweensOf(camera.position);
-    gsap.killTweensOf(controls.target);
-
-    gsap.to(controls.target, {
-      x: targetPosition.x,
-      y: targetPosition.y,
-      z: targetPosition.z,
-      duration: 1.05,
-      ease: 'power2.inOut',
-      onUpdate: invalidate,
-    });
-
-    gsap.to(camera.position, {
-      x: nextCameraPosition.x,
-      y: nextCameraPosition.y,
-      z: nextCameraPosition.z,
-      duration: 1.05,
-      ease: 'power2.inOut',
-      onUpdate: () => {
-        controls.update();
-        invalidate();
-      },
-      onComplete: () => {
-        isTweening = false;
-      },
-    });
-  };
-
-  const createSpotButton = (spot) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'spot-button';
-    button.setAttribute('data-spot-id', spot.id);
-    button.innerHTML = `
-      <span>${spot.marker}</span>
-      <strong>${spot.name}</strong>
-      <small>${spot.subtitle}</small>
-    `;
-    button.addEventListener('click', () => focusSpot(spot, { open: true }));
-    return button;
-  };
-
-  const renderSpotList = () => {
-    spotList.innerHTML = '';
-    spots.forEach((spot) => spotList.appendChild(createSpotButton(spot)));
-  };
-
-  const renderChapterRail = () => {
-    chapterRail.innerHTML = STORY.map((chapter, index) => `
-      <button class="chapter-button${index === activeChapter ? ' active' : ''}" type="button" data-chapter="${index}">
-        <span>${chapter.eyebrow}</span>
-        <strong>${chapter.title}</strong>
-      </button>
-    `).join('');
-
-    chapterRail.querySelectorAll('.chapter-button').forEach((button) => {
-      button.addEventListener('click', () => {
-        const index = Number(button.getAttribute('data-chapter') ?? 0);
-        setActiveChapter(index);
-        spotDetail.innerHTML = `
-          <p class="detail-index">${STORY[index].eyebrow}</p>
-          <h2>${STORY[index].title}</h2>
-          <p>${STORY[index].short}</p>
-          <div class="detail-chapters">
-            <section>
-              <h3>Kontext</h3>
-              <p>${STORY[index].body}</p>
-            </section>
-          </div>
-        `;
-        openSheet();
-      });
-    });
-  };
-
-  const updateLabels = () => {
-    const widthHalf = viewport.clientWidth / 2;
-    const heightHalf = viewport.clientHeight / 2;
-
-    for (const labelEntry of labelsToUpdate) {
-      labelProjection.copy(labelEntry.worldPosition).project(camera);
-
-      if (labelProjection.z > 1 || labelProjection.z < -1) {
-        labelEntry.element.hidden = true;
-        continue;
+    btn.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openStandpoint(sp);
       }
+    });
+    markerLayer.appendChild(btn);
+    return btn;
+  };
 
-      labelEntry.element.hidden = false;
-      const x = labelProjection.x * widthHalf + widthHalf;
-      const y = -labelProjection.y * heightHalf + heightHalf;
-      labelEntry.element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      labelEntry.element.classList.toggle('active', labelEntry.spotId === activeSpotId);
+  const updateMarkers = () => {
+    const w = renderer.domElement.clientWidth;
+    const h = renderer.domElement.clientHeight;
+    for (const m of markers) {
+      projTmp.copy(m.data.world).project(camera);
+      const visible = projTmp.z < 1 && projTmp.z > -1;
+      const x = (projTmp.x * 0.5 + 0.5) * w;
+      const y = (-projTmp.y * 0.5 + 0.5) * h;
+      m.el.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
+      m.el.style.opacity = visible ? '1' : '0';
+      m.el.style.pointerEvents = visible ? 'auto' : 'none';
     }
   };
 
-  menuButton?.addEventListener('click', () => {
-    setActiveChapter(activeChapter);
-    openSheet();
-  });
+  // marker / cursor update loop independent from render
+  let markerRaf = 0;
+  const tickMarkers = () => {
+    updateMarkers();
+    markerRaf = requestAnimationFrame(tickMarkers);
+  };
 
-  mapButton?.addEventListener('click', () => {
-    openSheet();
-  });
+  // ── Panel + camera tween ───────────────
+  const panel = new PaasPanel({ sceneVeil });
 
-  sheetClose?.addEventListener('click', closeSheet);
-  startTourButton?.addEventListener('click', () => {
-    setActiveChapter(0);
-    if (spots[0]) focusSpot(spots[0], { open: true });
-    else openSheet();
-  });
-  resetViewButton?.addEventListener('click', focusHome);
+  // Inject fold-line shape + close button INSIDE the head, directly above the title.
+  const head = panel.el.querySelector('.pp-head');
+  const folds = document.createElement('div');
+  folds.className = 'pp-folds';
+  folds.innerHTML = `
+    <svg class="pp-folds-svg" viewBox="0 0 1600 110" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs>
+        <filter id="pp-folds-shadow" x="-2%" y="-50%" width="104%" height="200%">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="1.2" />
+          <feOffset dx="0" dy="1.5" result="off" />
+          <feComponentTransfer><feFuncA type="linear" slope="0.45" /></feComponentTransfer>
+          <feMerge>
+            <feMergeNode />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#pp-folds-shadow)">
+        <path d="M 0 100 L 360 18 L 1240 18 L 1600 100"
+              fill="none" stroke="#f4ecd8" stroke-width="4"
+              stroke-linejoin="round" stroke-linecap="round"
+              vector-effect="non-scaling-stroke" />
+      </g>
+    </svg>
+  `;
+  if (head) head.insertBefore(folds, head.firstChild);
 
-  window.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeSheet();
-  });
+  const closeBtn = panel.el.querySelector('.pp-close');
+  if (closeBtn) {
+    closeBtn.setAttribute('aria-label', 'Schließen');
+    closeBtn.innerHTML = '<span class="pp-close-label">SCHLIESSEN</span>';
+    if (head) head.insertBefore(closeBtn, folds.nextSibling);
+  }
 
-  renderChapterRail();
-  applySceneStyling();
+  // Auto-collapse when user scrolls back to top and tries to go further up
+  const scrollEl = panel.el.querySelector('.pp-scroll');
+  let lastScrollTop = 0;
+  scrollEl.addEventListener('wheel', (e) => {
+    if (scrollEl.scrollTop <= 2 && e.deltaY < -8) {
+      panel.close();
+    }
+  }, { passive: true });
+  // Touch overscroll: close when at top and dragging further down
+  let touchStartY = 0;
+  scrollEl.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, { passive: true });
+  scrollEl.addEventListener('touchmove', (e) => {
+    const dy = e.touches[0].clientY - touchStartY;
+    if (scrollEl.scrollTop <= 2 && dy > 60) panel.close();
+  }, { passive: true });
 
-  try {
-    await viewer.addSplatScene(SCENE_SPLAT_PATH, {
-      showLoadingUI: false,
-      progressiveLoad: true,
-      splatAlphaRemovalThreshold: 0,
-      position: [0, 0, 0],
-      rotation: [
-        Math.sin(THREE.MathUtils.degToRad(SCENE_STYLE.splatRotation) / 2),
-        0,
-        Math.cos(THREE.MathUtils.degToRad(SCENE_STYLE.splatRotation) / 2),
-        0,
-      ],
-      scale: [1.2, 1.2, 1.2],
+  const tweenCameraTo = (worldPos, opts = {}) => {
+    const dur = REDUCED_MOTION ? 0.001 : (opts.duration ?? 1.1);
+    const dir = new THREE.Vector3().subVectors(camera.position, orbit.target).normalize();
+    if (dir.lengthSq() < 1e-7) dir.set(0.1, 0.2, 1).normalize();
+    const dist = Math.max(orbit.minDistance + 1.2, 2.8);
+    const next = worldPos.clone().add(dir.multiplyScalar(dist));
+
+    gsap.killTweensOf(camera.position);
+    gsap.killTweensOf(orbit.target);
+    gsap.to(camera.position, {
+      x: next.x, y: next.y, z: next.z,
+      duration: dur, ease: 'power3.inOut',
+      onUpdate: invalidate,
     });
+    gsap.to(orbit.target, {
+      x: worldPos.x, y: worldPos.y, z: worldPos.z,
+      duration: dur, ease: 'power3.inOut',
+      onUpdate: invalidate,
+    });
+  };
 
-    isLoaded = true;
-    applySplatTransform();
+  const tweenCameraHome = () => {
+    const dur = REDUCED_MOTION ? 0.001 : 1.2;
+    gsap.killTweensOf(camera.position);
+    gsap.killTweensOf(orbit.target);
+    gsap.to(camera.position, {
+      x: cameraHome.position.x, y: cameraHome.position.y, z: cameraHome.position.z,
+      duration: dur, ease: 'power3.inOut', onUpdate: invalidate,
+    });
+    gsap.to(orbit.target, {
+      x: cameraHome.target.x, y: cameraHome.target.y, z: cameraHome.target.z,
+      duration: dur, ease: 'power3.inOut', onUpdate: invalidate,
+    });
+  };
 
-    const loader = document.querySelector('#loading-overlay');
-    if (loader instanceof HTMLElement) loader.classList.add('hidden');
+  let activeIndex = -1;
 
-    const gltfLoader = new GLTFLoader();
-    gltfLoader.load(MODEL_PATH, (gltf) => {
+  const openStandpoint = (sp) => {
+    const idx = standpoints.indexOf(sp);
+    if (idx >= 0) activeIndex = idx;
+    const data = {
+      caption: `STANDPUNKT · ${sp.marker}`,
+      title: sp.name.toUpperCase(),
+      meta: [
+        { label: 'KAPITEL', value: sp.marker },
+        { label: 'CHARAKTER', value: sp.subtitle },
+        { label: 'ORT', value: 'PAASLEBEN · GARTEN' },
+      ],
+      body: sp.body,
+      image: null,
+    };
+    // 1) fly camera, 2) when tween is decelerating, slide panel up
+    const dur = REDUCED_MOTION ? 0.001 : 1.2;
+    tweenCameraTo(sp.world, { duration: dur });
+    // open panel just as the tween enters its slow-down phase (~70% in)
+    const delay = REDUCED_MOTION ? 0 : Math.max(0, dur * 700 - 50);
+    setTimeout(() => panel.open(data), delay);
+  };
+
+  // panel.close stays as-is — camera remains at the standpoint after closing
+
+  const openByIndex = (idx) => {
+    if (interactionLocked) return;
+    if (idx < 0 || idx >= standpoints.length) return;
+    openStandpoint(standpoints[idx]);
+  };
+
+  // ── Click-to-close on transparent top zone of glass ──
+  // While the panel is open and still in glass-phase (reveal < ~0.5),
+  // clicking the still-clear upper area (outside the title block) closes it.
+  const closeZone = document.createElement('div');
+  closeZone.className = 'pp-close-zone';
+  closeZone.setAttribute('aria-label', 'Schließen — auf den durchsichtigen Bereich tippen');
+  panel.el.appendChild(closeZone);
+  closeZone.addEventListener('click', () => {
+    const r = parseFloat(panel.el.style.getPropertyValue('--reveal') || '0');
+    if (r < 0.5) panel.close();
+  });
+
+  // ── Global Hotkeys ──
+  let helpVisible = false;
+  const toggleHelp = (force) => {
+    helpVisible = force ?? !helpVisible;
+    document.body.classList.toggle('show-help', helpVisible);
+  };
+
+  window.addEventListener('keydown', (e) => {
+    // Ignore when typing in inputs
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    // Number keys 1..9 → open standpoint by index
+    if (e.key >= '1' && e.key <= '9') {
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx < standpoints.length) {
+        e.preventDefault();
+        openByIndex(idx);
+      }
+      return;
+    }
+
+    // Arrow keys: cycle prev/next standpoint when one is active
+    if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && standpoints.length) {
+      e.preventDefault();
+      if (activeIndex < 0) activeIndex = 0;
+      else activeIndex = (activeIndex + (e.key === 'ArrowRight' ? 1 : standpoints.length - 1)) % standpoints.length;
+      openByIndex(activeIndex);
+      return;
+    }
+
+    // H → home (close panel + return camera)
+    if (e.key === 'h' || e.key === 'H') {
+      e.preventDefault();
+      panel.close();
+      tweenCameraHome();
+      activeIndex = -1;
+      return;
+    }
+
+    // ? or / → toggle help overlay
+    if (e.key === '?' || (e.key === '/' && !e.shiftKey)) {
+      e.preventDefault();
+      toggleHelp();
+      return;
+    }
+  });
+
+  // Quietly hide help if mouse moves
+  document.addEventListener('mousemove', () => {
+    if (helpVisible) toggleHelp(false);
+  }, { once: false });
+
+  // ── Cursor (desktop only) ──────────────
+  const cursor = new PaasCursor({
+    magneticTargets: () => document.querySelectorAll('[data-marker]'),
+    magneticRadius: 70,
+  });
+  cursor.mount();
+
+  // ── Asset load ─────────────────────────
+  const startLoadAssets = async () => {
+    // hand-tracked items — splat + glb under sprechende Namen
+    manager.itemStart('Szene · Splat');
+    manager.itemStart('Standpunkte · Modell');
+
+    let splatLoaded = false;
+    let gltfLoaded = false;
+    const tryProgress = () => {
+      const total = 2;
+      const done = (splatLoaded ? 1 : 0) + (gltfLoaded ? 1 : 0);
+      loader.setProgress(done / total, splatLoaded && !gltfLoaded ? 'Standpunkte · Modell' : 'Szene · Splat');
+    };
+
+    try {
+      await viewer.addSplatScene(SCENE_SPLAT_PATH, {
+        showLoadingUI: false,
+        progressiveLoad: true,
+        splatAlphaRemovalThreshold: 0,
+        position: [0, 0, 0],
+        rotation: [
+          Math.sin(THREE.MathUtils.degToRad(STYLE.splatRotation) / 2),
+          0,
+          Math.cos(THREE.MathUtils.degToRad(STYLE.splatRotation) / 2),
+          0,
+        ],
+        scale: [1.2, 1.2, 1.2],
+      });
+      if (viewer.splatMesh) {
+        viewer.splatMesh.setSplatScale(STYLE.splatScale);
+      }
+      splatLoaded = true;
+      manager.itemEnd('Szene · Splat');
+      tryProgress();
+      invalidate();
+    } catch (err) {
+      console.error('Splat-Ladefehler:', err);
+      splatLoaded = true;
+      manager.itemEnd('Szene · Splat');
+      tryProgress();
+    }
+
+    try {
+      const gltfLoader = new GLTFLoader(manager);
+      const gltf = await new Promise((res, rej) => gltfLoader.load(MODEL_PATH, res, undefined, rej));
       gltf.scene.rotation.y = -Math.PI / 2;
-      viewer.scene?.add(gltf.scene);
+      if (viewer.scene) viewer.scene.add(gltf.scene);
       gltf.scene.updateMatrixWorld(true);
 
+      let i = 0;
       gltf.scene.traverse((node) => {
         if (!node.isMesh) return;
         node.visible = false;
-
-        const index = spots.length;
-        const position = new THREE.Vector3();
-        node.getWorldPosition(position);
-
-        const copy = SPOT_COPY[index % SPOT_COPY.length];
-        const spot = {
-          id: `spot-${index + 1}`,
-          marker: roman(index),
-          name: normalizeName(node.name, index),
-          subtitle: copy.subtitle,
-          position: position.clone(),
-          chapters: [],
+        const pos = new THREE.Vector3();
+        node.getWorldPosition(pos);
+        const idx = standpoints.length;
+        const sp = {
+          id: `sp-${idx + 1}`,
+          marker: String(idx + 1).padStart(2, '0'),
+          name: cleanName(node.name),
+          subtitle: STANDPUNKT_SUBLINES[idx % STANDPUNKT_SUBLINES.length],
+          body: buildBody(idx),
+          world: pos.clone(),
         };
-        spot.chapters = buildSpotNarrative(spot, index);
-        spots.push(spot);
-
-        const label = document.createElement('button');
-        label.type = 'button';
-        label.className = 'splat-label';
-        label.innerHTML = `<span>${spot.marker}</span><strong>${spot.name}</strong>`;
-        label.addEventListener('click', () => focusSpot(spot, { open: true }));
-
-        labelsContainer.appendChild(label);
-        labelsToUpdate.push({
-          element: label,
-          worldPosition: position.clone(),
-          spotId: spot.id,
-        });
+        standpoints.push(sp);
+        const el = buildMarkerEl(sp);
+        markers.push({ data: sp, el });
+        i++;
       });
 
-      renderSpotList();
+      gltfLoaded = true;
+      manager.itemEnd('Standpunkte · Modell');
+      tryProgress();
       invalidate();
-    });
-  } catch (error) {
-    const loader = document.querySelector('#loading-overlay');
-    if (loader instanceof HTMLElement) {
-      loader.querySelector('p').textContent = 'Die 3D-Szene konnte nicht geladen werden.';
+    } catch (err) {
+      console.error('GLB-Ladefehler:', err);
+      gltfLoaded = true;
+      manager.itemEnd('Standpunkte · Modell');
+      tryProgress();
     }
-    console.error(error);
-  }
+  };
 
-  let lastFrameAt = performance.now();
-  let perfAccumulatedMs = 0;
-  let perfFrameCount = 0;
-  let labelTick = 0;
+  // ── Bootstrap ──────────────────────────
+  await Promise.all([startLoadAssets(), loader.start()]);
+  interactionLocked = false;
+  tickMarkers();
+
+  // ── Render Loop ────────────────────────
+  let last = performance.now();
+  let acc = 0, frames = 0;
+  const minPR = 0.7;
+  const maxPR = pixelRatio;
 
   const animate = () => {
     requestAnimationFrame(animate);
-
     const now = performance.now();
-    const deltaMs = now - lastFrameAt;
-    lastFrameAt = now;
-    perfAccumulatedMs += deltaMs;
-    perfFrameCount += 1;
+    const dt = now - last;
+    last = now;
+    acc += dt;
+    frames += 1;
 
-    if (perfAccumulatedMs >= 1000) {
-      const fps = (perfFrameCount * 1000) / perfAccumulatedMs;
-      if (fps < 30 && currentPixelRatio > minPixelRatio + 0.05) {
-        currentPixelRatio = clamp(currentPixelRatio - 0.1, minPixelRatio, maxPixelRatio);
-        renderer.setPixelRatio(currentPixelRatio);
+    if (acc >= 1000) {
+      const fps = (frames * 1000) / acc;
+      if (fps < 32 && pixelRatio > minPR + 0.05) {
+        pixelRatio = clamp(pixelRatio - 0.1, minPR, maxPR);
+        renderer.setPixelRatio(pixelRatio);
         resize();
-      } else if (fps > 54 && currentPixelRatio < maxPixelRatio - 0.05) {
-        currentPixelRatio = clamp(currentPixelRatio + 0.05, minPixelRatio, maxPixelRatio);
-        renderer.setPixelRatio(currentPixelRatio);
+      } else if (fps > 55 && pixelRatio < maxPR - 0.05) {
+        pixelRatio = clamp(pixelRatio + 0.05, minPR, maxPR);
+        renderer.setPixelRatio(pixelRatio);
         resize();
       }
-      perfAccumulatedMs = 0;
-      perfFrameCount = 0;
+      acc = 0; frames = 0;
     }
 
-    controls.update();
+    orbit.update();
 
-    const shouldRender = renderInvalidated || isTweening || !isLoaded;
-    if (!shouldRender) return;
-
-    renderInvalidated = false;
-    viewer.update();
-    viewer.render();
-
-    if (labelTick % 2 === 0) updateLabels();
-    labelTick += 1;
+    if (renderInvalidated || hasViewChanged() || isDragging) {
+      renderInvalidated = false;
+      try {
+        viewer.update();
+        viewer.render();
+      } catch (e) {
+        // viewer not ready yet — try next frame
+      }
+    }
   };
-
   animate();
 };
 
-void boot();
+// graceful boot
+boot().catch((err) => {
+  console.error('Boot-Fehler:', err);
+});

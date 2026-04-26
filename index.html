@@ -2,18 +2,74 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PAASLEBEN · Interaktive 3D-Karte</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#f4ecd8" />
+    <title>PAASLEBEN · Ein Ort zum Atmen</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap"
+    />
   </head>
-  <body>
-    <div id="loading-overlay">
-      <div class="loader-content">
-        <div class="loader-mark" aria-hidden="true"></div>
-        <p>PAASLEBEN wird geladen</p>
+  <body class="paper">
+    <div id="app">
+      <main id="stage">
+        <div id="viewport"></div>
+        <div class="scene-veil" aria-hidden="true"></div>
+        <div id="marker-layer" class="marker-layer" aria-label="Standpunkte"></div>
+      </main>
+
+      <header id="brand" class="brand">
+        <div class="brand-eyebrow t-caption">EIN RETREAT VON MAREN &amp; TILL PAAS</div>
+        <h1 class="brand-title t-headline">Paasleben</h1>
+        <div class="brand-rule" aria-hidden="true"></div>
+        <p class="brand-lede">
+          Ein Ort zum Atmen. Ein Ort für Skulpturen.<br />
+          <span class="brand-lede-sub">Entdecke das Atelier, den Garten und das Haus —
+          klicke die Schilder, um die Geschichten zu lesen.</span>
+        </p>
+      </header>
+
+      <button id="info-button" class="info-button" type="button" aria-label="Info & Tastenkürzel">
+        <span class="info-glyph" aria-hidden="true">i</span>
+        <span class="info-label t-caption">Info</span>
+      </button>
+
+      <div id="help-overlay" class="help-overlay" aria-hidden="true">
+        <div class="help-card">
+          <button class="help-close" type="button" aria-label="Schließen">×</button>
+          <div class="t-caption help-eyebrow">Über Paasleben</div>
+          <p class="help-intro">
+            Ein Retreat von Maren &amp; Till Paas. Erkunde das Atelier,
+            den Garten und das Haus — klicke ein Schild, um die Geschichte
+            zu öffnen.
+          </p>
+
+          <div class="help-section">
+            <div class="t-caption help-eyebrow">Bedienung</div>
+            <ul class="help-list">
+              <li><span class="help-action">Karte ziehen</span><span>zum Bewegen</span></li>
+              <li><span class="help-action">Schild antippen</span><span>Standpunkt öffnen</span></li>
+              <li><span class="help-action">Hochwischen / Scrollen</span><span>Text lesen</span></li>
+              <li><span class="help-action">Tippen oben</span><span>Schließen</span></li>
+            </ul>
+          </div>
+
+          <div class="help-section help-keys">
+            <div class="t-caption help-eyebrow">Tastatur</div>
+            <ul class="help-list">
+              <li><span class="help-action"><kbd>1</kbd>–<kbd>9</kbd></span><span>Direkt zu Standpunkt</span></li>
+              <li><span class="help-action"><kbd>←</kbd> <kbd>→</kbd></span><span>Wechseln</span></li>
+              <li><span class="help-action"><kbd>H</kbd></span><span>Heim</span></li>
+              <li><span class="help-action"><kbd>Esc</kbd></span><span>Schließen</span></li>
+            </ul>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

@@ -1,0 +1,105 @@
+/* Paasleben — design tokens
+   Inspiriert von Chartogne-Taillet: warmes Cream-Papier, tiefes Schwarz, dezenter Rot-Akzent.
+*/
+
+:root {
+  /* Surface */
+  --paper:        #f4ecd8;     /* primary cream */
+  --paper-warm:   #efe7d2;     /* slightly deeper, for cards/panels */
+  --paper-pale:   #faf5e6;
+  --paper-edge:   #e6dcc4;
+  --paper-shadow: rgba(40, 30, 18, 0.08);
+
+  /* Ink */
+  --ink:          #1a1814;     /* near-black, warm */
+  --ink-2:        #2a2620;
+  --ink-mute:     #6b5f4e;     /* secondary text */
+  --ink-faint:    #9a8e7a;     /* metadata */
+  --rule:         rgba(26, 24, 20, 0.3);
+  --rule-soft:    rgba(26, 24, 20, 0.15);
+
+  /* Accent — Chartogne red, used SPARINGLY */
+  --accent:       #b8342f;
+  --accent-soft:  #c45a55;
+  --accent-pale:  rgba(184, 52, 47, 0.12);
+
+  /* Type */
+  --display: "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
+  --serif:   "Cormorant Garamond", "EB Garamond", "Garamond", Georgia, "Times New Roman", serif;
+  --mono:    "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
+
+  /* Bouncy easings (smoothness ~70) */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.46, 1);    /* light overshoot */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Spacing rhythm */
+  --gutter: 32px;
+}
+
+/* Subtle paper noise — applied as ::before on .paper */
+.paper {
+  background: var(--paper);
+  position: relative;
+  color: var(--ink);
+}
+.paper::before {
+  content: "";
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+  background-image:
+    radial-gradient(rgba(120,90,40,0.045) 1px, transparent 1.5px),
+    radial-gradient(rgba(60,40,10,0.03) 1px, transparent 1.5px);
+  background-size: 3px 3px, 7px 7px;
+  background-position: 0 0, 1px 2px;
+}
+
+/* Type utilities */
+.t-display {
+  font-family: var(--display);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.t-headline {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.05;
+}
+.t-body {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.t-caption {
+  font-family: var(--display);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-mute);
+}
+
+/* Hairline horizontal rule with two end-dots — like Chartogne's "CARTE" arrow */
+.hairline {
+  height: 1px;
+  background: var(--ink);
+  position: relative;
+}
+.hairline::before, .hairline::after {
+  content: "";
+  position: absolute;
+  width: 3px; height: 3px;
+  background: var(--ink);
+  top: 50%; transform: translateY(-50%);
+  border-radius: 50%;
+}
+.hairline::before { left: 33%; }
+.hairline::after  { left: 66%; }
+
+/* Hide native cursor everywhere we use the custom one */
+.no-cursor, .no-cursor * { cursor: none !important; }
