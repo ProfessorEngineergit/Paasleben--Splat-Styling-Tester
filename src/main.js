@@ -8,22 +8,229 @@ import { PaasLoader } from './lib/paas-loader.js';
 import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
 
-const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.splat`;
+const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
 
 const STYLE = {
   bg: '#f4ecd8',
-  splatScale: 1.32,
+  splatScale: 1,
   splatRotation: -28,
 };
 
-const REFERENCE_CAMERA = {
-  position: { x: -4.6, y: 1.79, z: 4.02 },
-  target: { x: -2.85, y: 0.26, z: 2.8 },
+const REFERENCE_SPLAT = {
+  positionOffset: { x: -0.04, y: -0.16, z: -0.03 },
+  rotationOffset: { x: 6, y: -118, z: 12 },
+  scale: 1,
 };
 
-const MOVE_BOUNDS = {
-  minX: -3.5, maxX: 3.5, minZ: -3.5, maxZ: 3.5,
+const REFERENCE_CAMERA = {
+  position: { x: 3.434, y: 1.703, z: 3.007 },
+  target: { x: 1.288, y: 0.306, z: 1.874 },
+};
+
+const DEFAULT_MOVE_BOUNDS = {
+  minX: -3.8, maxX: 3.1,
+  minZ: -2.25, maxZ: 2.05,
+};
+const MOVE_BOUNDS_PADDING = 0.75;
+const MOVE_RUBBER_LIMIT = 0.55;
+const MOVE_RUBBER_SOFTNESS = 0.9;
+const MOVE_EDGE_SOFT_ZONE = 0.9;
+const MOVE_EDGE_MIN_FACTOR = 0.12;
+const MOVE_BOUNDS_REBOUND_INSET = 0.035;
+const DRAG_CAMERA_FOV_ZOOM = 0.9;
+const DRAG_PAN_RIGHT_SPEED = 0.0125;
+const DRAG_PAN_FORWARD_SPEED = 0.015;
+const DRAG_INERTIA_MULTIPLIER = 3.75;
+const DRAG_INERTIA_MAX = 0.42;
+
+// MARKER_NAME_OVERRIDES sind auf die tatsächlichen Knoten-Namen aus
+// public/Paasleben.glb abgestimmt — Reihenfolge der Mesh-Traversierung
+// in Three.js entspricht der Node-Reihenfolge im GLB.
+const MARKER_NAME_OVERRIDES = {
+  '01': 'Turm',
+  '02': 'Trafo-Haus',
+  '03': 'Frauen-Haus',
+  '04': 'Hallen',
+  '05': 'Teich-Haus',
+  '06': 'Pferde-Wiese',
+  '07': 'Willkommen',
+  '08': 'Pferde-Stall',
+  '09': 'Werkstatt',
+  '10': 'Hühner-Stall',
+  '11': 'Storchen-Nest',
+  '12': 'Pfauen-Stall',
+  '13': 'Loft',
+  '14': 'Atelier',
+};
+
+// Anzeige-Nummer auf dem Schild & Sheet-Key entkoppeln von der GLB-Position.
+// Schlüssel: GLB-Position (so wie Three traversiert), Wert: Nummer, die
+// auf dem Schild und im Sheet (place_<NN>_*) verwendet wird.
+// So kann z.B. "Willkommen" geografisch an Position 7 stehen und trotzdem
+// als "Nr. 01" beschriftet sein.
+const MARKER_DISPLAY_NUMBER = {
+  '01': '07', // Turm
+  '07': '01', // Willkommen
+};
+
+// ── Google-Sheets-Content ──────────────────────────────────────────────
+// Pflege Texte (Titel, Untertitel, Platznamen) in einem Google-Sheet.
+// 1) Sheet anlegen mit zwei Spalten: key | value (siehe sheet-template.csv).
+// 2) Datei → Im Web veröffentlichen → Format CSV → URL kopieren.
+// 3) URL hier eintragen (oder als Vite-ENV VITE_SHEET_CSV_URL setzen).
+// Solange leer/erreichbar ist, fällt die Seite auf die Defaults im HTML
+// und MARKER_NAME_OVERRIDES zurück — alles bleibt funktionsfähig offline.
+const SHEET_CSV_URL = (import.meta.env && import.meta.env.VITE_SHEET_CSV_URL)
+  || `${import.meta.env.BASE_URL}content.csv`;
+
+const sheetContent = Object.create(null);
+
+const parseCSV = (text) => {
+  const rows = [];
+  let row = [], field = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else inQuotes = false;
+      } else field += c;
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      row.push(field); field = '';
+    } else if (c === '\n') {
+      row.push(field); rows.push(row); row = []; field = '';
+    } else if (c !== '\r') {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+};
+
+const applySheetContentToDOM = () => {
+  document.querySelectorAll('[data-content-key]').forEach((el) => {
+    const key = el.getAttribute('data-content-key');
+    const value = sheetContent[key];
+    if (typeof value === 'string' && value.length) el.textContent = value;
+  });
+};
+
+const loadSheetContent = async () => {
+  if (!SHEET_CSV_URL) return;
+  try {
+    const res = await fetch(SHEET_CSV_URL, { cache: 'no-store' });
+    if (!res.ok) return;
+    const rows = parseCSV(await res.text());
+    for (const row of rows) {
+      if (!row || !row.length) continue;
+      const key = (row[0] || '').trim();
+      const value = (row[1] ?? '').trim();
+      if (!key || /^key$/i.test(key)) continue;
+      sheetContent[key] = value;
+    }
+    applySheetContentToDOM();
+  } catch (err) {
+    console.warn('Sheet-Content konnte nicht geladen werden:', err);
+  }
+};
+
+// Promise so der GLB-Traversal-Schritt auf den Sheet-Content warten kann.
+const sheetContentReady = loadSheetContent();
+
+// TODO[content]: Bild-Galerien pro Standpunkt, thematisch passend zu den
+//                echten GLB-Nodes (Storchen-Nest, Frauen-Haus, Hallen, Hallen.001,
+//                Teich & Badehaus, Pferde-Wiese, Eingang.001, Pferde-Stall,
+//                Werkstatt, Hühner-Stall, Storchen-Stall, Pfauen-Stall.001).
+//                Pfade sind relativ zu public/. Alt-Texte deutsch, neutral.
+const STANDPUNKT_BILDER = {
+  // 01 — Storchen-Nest: Skulptur-/Vögel-Stimmung
+  '01': [
+    { src: 'images/skulpturen/storchen-turm-skulptur.jpg',     alt: 'Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd' },
+    { src: 'images/skulpturen/schornstein-sonnenuntergang.jpg', alt: 'Schornstein und Skulptur als Silhouette vor orange-rosa Abendhimmel' },
+    { src: 'images/areal/turm-regenbogen.jpg',                 alt: 'Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel' },
+  ],
+
+  // 02 — Frauen-Haus: stellvertretend wohnliche Innenräume (echte Aufnahmen fehlen)
+  '02': [
+    { src: 'images/badehaus/badehaus-wohnraum.jpg',            alt: 'Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken' },
+    { src: 'images/badehaus/badehaus-loft-treppe.jpg',         alt: 'Loftraum mit Mezzanin, Holzleiter, pinkem Sofa und Bildersammlung' },
+    { src: 'images/badehaus/badehaus-stillleben.jpg',          alt: 'Stillleben aus Wildblumenstrauß, Weinflasche und gerahmtem Bild' },
+  ],
+
+  // 03 — Hallen: festliche Tafel & Industrie-Ambiente
+  '03': [
+    { src: 'images/areal/halle-festtafel.jpg',                 alt: 'Lange weiße Festtafel mit Stühlen und Kerzen in einem hohen Saal' },
+    { src: 'images/areal/halle-festtafel-fenster.jpg',         alt: 'Festtafel in einer Halle mit hohen Sprossenfenstern und Konzertflügel' },
+    { src: 'images/areal/areal-stimmung-sonne-skulptur.jpg',   alt: 'Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne' },
+  ],
+
+  // 04 — Hallen II: zweite Halle / Industriearchitektur
+  '04': [
+    { src: 'images/areal/halle-festtafel-fenster.jpg',         alt: 'Festtafel in einer Halle mit hohen Sprossenfenstern und Konzertflügel' },
+    { src: 'images/areal/atmosphere-fenster-haus.jpg',         alt: 'Innenraum mit Fensterblick auf ein kleines Backsteinhaus im Abendlicht' },
+    { src: 'images/skulpturen/skulptur-saeulen.jpg',           alt: 'Reihe vertikaler Stahlskulpturen vor altem Backsteingebäude' },
+  ],
+
+  // 05 — Teich & Badehaus: Wasser, Tafel am Wasser, Wohnen
+  '05': [
+    { src: 'images/areal/teichhaus-tisch-mahlzeit.jpg',        alt: 'Holztisch am Wasser mit Brot, Gemüse, Bierglas und Schneidebrett' },
+    { src: 'images/umgebung/teich-pferde.jpg',                 alt: 'Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung' },
+    { src: 'images/badehaus/badehaus-wohnraum.jpg',            alt: 'Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken' },
+    { src: 'images/areal/picknick-tisch-hund.jpg',             alt: 'Sommerlich gedeckter Picknick-Tisch unter Bäumen, neben dem Tisch ein Hund' },
+  ],
+
+  // 06 — Pferde-Wiese: alle Pferde-Außenbilder
+  '06': [
+    { src: 'images/umgebung/pferde-regenbogen-koppel.jpg',     alt: 'Pferde grasen auf einer Koppel, darüber ein klarer Regenbogen' },
+    { src: 'images/umgebung/pferde-koppel-vier.jpg',           alt: 'Vier dunkle Pferde auf grüner Weide, eines steht, drei liegen' },
+    { src: 'images/umgebung/teich-pferde.jpg',                 alt: 'Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung' },
+    { src: 'images/umgebung/stute-fohlen-raps.jpg',            alt: 'Stute mit Fohlen auf Frühlingswiese, im Hintergrund Baumreihe und Rapsfeld' },
+    { src: 'images/umgebung/pferd-cor-ten-bogen.jpg',          alt: 'Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen' },
+    { src: 'images/umgebung/pferd-nandu-skulptur.jpg',         alt: 'Pferd auf eingezäunter Wiese, im Vordergrund Nandu und Skulptur' },
+  ],
+
+  // 07 — Willkommen / Eingang: Areal-Übersicht / Hero
+  '07': [
+    { src: 'images/areal/turm-regenbogen.jpg',                 alt: 'Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel' },
+    { src: 'images/areal/piazza-gruen-baumallee.jpg',          alt: 'Piazza mit Baumallee und Cor-Ten-Skulptur unter blauem Himmel' },
+    { src: 'images/areal/areal-pferd-skulptur.jpg',            alt: 'Bronzene Pferde-Skulptur auf gepflastertem Hof vor Backsteingebäude' },
+    { src: 'images/areal/areal-stimmung-sonne-skulptur.jpg',   alt: 'Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne' },
+  ],
+
+  // 08 — Pferde-Stall: Stall-Innen & Übergang Wiese
+  '08': [
+    { src: 'images/stall/stall-weitwinkel.jpg',                alt: 'Großzügiger Reitstall mit Heuballen und Glasdach' },
+    { src: 'images/stall/stall-gasse.jpg',                     alt: 'Stallgasse mit hellen, geschlossenen Pferdeboxen und Tageslicht' },
+    { src: 'images/umgebung/pferd-cor-ten-bogen.jpg',          alt: 'Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen' },
+  ],
+
+  // 09 — Werkstatt: Atelier-Stimmung / Material / Arbeit
+  '09': [
+    { src: 'images/trafohaus/trafohaus-essbereich.jpg',        alt: 'Hoher Raum im Trafohaus mit Glastisch, Skulptur und blauer Treppe' },
+    { src: 'images/trafohaus/trafohaus-kueche-kupfer.jpg',     alt: 'Küchenbereich mit Reihe aufgehängter Kupferpfannen am Fenster' },
+    { src: 'images/trafohaus/trafohaus-leuchter-glas.jpg',     alt: 'Bunter Glas-Leuchter über dunkelblauem Sofa unter einem Dachfenster' },
+    { src: 'images/skulpturen/skulptur-rad.jpg',               alt: 'Übergroßes rostiges Eisenrad als Skulptur, daneben ein Holzstapel' },
+  ],
+
+  // 10 — Hühner-Stall: keine Hühner-Bilder verfügbar → bewusst leer.
+  // Das Panel zeigt dort den Platzhalter; bitte später ggf. Hühner-Fotos ergänzen.
+
+  // 11 — Storchen-Stall: Storch-Skulptur & Schornstein-Silhouette
+  '11': [
+    { src: 'images/skulpturen/storchen-turm-skulptur.jpg',     alt: 'Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd' },
+    { src: 'images/skulpturen/schornstein-sonnenuntergang.jpg', alt: 'Schornstein und Skulptur als Silhouette vor orange-rosa Abendhimmel' },
+  ],
+
+  // 12 — Pfauen-Stall: Pfauen + Federvieh-Stimmung (auch Nandus)
+  '12': [
+    { src: 'images/skulpturen/skulptur-buch-pfauen.jpg',       alt: 'Buch-Skulptur aus Cor-Ten-Stahl im Garten, Pfauen davor' },
+    { src: 'images/umgebung/nandus-wiese.jpg',                 alt: 'Drei Nandus auf einer Sommerwiese unter Wolkenhimmel' },
+    { src: 'images/umgebung/nandu-cor-ten.jpg',                alt: 'Nandu eingerahmt von einer Cor-Ten-Stahl-Skulptur' },
+    { src: 'images/umgebung/nandu-wildwiese.jpg',              alt: 'Nandu in hoher Wildwiese mit Königskerze und Disteln' },
+  ],
 };
 
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -37,14 +244,120 @@ const STANDPUNKT_SUBLINES = [
   'Fokuspunkt mit klarer Lesbarkeit der Szene.',
 ];
 
+// TODO[content]: Beispieltexte / Platzhalter — bewusst allgemein gehalten,
+//                ohne konkrete Fakten, Zahlen oder Daten. Können je Standpunkt
+//                später durch eigene Geschichten ersetzt werden.
 const STORY_PARAGRAPHS = [
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus efficitur, turpis vitae fringilla volutpat, lectus massa posuere mi, id facilisis purus sem et ante.',
-  'Praesent at nulla ac lacus dictum tempor. Integer pharetra varius mi, sed cursus arcu efficitur eget. Quisque ultricies libero nec justo pretium, sit amet ullamcorper arcu eleifend.',
-  'Suspendisse potenti. Morbi quis turpis eget lorem pulvinar tincidunt. Nunc cursus ligula eget arcu aliquet, sed efficitur leo dignissim. Cras id lorem viverra, feugiat elit non.',
-  'Donec in justo sem. Integer porta, magna non tristique fermentum, purus tortor facilisis tortor, non gravida urna eros in urna.',
+  'Ein Ort, an dem Räume, Skulpturen und Landschaft zusammen erzählen — und an dem das, was wächst, mehr Zeit bekommen darf als das, was geplant ist.',
+  'Backstein, Stahl und Glas treffen auf Garten und Wasser. Aus alten Hüllen sind Bühnen für Aufenthalt, Werkstattgespräche und ruhige Stunden geworden.',
+  'Wege, Sichtachsen und kleine Ruhepunkte sind so gesetzt, dass jeder Standpunkt sein eigenes Tempo erlaubt — bleiben, weiterziehen, wiederkommen.',
+  'Hier soll nichts laut werden. Materialien dürfen altern, Licht darf wandern, und das Auge darf entscheiden, wo es heute hängenbleibt.',
 ];
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+const ALIGNMENT_EPSILON = 1e-6;
+const SPLAT_FLIP = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI);
+
+const nearlyZero = (v) => Math.abs(v) <= ALIGNMENT_EPSILON;
+const nearlyOne = (v) => Math.abs(v - 1) <= ALIGNMENT_EPSILON;
+
+const isIdentityPosition = (position) => (
+  nearlyZero(position.x) && nearlyZero(position.y) && nearlyZero(position.z)
+);
+
+const isIdentityScale = (scale) => (
+  nearlyOne(scale.x) && nearlyOne(scale.y) && nearlyOne(scale.z)
+);
+
+const isIdentityQuaternion = (quaternion) => (
+  Math.abs(1 - Math.abs(quaternion.w)) <= ALIGNMENT_EPSILON &&
+  nearlyZero(quaternion.x) &&
+  nearlyZero(quaternion.y) &&
+  nearlyZero(quaternion.z)
+);
+
+const findSplatAnchor = (scene) => {
+  let exact = null;
+  let loose = null;
+  scene.traverse((node) => {
+    const name = node.name || '';
+    if (!exact && /^splat(_anchor)?$/i.test(name)) exact = node;
+    if (!loose && /splat/i.test(name)) loose = node;
+  });
+  return exact || loose || scene;
+};
+
+const buildSplatAlignment = (gltfScene) => {
+  const fallbackYaw = new THREE.Quaternion().setFromAxisAngle(
+    new THREE.Vector3(0, 1, 0),
+    THREE.MathUtils.degToRad(STYLE.splatRotation),
+  );
+
+  if (!gltfScene) {
+    return {
+      source: 'fallback',
+      position: new THREE.Vector3(),
+      quaternion: fallbackYaw,
+      scale: new THREE.Vector3(1, 1, 1),
+      matrix: new THREE.Matrix4(),
+      hasAuthoredTransform: false,
+    };
+  }
+
+  gltfScene.updateMatrixWorld(true);
+  const sourceNode = findSplatAnchor(gltfScene);
+  sourceNode.updateMatrixWorld(true);
+
+  const position = new THREE.Vector3();
+  const authoredQuaternion = new THREE.Quaternion();
+  const authoredScale = new THREE.Vector3();
+  sourceNode.matrixWorld.decompose(position, authoredQuaternion, authoredScale);
+
+  const hasAuthoredPosition = !isIdentityPosition(position);
+  const hasAuthoredRotation = !isIdentityQuaternion(authoredQuaternion);
+  const hasAuthoredScale = !isIdentityScale(authoredScale);
+  const quaternion = hasAuthoredRotation ? authoredQuaternion : fallbackYaw;
+  const scale = hasAuthoredScale ? authoredScale : new THREE.Vector3(1, 1, 1);
+
+  return {
+    source: sourceNode.name || 'GLB scene',
+    position,
+    quaternion,
+    scale,
+    matrix: sourceNode.matrixWorld.clone(),
+    hasAuthoredTransform: hasAuthoredPosition || hasAuthoredRotation || hasAuthoredScale,
+  };
+};
+
+const applyAlignmentToSplat = (splatMesh, alignment) => {
+  if (!splatMesh || !alignment) return;
+  splatMesh.position.copy(alignment.position);
+  splatMesh.quaternion.copy(alignment.quaternion).multiply(SPLAT_FLIP);
+  splatMesh.scale.copy(alignment.scale);
+  splatMesh.updateMatrix();
+  splatMesh.updateMatrixWorld(true);
+  splatMesh.matrixWorldNeedsUpdate = true;
+};
+
+const applySplatOffset = (splatMesh, base, offset = REFERENCE_SPLAT) => {
+  if (!splatMesh || !base) return;
+  const offsetQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(
+    THREE.MathUtils.degToRad(offset.rotationOffset.x),
+    THREE.MathUtils.degToRad(offset.rotationOffset.y),
+    THREE.MathUtils.degToRad(offset.rotationOffset.z),
+    'XYZ',
+  ));
+  splatMesh.position.copy(base.position).add(new THREE.Vector3(
+    offset.positionOffset.x,
+    offset.positionOffset.y,
+    offset.positionOffset.z,
+  ));
+  splatMesh.quaternion.copy(base.quaternion).multiply(offsetQuat);
+  splatMesh.scale.copy(base.scale).multiplyScalar(offset.scale);
+  splatMesh.updateMatrix();
+  splatMesh.updateMatrixWorld(true);
+  splatMesh.matrixWorldNeedsUpdate = true;
+};
 
 const buildBody = (idx) => {
   const a = STORY_PARAGRAPHS[idx % STORY_PARAGRAPHS.length];
@@ -169,11 +482,170 @@ const boot = async () => {
   const previousPointer = new THREE.Vector2();
   let isDragging = false;
   let interactionLocked = true; // unlocked when loader done
+  let debugMovementUnlocked = false;
+  let dragCameraBaseFov = null;
+  const dragVelocity = new THREE.Vector3();
+  const moveBounds = { ...DEFAULT_MOVE_BOUNDS };
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
   const up = new THREE.Vector3(0, 1, 0);
 
+  const rubberClamp = (v, min, max) => {
+    if (v < min) {
+      const over = min - v;
+      return min - MOVE_RUBBER_LIMIT * (1 - Math.exp(-over / MOVE_RUBBER_SOFTNESS));
+    }
+    if (v > max) {
+      const over = v - max;
+      return max + MOVE_RUBBER_LIMIT * (1 - Math.exp(-over / MOVE_RUBBER_SOFTNESS));
+    }
+    return v;
+  };
+
+  const resistedAxis = (value, delta, min, max) => {
+    if (!delta) return value;
+    const movingTowardMin = delta < 0;
+    const edgeDistance = movingTowardMin ? value - min : max - value;
+    let factor = 1;
+    if (edgeDistance < MOVE_EDGE_SOFT_ZONE) {
+      const t = clamp(edgeDistance / MOVE_EDGE_SOFT_ZONE, 0, 1);
+      const smooth = t * t * (3 - 2 * t);
+      factor = MOVE_EDGE_MIN_FACTOR + (1 - MOVE_EDGE_MIN_FACTOR) * smooth;
+    }
+    return rubberClamp(value + delta * factor, min, max);
+  };
+
+  const updateCameraFov = () => {
+    camera.updateProjectionMatrix();
+    invalidate();
+  };
+
+  const startDragCameraZoom = () => {
+    if (dragCameraBaseFov === null) dragCameraBaseFov = camera.fov;
+    gsap.killTweensOf(camera, 'fov');
+    gsap.to(camera, {
+      fov: Math.max(35, dragCameraBaseFov - DRAG_CAMERA_FOV_ZOOM),
+      duration: REDUCED_MOTION ? 0.001 : 0.34,
+      ease: 'power3.out',
+      onUpdate: updateCameraFov,
+    });
+  };
+
+  const releaseDragCameraZoom = (fast = false) => {
+    if (dragCameraBaseFov === null) return;
+    const fov = dragCameraBaseFov;
+    gsap.killTweensOf(camera, 'fov');
+    gsap.to(camera, {
+      fov,
+      duration: REDUCED_MOTION ? 0.001 : (fast ? 0.18 : 0.78),
+      ease: 'power4.out',
+      onUpdate: updateCameraFov,
+      onComplete: () => {
+        camera.fov = fov;
+        camera.updateProjectionMatrix();
+        dragCameraBaseFov = null;
+      },
+    });
+  };
+
+  const isOutsideMovementBounds = () => (
+    orbit.target.x < moveBounds.minX ||
+    orbit.target.x > moveBounds.maxX ||
+    orbit.target.z < moveBounds.minZ ||
+    orbit.target.z > moveBounds.maxZ
+  );
+
+  const updateMovementBounds = () => {
+    if (!standpoints.length) return;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const sp of standpoints) {
+      minX = Math.min(minX, sp.world.x);
+      maxX = Math.max(maxX, sp.world.x);
+      minZ = Math.min(minZ, sp.world.z);
+      maxZ = Math.max(maxZ, sp.world.z);
+    }
+    moveBounds.minX = minX - MOVE_BOUNDS_PADDING;
+    moveBounds.maxX = maxX + MOVE_BOUNDS_PADDING;
+    moveBounds.minZ = minZ - MOVE_BOUNDS_PADDING;
+    moveBounds.maxZ = maxZ + MOVE_BOUNDS_PADDING;
+  };
+
+  const reboundToMovementBounds = () => {
+    if (debugMovementUnlocked) return;
+    const nextTarget = orbit.target.clone();
+    nextTarget.x = clamp(
+      nextTarget.x,
+      moveBounds.minX + MOVE_BOUNDS_REBOUND_INSET,
+      moveBounds.maxX - MOVE_BOUNDS_REBOUND_INSET,
+    );
+    nextTarget.z = clamp(
+      nextTarget.z,
+      moveBounds.minZ + MOVE_BOUNDS_REBOUND_INSET,
+      moveBounds.maxZ - MOVE_BOUNDS_REBOUND_INSET,
+    );
+    const delta = nextTarget.clone().sub(orbit.target);
+    if (delta.lengthSq() < 1e-8) return;
+    const nextCamera = camera.position.clone().add(delta);
+
+    gsap.killTweensOf(camera.position, 'x,z');
+    gsap.killTweensOf(orbit.target, 'x,z');
+    gsap.to(orbit.target, {
+      x: nextTarget.x,
+      z: nextTarget.z,
+      duration: REDUCED_MOTION ? 0.001 : 0.82,
+      ease: 'power4.out',
+      onUpdate: invalidate,
+    });
+    gsap.to(camera.position, {
+      x: nextCamera.x,
+      z: nextCamera.z,
+      duration: REDUCED_MOTION ? 0.001 : 0.82,
+      ease: 'power4.out',
+      onUpdate: invalidate,
+    });
+  };
+
+  const moveByWorldDelta = (move) => {
+    const prev = orbit.target.clone();
+    if (debugMovementUnlocked) {
+      orbit.target.add(move);
+    } else {
+      orbit.target.set(
+        resistedAxis(orbit.target.x, move.x, moveBounds.minX, moveBounds.maxX),
+        orbit.target.y,
+        resistedAxis(orbit.target.z, move.z, moveBounds.minZ, moveBounds.maxZ),
+      );
+    }
+    camera.position.add(orbit.target.clone().sub(prev));
+    invalidate();
+  };
+
+  const glideAfterDrag = () => {
+    if (dragVelocity.lengthSq() < 1e-7) {
+      reboundToMovementBounds();
+      return;
+    }
+    const glide = dragVelocity.clone().multiplyScalar(DRAG_INERTIA_MULTIPLIER);
+    if (glide.length() > DRAG_INERTIA_MAX) glide.setLength(DRAG_INERTIA_MAX);
+    const state = { t: 0 };
+    gsap.killTweensOf(camera.position, 'x,z');
+    gsap.killTweensOf(orbit.target, 'x,z');
+    gsap.to(state, {
+      t: 1,
+      duration: REDUCED_MOTION ? 0.001 : 0.42,
+      ease: 'power4.out',
+      onUpdate: () => {
+        const step = glide.clone().multiplyScalar(state.t - (state.prev ?? 0));
+        state.prev = state.t;
+        moveByWorldDelta(step);
+      },
+      onComplete: reboundToMovementBounds,
+    });
+  };
+
   const applyPan = (dx, dy) => {
+    gsap.killTweensOf(camera.position, 'x,z');
+    gsap.killTweensOf(orbit.target, 'x,z');
     forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
     forward.y = 0;
     if (forward.lengthSq() < 1e-8) return;
@@ -181,18 +653,10 @@ const boot = async () => {
     right.copy(up).cross(forward).normalize();
 
     const move = new THREE.Vector3();
-    move.addScaledVector(right, dx * 0.01);
-    move.addScaledVector(forward, dy * 0.012);
-
-    const prev = orbit.target.clone();
-    orbit.target.add(move);
-    orbit.target.set(
-      clamp(orbit.target.x, MOVE_BOUNDS.minX, MOVE_BOUNDS.maxX),
-      orbit.target.y,
-      clamp(orbit.target.z, MOVE_BOUNDS.minZ, MOVE_BOUNDS.maxZ),
-    );
-    camera.position.add(orbit.target.clone().sub(prev));
-    invalidate();
+    move.addScaledVector(right, dx * DRAG_PAN_RIGHT_SPEED);
+    move.addScaledVector(forward, dy * DRAG_PAN_FORWARD_SPEED);
+    dragVelocity.lerp(move, 0.35);
+    moveByWorldDelta(move);
   };
 
   renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
@@ -200,7 +664,9 @@ const boot = async () => {
     if (interactionLocked) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     isDragging = true;
+    dragVelocity.set(0, 0, 0);
     previousPointer.set(e.clientX, e.clientY);
+    startDragCameraZoom();
     try { renderer.domElement.setPointerCapture(e.pointerId); } catch {}
   });
   renderer.domElement.addEventListener('pointermove', (e) => {
@@ -214,6 +680,9 @@ const boot = async () => {
     if (!isDragging) return;
     isDragging = false;
     try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
+    const outsideBounds = isOutsideMovementBounds();
+    releaseDragCameraZoom(outsideBounds);
+    glideAfterDrag();
   };
   renderer.domElement.addEventListener('pointerup', stop);
   renderer.domElement.addEventListener('pointercancel', stop);
@@ -229,10 +698,10 @@ const boot = async () => {
     btn.className = 'schild-marker';
     btn.dataset.marker = '';
     btn.dataset.id = sp.id;
-    btn.setAttribute('aria-label', `${sp.marker} — ${sp.name} — öffnen`);
+    btn.setAttribute('aria-label', `${sp.display} — ${sp.name} — öffnen`);
     btn.innerHTML = `
       <span class="sm-card">
-        <span class="sm-num">Nr. ${sp.marker}</span>
+        <span class="sm-num">Nr. ${sp.display}</span>
         <span class="sm-title">${sp.name}</span>
       </span>
       <span class="sm-stem" aria-hidden="true"></span>
@@ -266,7 +735,7 @@ const boot = async () => {
     }
   };
 
-  // marker / cursor update loop independent from render
+  // Keep labels bound to their GLB/world points, but update without CSS tween drift.
   let markerRaf = 0;
   const tickMarkers = () => {
     updateMarkers();
@@ -367,15 +836,15 @@ const boot = async () => {
     const idx = standpoints.indexOf(sp);
     if (idx >= 0) activeIndex = idx;
     const data = {
-      caption: `STANDPUNKT · ${sp.marker}`,
+      caption: `STANDPUNKT · ${sp.display}`,
       title: sp.name.toUpperCase(),
       meta: [
-        { label: 'KAPITEL', value: sp.marker },
+        { label: 'KAPITEL', value: sp.display },
         { label: 'CHARAKTER', value: sp.subtitle },
         { label: 'ORT', value: 'PAASLEBEN · GARTEN' },
       ],
       body: sp.body,
-      image: null,
+      images: sp.images || [],
     };
     // 1) fly camera, 2) when tween is decelerating, slide panel up
     const dur = REDUCED_MOTION ? 0.001 : 1.2;
@@ -407,20 +876,35 @@ const boot = async () => {
 
   // ── Global Hotkeys ──
   let helpVisible = false;
-  const toggleHelp = (force) => {
+  let helpMode = 'modal'; // 'modal' (sticky, e.g. Info button) | 'hint' (closes on mousemove)
+  const dbg = document.querySelector('#debug-panel');
+  const toggleHelp = (force, mode = 'modal') => {
     helpVisible = force ?? !helpVisible;
+    if (helpVisible) helpMode = mode;
     document.body.classList.toggle('show-help', helpVisible);
+  };
+  const toggleDebug = (force) => {
+    if (!dbg) return;
+    dbg.hidden = force === undefined ? !dbg.hidden : !force;
+    debugMovementUnlocked = !dbg.hidden;
   };
 
   window.addEventListener('keydown', (e) => {
+    if (e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+      e.preventDefault();
+      toggleDebug();
+      return;
+    }
+
     // Ignore when typing in inputs
     const tag = (e.target && e.target.tagName) || '';
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-    // Number keys 1..9 → open standpoint by index
+    // Number keys 1..9 → open standpoint by display number (Schild-Nr.)
     if (e.key >= '1' && e.key <= '9') {
-      const idx = parseInt(e.key, 10) - 1;
-      if (idx < standpoints.length) {
+      const want = `0${e.key}`;
+      const idx = standpoints.findIndex((s) => s.display === want);
+      if (idx >= 0) {
         e.preventDefault();
         openByIndex(idx);
       }
@@ -445,18 +929,367 @@ const boot = async () => {
       return;
     }
 
-    // ? or / → toggle help overlay
+    // ? or / → toggle help overlay (transient hint mode)
     if (e.key === '?' || (e.key === '/' && !e.shiftKey)) {
       e.preventDefault();
-      toggleHelp();
+      toggleHelp(!helpVisible, 'hint');
       return;
     }
   });
 
-  // Quietly hide help if mouse moves
+  // Only the transient hint mode closes on mouse move.
   document.addEventListener('mousemove', () => {
-    if (helpVisible) toggleHelp(false);
-  }, { once: false });
+    if (helpVisible && helpMode === 'hint') toggleHelp(false);
+  });
+
+  // ── Info button ──
+  const infoBtn = document.querySelector('#info-button');
+  if (infoBtn) {
+    infoBtn.addEventListener('click', () => toggleHelp(true, 'modal'));
+  }
+  const helpOverlay = document.querySelector('#help-overlay');
+  if (helpOverlay) {
+    // Click outside card or on close button → dismiss
+    helpOverlay.addEventListener('click', (e) => {
+      if (e.target === helpOverlay) toggleHelp(false);
+    });
+    const helpClose = helpOverlay.querySelector('.help-close');
+    if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
+  }
+
+  // ── Audio: autoplay muted + mute/unmute toggle ──
+  const audio = document.querySelector('#bgm');
+  const audioBtn = document.querySelector('#audio-button');
+  if (audio && audioBtn) {
+    // Try to start playback (muted) ASAP — browsers allow this.
+    audio.volume = 0.55;
+    const tryPlay = () => {
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') p.catch(() => {});
+    };
+    tryPlay();
+    // Safari requires a user gesture even for muted autoplay.
+    // Retry on the first pointerdown / touchstart / keydown / click anywhere.
+    const gestureUnlock = () => {
+      tryPlay();
+      ['pointerdown','touchstart','keydown','click'].forEach(t =>
+        window.removeEventListener(t, gestureUnlock, true));
+    };
+    ['pointerdown','touchstart','keydown','click'].forEach(t =>
+      window.addEventListener(t, gestureUnlock, { capture: true, once: false }));
+
+    const setMuted = (muted) => {
+      audio.muted = muted;
+      audioBtn.setAttribute('aria-pressed', String(!muted));
+      audioBtn.setAttribute('aria-label', muted ? 'Ton einschalten' : 'Ton ausschalten');
+      audioBtn.classList.toggle('is-on', !muted);
+      const lbl = audioBtn.querySelector('.ui-chip-label');
+      if (lbl) lbl.textContent = muted ? 'Ton' : 'Ton an';
+      if (!muted) tryPlay();
+    };
+    setMuted(true);
+    audioBtn.addEventListener('click', () => setMuted(!audio.muted));
+  }
+
+  let splatAlignmentReady = false;
+  let refreshDebugSplatBase = () => {};
+
+  // ── Debug Panel: manual splat & camera control ──
+  if (dbg) {
+    const splatState = {
+      px: REFERENCE_SPLAT.positionOffset.x,
+      py: REFERENCE_SPLAT.positionOffset.y,
+      pz: REFERENCE_SPLAT.positionOffset.z,
+      rx: REFERENCE_SPLAT.rotationOffset.x,
+      ry: REFERENCE_SPLAT.rotationOffset.y,
+      rz: REFERENCE_SPLAT.rotationOffset.z,
+      s: REFERENCE_SPLAT.scale,
+    };
+    const splatBaseQuat = new THREE.Quaternion();
+    const splatBaseScale = new THREE.Vector3(1, 1, 1);
+    const splatBasePos = new THREE.Vector3();
+    const splatBase = {
+      position: splatBasePos,
+      quaternion: splatBaseQuat,
+      scale: splatBaseScale,
+    };
+
+    // Top-view state: store previous perspective camera config
+    let isTopView = false;
+    let prevCamConfig = null;
+
+    const toggleTopView = () => {
+      if (!isTopView) {
+        // Enter top-view: save current perspective state and switch to orthographic
+        prevCamConfig = {
+          isPerspective: true,
+          position: camera.position.clone(),
+          target: orbit.target.clone(),
+        };
+        isTopView = true;
+
+        // Switch to orthographic camera looking straight down at splat
+        const ortho = new THREE.OrthographicCamera(
+          -8, 8,  // left, right
+          -8, 8,  // top, bottom
+          0.1, 100 // near, far
+        );
+        const center = orbit.target.clone();
+        ortho.position.set(center.x, center.y + 12, center.z);
+        ortho.lookAt(center);
+        ortho.updateProjectionMatrix();
+
+        // Replace camera in viewer and orbit
+        orbit.object = ortho;
+        viewer.camera = ortho;
+        renderer.render(viewer.scene, ortho);
+        invalidate();
+      } else {
+        // Exit top-view: restore perspective camera
+        if (prevCamConfig) {
+          camera.position.copy(prevCamConfig.position);
+          orbit.target.copy(prevCamConfig.target);
+          orbit.object = camera;
+          viewer.camera = camera;
+          orbit.update();
+          invalidate();
+        }
+        isTopView = false;
+      }
+    };
+
+    // Capture base (post-GLB) splat transform once available.
+    const captureBase = () => {
+      if (!splatAlignmentReady || !viewer.splatMesh) return false;
+      splatBaseQuat.copy(viewer.splatMesh.quaternion);
+      splatBaseScale.copy(viewer.splatMesh.scale);
+      splatBasePos.copy(viewer.splatMesh.position);
+      return true;
+    };
+    refreshDebugSplatBase = captureBase;
+    // Wait until splat mesh exists before initializing.
+    const waitBase = () => { if (!captureBase()) setTimeout(waitBase, 250); };
+    waitBase();
+
+    const applySplat = () => {
+      if (!viewer.splatMesh) return;
+      applySplatOffset(viewer.splatMesh, splatBase, {
+        positionOffset: { x: splatState.px, y: splatState.py, z: splatState.pz },
+        rotationOffset: { x: splatState.rx, y: splatState.ry, z: splatState.rz },
+        scale: splatState.s,
+      });
+      invalidate();
+    };
+    // Spherical camera control (around current orbit.target)
+    const camState = {
+      targetX: orbit.target.x,
+      targetY: orbit.target.y,
+      targetZ: orbit.target.z,
+      yaw: 62.2,
+      pitch: 29.9,
+      dist: 2.8,
+    };
+    const applyCam = () => {
+      orbit.target.set(camState.targetX, camState.targetY, camState.targetZ);
+      const yaw = THREE.MathUtils.degToRad(camState.yaw);
+      const pitch = THREE.MathUtils.degToRad(camState.pitch);
+      const r = camState.dist;
+      const x = orbit.target.x + r * Math.sin(yaw) * Math.cos(pitch);
+      const y = orbit.target.y + r * Math.sin(pitch);
+      const z = orbit.target.z + r * Math.cos(yaw) * Math.cos(pitch);
+      camera.position.set(x, y, z);
+      orbit.update();
+      invalidate();
+    };
+
+    const setOut = (key, val) => {
+      const o = dbg.querySelector(`output[data-out="${key}"]`);
+      if (o) o.textContent = (typeof val === 'number' && !Number.isInteger(val)) ? val.toFixed(2) : String(val);
+    };
+
+    // Live mirror: read camera back into the debug panel whenever it moves
+    // (skip while the user is actively dragging a slider).
+    let userDraggingSlider = false;
+    dbg.addEventListener('pointerdown', (e) => {
+      if (e.target instanceof HTMLInputElement) userDraggingSlider = true;
+    });
+    window.addEventListener('pointerup', () => { userDraggingSlider = false; });
+
+    let mirrorAccum = 0;
+    const mirrorTick = (dt) => {
+      if (userDraggingSlider || isTopView) return; // Skip when in top-view mode
+      mirrorAccum += dt;
+      if (mirrorAccum < 80) return; // ~12Hz refresh is enough
+      mirrorAccum = 0;
+      const p = camera.position, tg = orbit.target;
+      const dx = p.x - tg.x, dy = p.y - tg.y, dz = p.z - tg.z;
+      const dist = Math.hypot(dx, dy, dz);
+      const yaw = THREE.MathUtils.radToDeg(Math.atan2(dx, dz));
+      const pitch = THREE.MathUtils.radToDeg(Math.asin(Math.max(-1, Math.min(1, dy / Math.max(dist, 1e-6)))));
+      camState.targetX = tg.x; camState.targetY = tg.y; camState.targetZ = tg.z;
+      camState.yaw = yaw; camState.pitch = pitch; camState.dist = dist;
+      const targetXIn = dbg.querySelector('input[data-ctl="cam-target-x"]');
+      const targetYIn = dbg.querySelector('input[data-ctl="cam-target-y"]');
+      const targetZIn = dbg.querySelector('input[data-ctl="cam-target-z"]');
+      const yawIn = dbg.querySelector('input[data-ctl="cam-yaw"]');
+      const pitchIn = dbg.querySelector('input[data-ctl="cam-pitch"]');
+      const distIn = dbg.querySelector('input[data-ctl="cam-dist"]');
+      if (targetXIn) targetXIn.value = String(tg.x.toFixed(2));
+      if (targetYIn) targetYIn.value = String(tg.y.toFixed(2));
+      if (targetZIn) targetZIn.value = String(tg.z.toFixed(2));
+      if (yawIn) yawIn.value = String(Math.round(yaw));
+      if (pitchIn) pitchIn.value = String(Math.round(Math.max(20, Math.min(89, pitch))));
+      if (distIn) distIn.value = String(dist.toFixed(1));
+      setOut('cam-target-x', tg.x.toFixed(2));
+      setOut('cam-target-y', tg.y.toFixed(2));
+      setOut('cam-target-z', tg.z.toFixed(2));
+      setOut('cam-yaw', Math.round(yaw));
+      setOut('cam-pitch', Math.round(pitch));
+      setOut('cam-dist', dist.toFixed(1));
+    };
+    // Hook into rAF
+    let _mirrorLast = performance.now();
+    const mirrorLoop = () => {
+      const now = performance.now();
+      mirrorTick(now - _mirrorLast);
+      _mirrorLast = now;
+      requestAnimationFrame(mirrorLoop);
+    };
+    requestAnimationFrame(mirrorLoop);
+
+    dbg.addEventListener('input', (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLInputElement)) return;
+      const key = t.dataset.ctl;
+      const v = parseFloat(t.value);
+      if (key === 'splat-px') { splatState.px = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-py') { splatState.py = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-pz') { splatState.pz = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-rx') { splatState.rx = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-ry') { splatState.ry = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-rz') { splatState.rz = v; setOut(key, v); applySplat(); }
+      else if (key === 'splat-s') { splatState.s = v; setOut(key, v); applySplat(); }
+      else if (key === 'cam-target-x') { camState.targetX = v; setOut(key, v); applyCam(); }
+      else if (key === 'cam-target-y') { camState.targetY = v; setOut(key, v); applyCam(); }
+      else if (key === 'cam-target-z') { camState.targetZ = v; setOut(key, v); applyCam(); }
+      else if (key === 'cam-yaw') { camState.yaw = v; setOut(key, v); applyCam(); }
+      else if (key === 'cam-pitch') { camState.pitch = v; setOut(key, v); applyCam(); }
+      else if (key === 'cam-dist') { camState.dist = v; setOut(key, v); applyCam(); }
+    });
+
+    const flash = (btn, msg = 'Kopiert ✓') => {
+      const original = btn.textContent;
+      btn.textContent = msg;
+      btn.classList.add('flashed');
+      setTimeout(() => { btn.textContent = original; btn.classList.remove('flashed'); }, 1100);
+    };
+    const copyText = async (text, btn) => {
+      try {
+        await navigator.clipboard.writeText(text);
+        flash(btn);
+      } catch {
+        // Fallback: select via temp textarea
+        const ta = document.createElement('textarea');
+        ta.value = text; document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); flash(btn); } catch { flash(btn, 'Fehler'); }
+        ta.remove();
+      }
+    };
+
+    const fmt = (n, d = 2) => Number(n).toFixed(d).replace(/\.?0+$/, '');
+    const cameraSnapshot = () => {
+      const p = camera.position, tg = orbit.target;
+      const dx = p.x - tg.x, dy = p.y - tg.y, dz = p.z - tg.z;
+      const dist = Math.hypot(dx, dy, dz);
+      const yaw = THREE.MathUtils.radToDeg(Math.atan2(dx, dz));
+      const pitch = THREE.MathUtils.radToDeg(Math.asin(Math.max(-1, Math.min(1, dy / Math.max(dist, 1e-6)))));
+      return { p, tg, yaw, pitch, dist };
+    };
+    const debugSnapshotText = () => {
+      const { p, tg, yaw, pitch, dist } = cameraSnapshot();
+      return `Splat:\n` +
+        `  positionOffset: { x: ${fmt(splatState.px, 3)}, y: ${fmt(splatState.py, 3)}, z: ${fmt(splatState.pz, 3)} }\n` +
+        `  rotationOffset: { x: ${fmt(splatState.rx, 1)}, y: ${fmt(splatState.ry, 1)}, z: ${fmt(splatState.rz, 1)} }\n` +
+        `  scale: ${fmt(splatState.s, 3)}\n` +
+        `Kamera:\n` +
+        `  position: { x: ${fmt(p.x, 3)}, y: ${fmt(p.y, 3)}, z: ${fmt(p.z, 3)} }\n` +
+        `  target:   { x: ${fmt(tg.x, 3)}, y: ${fmt(tg.y, 3)}, z: ${fmt(tg.z, 3)} }\n` +
+        `  yaw=${fmt(yaw, 1)} pitch=${fmt(pitch, 1)} dist=${fmt(dist, 2)}`;
+    };
+
+    dbg.addEventListener('click', (e) => {
+      const t = e.target;
+      if (!(t instanceof HTMLButtonElement)) return;
+      const act = t.dataset.act;
+      if (act === 'splat-reset') {
+        Object.assign(splatState, {
+          px: REFERENCE_SPLAT.positionOffset.x,
+          py: REFERENCE_SPLAT.positionOffset.y,
+          pz: REFERENCE_SPLAT.positionOffset.z,
+          rx: REFERENCE_SPLAT.rotationOffset.x,
+          ry: REFERENCE_SPLAT.rotationOffset.y,
+          rz: REFERENCE_SPLAT.rotationOffset.z,
+          s: REFERENCE_SPLAT.scale,
+        });
+        ['splat-px','splat-py','splat-pz','splat-rx','splat-ry','splat-rz','splat-s'].forEach(k => {
+          const inp = dbg.querySelector(`input[data-ctl="${k}"]`);
+          const values = {
+            'splat-px': splatState.px,
+            'splat-py': splatState.py,
+            'splat-pz': splatState.pz,
+            'splat-rx': splatState.rx,
+            'splat-ry': splatState.ry,
+            'splat-rz': splatState.rz,
+            'splat-s': splatState.s,
+          };
+          const v = values[k];
+          if (inp) inp.value = String(v);
+          setOut(k, v);
+        });
+        applySplat();
+      } else if (act === 'splat-print') {
+        copyText(debugSnapshotText().split('Kamera:')[0].trim(), t);
+      } else if (act === 'cam-topview') {
+        toggleTopView();
+        t.textContent = isTopView ? 'Perspektive' : 'Top-View';
+        t.classList.toggle('active', isTopView);
+      } else if (act === 'cam-save') {
+        cameraHome.position.copy(camera.position);
+        cameraHome.target.copy(orbit.target);
+        flash(t, 'Gespeichert ✓');
+      } else if (act === 'cam-print' || act === 'cam-copy') {
+        // Read live values straight from the camera (= wherever the user has moved it).
+        const { p, tg, yaw, pitch, dist } = cameraSnapshot();
+        const text = `Kamera (aktueller Stand):\n` +
+          `  position: { x: ${fmt(p.x,3)}, y: ${fmt(p.y,3)}, z: ${fmt(p.z,3)} }\n` +
+          `  target:   { x: ${fmt(tg.x,3)}, y: ${fmt(tg.y,3)}, z: ${fmt(tg.z,3)} }\n` +
+          `  yaw=${fmt(yaw,1)}° pitch=${fmt(pitch,1)}° dist=${fmt(dist,2)}`;
+        copyText(text, t);
+        // Sync the sliders / outputs to the live values so they don't snap.
+        camState.yaw = yaw; camState.pitch = pitch; camState.dist = dist;
+        const yawIn = dbg.querySelector('input[data-ctl="cam-yaw"]');
+        const pitchIn = dbg.querySelector('input[data-ctl="cam-pitch"]');
+        const distIn = dbg.querySelector('input[data-ctl="cam-dist"]');
+        const targetXIn = dbg.querySelector('input[data-ctl="cam-target-x"]');
+        const targetYIn = dbg.querySelector('input[data-ctl="cam-target-y"]');
+        const targetZIn = dbg.querySelector('input[data-ctl="cam-target-z"]');
+        if (targetXIn) targetXIn.value = String(fmt(tg.x, 2));
+        if (targetYIn) targetYIn.value = String(fmt(tg.y, 2));
+        if (targetZIn) targetZIn.value = String(fmt(tg.z, 2));
+        if (yawIn) yawIn.value = String(Math.round(yaw));
+        if (pitchIn) pitchIn.value = String(Math.round(Math.max(20, Math.min(89, pitch))));
+        if (distIn) distIn.value = String(fmt(dist, 1));
+        setOut('cam-target-x', fmt(tg.x, 2));
+        setOut('cam-target-y', fmt(tg.y, 2));
+        setOut('cam-target-z', fmt(tg.z, 2));
+        setOut('cam-yaw', Math.round(yaw));
+        setOut('cam-pitch', Math.round(pitch));
+        setOut('cam-dist', fmt(dist, 1));
+      } else if (act === 'copy-all') {
+        copyText(debugSnapshotText(), t);
+      }
+    });
+  }
 
   // ── Cursor (desktop only) ──────────────
   const cursor = new PaasCursor({
@@ -479,61 +1312,57 @@ const boot = async () => {
       loader.setProgress(done / total, splatLoaded && !gltfLoaded ? 'Standpunkte · Modell' : 'Szene · Splat');
     };
 
-    try {
-      await viewer.addSplatScene(SCENE_SPLAT_PATH, {
-        showLoadingUI: false,
-        progressiveLoad: true,
-        splatAlphaRemovalThreshold: 0,
-        position: [0, 0, 0],
-        rotation: [
-          Math.sin(THREE.MathUtils.degToRad(STYLE.splatRotation) / 2),
-          0,
-          Math.cos(THREE.MathUtils.degToRad(STYLE.splatRotation) / 2),
-          0,
-        ],
-        scale: [1.2, 1.2, 1.2],
-      });
-      if (viewer.splatMesh) {
-        viewer.splatMesh.setSplatScale(STYLE.splatScale);
-      }
-      splatLoaded = true;
-      manager.itemEnd('Szene · Splat');
-      tryProgress();
-      invalidate();
-    } catch (err) {
-      console.error('Splat-Ladefehler:', err);
-      splatLoaded = true;
-      manager.itemEnd('Szene · Splat');
-      tryProgress();
-    }
+    let gltf = null;
+    let splatAlignment = buildSplatAlignment(null);
 
     try {
       const gltfLoader = new GLTFLoader(manager);
-      const gltf = await new Promise((res, rej) => gltfLoader.load(MODEL_PATH, res, undefined, rej));
-      gltf.scene.rotation.y = -Math.PI / 2;
+      gltf = await new Promise((res, rej) => gltfLoader.load(MODEL_PATH, res, undefined, rej));
+      splatAlignment = buildSplatAlignment(gltf.scene);
+
+      // GLB itself is invisible — only used as a marker and transform source.
       if (viewer.scene) viewer.scene.add(gltf.scene);
       gltf.scene.updateMatrixWorld(true);
 
-      let i = 0;
+      gltf.scene.traverse((n) => {
+        n.visible = false;
+      });
+      // Sheet-Content vor Marker-Erstellung abwarten, damit Platznamen
+      // direkt aus dem Sheet (falls vorhanden) verwendet werden können.
+      await sheetContentReady;
       gltf.scene.traverse((node) => {
         if (!node.isMesh) return;
-        node.visible = false;
         const pos = new THREE.Vector3();
         node.getWorldPosition(pos);
         const idx = standpoints.length;
+        const marker = String(idx + 1).padStart(2, '0');
+        const bilder = STANDPUNKT_BILDER[marker];
+        const images = Array.isArray(bilder)
+          ? bilder.map(b => ({ src: `${import.meta.env.BASE_URL}${b.src}`, alt: b.alt || '' }))
+          : [];
+        const display = MARKER_DISPLAY_NUMBER[marker] || marker;
+        const sheetTitle = sheetContent[`place_${display}_title`];
+        const sheetSubtitle = sheetContent[`place_${display}_subtitle`];
+        const sheetBody = sheetContent[`place_${display}_body`];
         const sp = {
           id: `sp-${idx + 1}`,
-          marker: String(idx + 1).padStart(2, '0'),
-          name: cleanName(node.name),
-          subtitle: STANDPUNKT_SUBLINES[idx % STANDPUNKT_SUBLINES.length],
-          body: buildBody(idx),
+          marker,
+          display,
+          name: (sheetTitle && sheetTitle.length)
+            ? sheetTitle
+            : (MARKER_NAME_OVERRIDES[marker] || cleanName(node.name)),
+          subtitle: (sheetSubtitle && sheetSubtitle.length)
+            ? sheetSubtitle
+            : STANDPUNKT_SUBLINES[idx % STANDPUNKT_SUBLINES.length],
+          body: (sheetBody && sheetBody.length) ? sheetBody : buildBody(idx),
+          images,
           world: pos.clone(),
         };
         standpoints.push(sp);
         const el = buildMarkerEl(sp);
         markers.push({ data: sp, el });
-        i++;
       });
+      updateMovementBounds();
 
       gltfLoaded = true;
       manager.itemEnd('Standpunkte · Modell');
@@ -543,6 +1372,51 @@ const boot = async () => {
       console.error('GLB-Ladefehler:', err);
       gltfLoaded = true;
       manager.itemEnd('Standpunkte · Modell');
+      tryProgress();
+    }
+
+    try {
+      await viewer.addSplatScene(SCENE_SPLAT_PATH, {
+        showLoadingUI: false,
+        progressiveLoad: true,
+        splatAlphaRemovalThreshold: 0,
+        position: [0, 0, 0],
+        rotation: [0, 0, 0, 1],
+        scale: [1, 1, 1],
+      });
+      if (viewer.splatMesh) {
+        viewer.splatMesh.setSplatScale(STYLE.splatScale);
+        applyAlignmentToSplat(viewer.splatMesh, splatAlignment);
+      }
+
+      if (splatAlignment.hasAuthoredTransform) {
+        camera.position.applyMatrix4(splatAlignment.matrix);
+        orbit.target.applyMatrix4(splatAlignment.matrix);
+        orbit.update();
+      }
+
+      cameraHome.position.copy(camera.position);
+      cameraHome.target.copy(orbit.target);
+      lastCamPos.copy(camera.position);
+      lastTarget.copy(orbit.target);
+      lastQuat.copy(camera.quaternion);
+      splatAlignmentReady = true;
+      refreshDebugSplatBase();
+      if (viewer.splatMesh) {
+        applySplatOffset(viewer.splatMesh, {
+          position: viewer.splatMesh.position.clone(),
+          quaternion: viewer.splatMesh.quaternion.clone(),
+          scale: viewer.splatMesh.scale.clone(),
+        });
+      }
+      splatLoaded = true;
+      manager.itemEnd('Szene · Splat');
+      tryProgress();
+      invalidate();
+    } catch (err) {
+      console.error('Splat-Ladefehler:', err);
+      splatLoaded = true;
+      manager.itemEnd('Szene · Splat');
       tryProgress();
     }
   };

@@ -53,9 +53,23 @@ export class PaasPanel {
     this.$title.textContent = data.title || '';
     this.$meta.innerHTML = (data.meta || []).map(m =>
       `<li class="t-caption"><span>${m.label}</span> · <span>${m.value}</span></li>`).join('');
-    this.$figure.innerHTML = data.image
-      ? `<img src="${data.image}" alt="">`
-      : `<div class="pp-placeholder"><span class="t-caption">BILD · ${data.title || ''}</span></div>`;
+    // Galerie: data.images = [{ src, alt }, ...] (1–6 Bilder).
+    // Fallback (Legacy): data.image / data.imageAlt = einzelnes Bild.
+    const _esc = (s) => String(s || '').replace(/"/g, '&quot;');
+    let imageList = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
+    if (!imageList.length && data.image) imageList = [{ src: data.image, alt: data.imageAlt }];
+    if (imageList.length) {
+      const cls = `pp-gallery pp-gallery--${Math.min(imageList.length, 6)}`;
+      this.$figure.className = `pp-figure ${cls}`;
+      this.$figure.innerHTML = imageList.map((img, i) => (
+        `<div class="pp-gallery-item" style="--i:${i}">
+           <img src="${_esc(img.src)}" alt="${_esc(img.alt)}" loading="lazy" decoding="async">
+         </div>`
+      )).join('');
+    } else {
+      this.$figure.className = 'pp-figure';
+      this.$figure.innerHTML = `<div class="pp-placeholder"><span class="t-caption">BILD · ${data.title || ''}</span></div>`;
+    }
     this.$body.innerHTML = (data.body || '').split('\n\n').map(p => `<p>${p}</p>`).join('');
     this.$scroll.scrollTop = 0;
     this.el.classList.add('pp-opening');

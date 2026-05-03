@@ -22,20 +22,74 @@
       </main>
 
       <header id="brand" class="brand">
-        <div class="brand-eyebrow t-caption">EIN RETREAT VON MAREN &amp; TILL PAAS</div>
-        <h1 class="brand-title t-headline">Paasleben</h1>
+        <div class="brand-eyebrow t-caption" data-content-key="eyebrow">COACHING CAMPUS · MAREN &amp; TIL PAAS</div>
+        <h1 class="brand-title t-headline" data-content-key="mainTitle">Paasleben</h1>
         <div class="brand-rule" aria-hidden="true"></div>
         <p class="brand-lede">
-          Ein Ort zum Atmen. Ein Ort für Skulpturen.<br />
-          <span class="brand-lede-sub">Entdecke das Atelier, den Garten und das Haus —
+          <span data-content-key="lede">Ein Ort der Inspiration und Muße. Tier- und Skulpturenpark, Coaching Campus.</span><br />
+          <span class="brand-lede-sub" data-content-key="ledeSub">Entdecke die Lofts, das Areal und die Pferde —
           klicke die Schilder, um die Geschichten zu lesen.</span>
         </p>
       </header>
 
-      <button id="info-button" class="info-button" type="button" aria-label="Info & Tastenkürzel">
-        <span class="info-glyph" aria-hidden="true">i</span>
-        <span class="info-label t-caption">Info</span>
-      </button>
+      <div id="ui-chips" class="ui-chips">
+        <button id="audio-button" class="ui-chip" type="button" aria-label="Ton einschalten" aria-pressed="false">
+          <span class="audio-glyph audio-glyph-off" aria-hidden="true">
+            <svg viewBox="0 0 22 22" width="14" height="14"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 8l5 6M20 8l-5 6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>
+          </span>
+          <span class="audio-glyph audio-glyph-on" aria-hidden="true">
+            <svg viewBox="0 0 22 22" width="14" height="14"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7c2 1 2 7 0 8M18 5c3.5 2 3.5 10 0 12" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
+          </span>
+          <span class="ui-chip-label t-caption">Ton</span>
+        </button>
+        <button id="info-button" class="ui-chip" type="button" aria-label="Bedienung & Tastenkürzel">
+          <span class="info-glyph" aria-hidden="true">i</span>
+          <span class="ui-chip-label t-caption">Bedienung</span>
+        </button>
+      </div>
+
+      <audio id="bgm" src="./paasleben.mp3" loop autoplay muted preload="auto" playsinline webkit-playsinline></audio>
+
+      <div id="debug-panel" class="debug-panel" hidden>
+        <div class="debug-head">
+          <span class="t-caption">Debug</span>
+          <kbd>Shift+D</kbd>
+        </div>
+        <fieldset>
+          <legend class="t-caption">Splat-Position</legend>
+          <label>X <input type="range" min="-5" max="5" step="0.01" value="-0.04" data-ctl="splat-px"><output data-out="splat-px">-0.04</output></label>
+          <label>Y <input type="range" min="-5" max="5" step="0.01" value="-0.16" data-ctl="splat-py"><output data-out="splat-py">-0.16</output></label>
+          <label>Z <input type="range" min="-5" max="5" step="0.01" value="-0.03" data-ctl="splat-pz"><output data-out="splat-pz">-0.03</output></label>
+        </fieldset>
+        <fieldset>
+          <legend class="t-caption">Splat-Rotation (°)</legend>
+          <label>X <input type="range" min="-180" max="180" step="1" value="6" data-ctl="splat-rx"><output data-out="splat-rx">6</output></label>
+          <label>Y <input type="range" min="-180" max="180" step="1" value="-118" data-ctl="splat-ry"><output data-out="splat-ry">-118</output></label>
+          <label>Z <input type="range" min="-180" max="180" step="1" value="12" data-ctl="splat-rz"><output data-out="splat-rz">12</output></label>
+          <label>Skalierung <input type="range" min="0.5" max="3" step="0.05" value="1" data-ctl="splat-s"><output data-out="splat-s">1.00</output></label>
+          <div class="debug-row">
+            <button type="button" data-act="splat-reset" class="t-caption">Reset</button>
+            <button type="button" data-act="splat-print" class="t-caption">Splat kopieren</button>
+          </div>
+        </fieldset>
+        <fieldset>
+          <legend class="t-caption">Kamera</legend>
+          <label>Ziel X <input type="range" min="-5" max="5" step="0.01" value="1.288" data-ctl="cam-target-x"><output data-out="cam-target-x">1.29</output></label>
+          <label>Ziel Y <input type="range" min="-1" max="3" step="0.01" value="0.306" data-ctl="cam-target-y"><output data-out="cam-target-y">0.31</output></label>
+          <label>Ziel Z <input type="range" min="-5" max="5" step="0.01" value="1.874" data-ctl="cam-target-z"><output data-out="cam-target-z">1.87</output></label>
+          <label>Links/Rechts ° <input type="range" min="-180" max="180" step="1" value="62" data-ctl="cam-yaw"><output data-out="cam-yaw">62</output></label>
+          <label>Pitch ° <input type="range" min="20" max="89" step="1" value="30" data-ctl="cam-pitch"><output data-out="cam-pitch">30</output></label>
+          <label>Distanz <input type="range" min="2" max="14" step="0.1" value="2.8" data-ctl="cam-dist"><output data-out="cam-dist">2.8</output></label>
+          <div class="debug-row">
+            <button type="button" data-act="cam-topview" class="t-caption">Top-View</button>
+            <button type="button" data-act="cam-save" class="t-caption">Als Home speichern</button>
+            <button type="button" data-act="cam-copy" class="t-caption">Kamera kopieren</button>
+          </div>
+        </fieldset>
+        <div class="debug-row">
+          <button type="button" data-act="copy-all" class="t-caption">Alles Kopieren</button>
+        </div>
+      </div>
 
       <div id="help-overlay" class="help-overlay" aria-hidden="true">
         <div class="help-card">

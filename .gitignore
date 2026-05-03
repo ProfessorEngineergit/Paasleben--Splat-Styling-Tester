@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local working files / large media not meant for the repo
+Paasleben-Bilder/
+*.docx
+index.html.[0-9]*
