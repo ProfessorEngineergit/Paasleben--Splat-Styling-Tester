@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>PAASLEBEN · Editor</title>
+  </head>
+  <body>
+    <div id="admin-app">
+      <!-- Login-Gate -->
+      <div id="login-screen" class="login-screen">
+        <div class="login-card">
+          <p class="login-eyebrow">PAASLEBEN</p>
+          <h1 class="login-title">Karten-Editor</h1>
+          <p class="login-text">
+            Orte anlegen und verschieben, Texte und Fotos pflegen.
+            Änderungen sind sofort auf der Website sichtbar.
+          </p>
+          <button id="login-button" class="btn btn-primary" type="button">Mit Google anmelden</button>
+          <p id="login-status" class="login-status" hidden></p>
+        </div>
+      </div>
+
+      <!-- Editor -->
+      <div id="editor-screen" class="editor-screen" hidden>
+        <header class="topbar">
+          <div class="topbar-left">
+            <span class="topbar-brand">PAASLEBEN · Editor</span>
+            <span id="sync-status" class="sync-status" title="Verbindungsstatus">●</span>
+          </div>
+          <div class="topbar-actions">
+            <button id="add-point-button" class="btn" type="button" aria-pressed="false">＋ Neuer Ort</button>
+            <button id="top-view-button" class="btn" type="button" aria-pressed="false" title="Von oben auf die Karte schauen (nochmal drücken: zurück)">Draufsicht</button>
+            <a class="btn" href="./" target="_blank" rel="noopener">Website ansehen</a>
+            <span id="user-chip" class="user-chip"></span>
+            <button id="logout-button" class="btn btn-quiet" type="button">Abmelden</button>
+          </div>
+        </header>
+        <p id="editor-banner" class="editor-banner" role="status" hidden></p>
+        <main class="editor-main">
+          <div id="editor-viewport" class="editor-viewport">
+            <div id="editor-markers" class="editor-markers" aria-hidden="false"></div>
+            <div id="add-hint" class="add-hint" hidden>Klicke auf die Karte, um den neuen Ort zu platzieren — <b>Esc</b> bricht ab.</div>
+            <div class="viewport-help">Maus: drehen / Rad: zoomen / rechts: verschieben · <b>W A S D</b> fliegen, <b>Q/E</b> hoch/runter, <b>Shift</b> schnell · Ort ziehen oder Gizmo-Pfeile · Pfeiltasten: gewählten Ort schieben (Shift = grob)</div>
+          </div>
+          <aside id="sidebar" class="sidebar">
+            <div id="sidebar-empty" class="sidebar-empty">
+              <p>Wähle einen Ort auf der Karte<br />oder lege mit <b>＋ Neuer Ort</b> einen an.</p>
+              <input id="list-search" class="list-search" type="search" placeholder="Orte durchsuchen…" />
+              <ul id="location-list" class="location-list"></ul>
+            </div>
+            <form id="location-form" class="location-form" hidden autocomplete="off">
+              <div class="form-head">
+                <h2 id="form-title" class="form-heading">Ort</h2>
+                <button id="close-form" class="btn btn-quiet" type="button" aria-label="Auswahl schließen">✕</button>
+              </div>
+              <div class="form-toolbar">
+                <button id="preview-location" class="btn" type="button" title="Echte Website-Ansicht — Texte dort direkt editierbar">End-Ansicht öffnen</button>
+                <button id="duplicate-location" class="btn" type="button">Duplizieren</button>
+              </div>
+
+              <label class="field">
+                <span class="field-label">Titel</span>
+                <input id="f-title" name="title" type="text" required />
+              </label>
+              <label class="field">
+                <span class="field-label">Untertitel</span>
+                <input id="f-subtitle" name="subtitle" type="text" />
+              </label>
+              <label class="field">
+                <span class="field-label">Text (HTML erlaubt, Absätze durch Leerzeile)</span>
+                <textarea id="f-body" name="body" rows="9"></textarea>
+              </label>
+              <div class="field-row">
+                <label class="field field-small">
+                  <span class="field-label">Schild-Nr.</span>
+                  <input id="f-display" name="displayNumber" type="text" inputmode="numeric" pattern="[0-9]{1,2}" />
+                </label>
+                <label class="field field-small">
+                  <span class="field-label">Reihenfolge</span>
+                  <input id="f-order" name="order" type="number" step="1" />
+                </label>
+                <label class="field field-check">
+                  <input id="f-visible" name="visible" type="checkbox" />
+                  <span class="field-label">Sichtbar</span>
+                </label>
+              </div>
+              <details class="pos-details">
+                <summary>Position (fein justieren)</summary>
+                <div class="field-row">
+                  <label class="field field-small"><span class="field-label">X</span><input id="f-px" type="number" step="0.01" /></label>
+                  <label class="field field-small"><span class="field-label">Y (Höhe)</span><input id="f-py" type="number" step="0.01" /></label>
+                  <label class="field field-small"><span class="field-label">Z</span><input id="f-pz" type="number" step="0.01" /></label>
+                </div>
+              </details>
+
+              <section class="images-section">
+                <h3 class="images-heading">Fotos</h3>
+                <ul id="image-list" class="image-list"></ul>
+                <div class="image-actions">
+                  <label class="btn btn-file">
+                    Foto hochladen
+                    <input id="image-upload" type="file" accept="image/*" multiple hidden />
+                  </label>
+                  <button id="open-library" class="btn" type="button">Aus Bibliothek wählen</button>
+                </div>
+                <div id="drop-zone" class="drop-zone">…oder Fotos hierher ziehen</div>
+                <p id="upload-status" class="upload-status" hidden></p>
+              </section>
+
+              <div class="danger-zone">
+                <button id="delete-location" class="btn btn-danger" type="button">Ort löschen…</button>
+              </div>
+              <p id="save-status" class="save-status" aria-live="polite"></p>
+            </form>
+          </aside>
+        </main>
+      </div>
+
+      <!-- End-Ansicht (echte Website, editierbar) -->
+      <div id="preview-overlay" class="preview-overlay" hidden>
+        <div class="preview-topbar">
+          <span id="preview-title" class="preview-title">End-Ansicht</span>
+          <span class="preview-hint">Titel, Untertitel und Text im Panel direkt anklicken und ändern — wird automatisch gespeichert.</span>
+          <div class="preview-actions">
+            <button id="preview-reload" class="btn" type="button">Neu laden</button>
+            <button id="preview-close" class="btn btn-primary" type="button">Zurück zum Editor</button>
+          </div>
+        </div>
+        <iframe id="preview-frame" class="preview-frame" title="End-Ansicht der Website"></iframe>
+      </div>
+
+      <!-- Bibliotheks-Auswahl -->
+      <dialog id="library-dialog" class="library-dialog">
+        <div class="library-head">
+          <h2>Foto-Bibliothek</h2>
+          <input id="library-search" class="list-search" type="search" placeholder="Dateiname suchen…" />
+          <button id="library-close" class="btn btn-quiet" type="button">Schließen</button>
+        </div>
+        <div id="library-grid" class="library-grid"></div>
+      </dialog>
+    </div>
+    <script type="module" src="/src/admin/admin.js"></script>
+  </body>
+</html>

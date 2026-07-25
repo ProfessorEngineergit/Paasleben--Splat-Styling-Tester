@@ -1,0 +1,53 @@
+# Deployt bei jedem Push auf main automatisch zu IONOS (Webspace, per SFTP
+# über SSH, Port 22). Voraussetzung: drei Repository-Secrets (siehe README,
+# Kapitel „Übergabe an die IT / IONOS"):
+#   IONOS_SFTP_HOST      z. B. home727200422.1and1-data.host
+#   IONOS_SFTP_USER      SFTP-Benutzer des Webspace
+#   IONOS_SFTP_PASSWORD  zugehöriges Passwort
+name: Deploy to IONOS
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ionos-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (Root-Pfad)
+        env:
+          BASE_PATH: /
+        run: npm run build
+
+      # Reines SFTP über SSH (Port 22) — passt zum IONOS-Webspace-Zugang.
+      # sftp_only: true nutzt ausschließlich das SFTP-Subsystem (kein Shell/
+      # rsync), das auf chroot-Webspace der einzig verlässliche Weg ist.
+      - name: Upload via SFTP zu IONOS
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.5
+        with:
+          server: ${{ secrets.IONOS_SFTP_HOST }}
+          username: ${{ secrets.IONOS_SFTP_USER }}
+          password: ${{ secrets.IONOS_SFTP_PASSWORD }}
+          port: 22
+          local_path: './dist/*'
+          remote_path: '/'
+          sftp_only: true
+          delete_remote_files: false

@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Paasleben — Reference & Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="components.css">
+<style>
+  html, body { margin: 0; padding: 0; background: var(--paper); color: var(--ink); font-family: var(--serif); }
+  body { min-height: 100vh; }
+
+  /* Top chrome — Chartogne-style */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: grid; grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    padding: 22px 32px;
+    z-index: 200;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-l { font-family: var(--display); font-size: 11px; letter-spacing: 0.18em; line-height: 1.4; }
+  .chrome-l span { display: block; }
+  .chrome-l u { text-decoration: none; border-bottom: 1px solid var(--ink); padding-bottom: 1px; }
+  .chrome-c { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); }
+  .chrome-r { justify-self: end; font-family: var(--display); font-size: 11px; letter-spacing: 0.18em; text-align: right;}
+  .chrome-r .arrow {
+    margin-top: 6px; width: 110px; height: 12px;
+    position: relative;
+  }
+  .chrome-r .arrow::before {
+    content:""; position:absolute; left:0; right: 6px; top:50%; height:1px; background: var(--ink);
+  }
+  .chrome-r .arrow::after {
+    content:""; position:absolute; right:0; top:50%;
+    width:0;height:0; border-left: 6px solid var(--ink); border-top: 4px solid transparent; border-bottom: 4px solid transparent;
+    transform: translateY(-50%);
+  }
+  .chrome-r .arrow i {
+    position: absolute; left: 33%; top: 50%; transform: translate(-50%,-50%);
+    width: 3px; height: 3px; background: var(--ink); border-radius: 50%;
+  }
+  .chrome-r .arrow i + i { left: 66%; }
+
+  /* Layout */
+  main { padding: 120px 6vw 12vh; max-width: 1280px; margin: 0 auto; }
+  .hero { display: grid; grid-template-columns: 1fr; align-items: end; min-height: 60vh; padding-bottom: 60px; border-bottom: 1px solid var(--rule-soft); }
+  .hero-cap { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); text-align: center; margin-bottom: 24px; text-transform: uppercase;}
+  .hero-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: clamp(56px, 10vw, 132px);
+    line-height: 0.95;
+    letter-spacing: 0.04em;
+    text-align: center;
+    margin: 0;
+  }
+  .hero-title .stagger { display: block; }
+  .hero-title .stagger:nth-child(2) { margin-left: 14%; }
+  .hero-title .stagger:nth-child(3) { margin-left: 26%; }
+  .hero-sub { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); text-align: center; margin-top: 32px; text-transform: uppercase;}
+  .hero-sub .plus { display:block; font-size: 14px; color: var(--ink); margin: 24px 0 18px; opacity: .6;}
+
+  section.intro { padding: 80px 0 60px; display: grid; grid-template-columns: 1fr 2fr 1fr; gap: 48px; }
+  section.intro h2 { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); margin: 4px 0 0; text-transform: uppercase; font-weight: 400;}
+  section.intro .lede { font-family: var(--serif); font-size: 22px; line-height: 1.45; max-width: 38ch; margin: 0; color: var(--ink-2); }
+  section.intro .lede em { color: var(--accent); font-style: normal; }
+
+  /* Demos */
+  .demos { padding: 60px 0; }
+  .demo {
+    border-top: 1px solid var(--rule-soft);
+    padding: 60px 0;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+  }
+  .demo-meta .num { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); }
+  .demo-meta h3 { font-family: var(--serif); font-weight: 400; font-size: 36px; line-height: 1.05; letter-spacing: 0.04em; margin: 8px 0 16px; }
+  .demo-meta p { font-family: var(--serif); font-size: 14px; line-height: 1.55; color: var(--ink-2); max-width: 32ch; margin: 0 0 18px; }
+  .demo-meta .actions { display: flex; flex-direction: column; gap: 12px; }
+  .demo-meta button {
+    background: none; border: none; padding: 0;
+    font-family: var(--display); font-size: 11px; letter-spacing: 0.18em;
+    color: var(--ink); text-align: left;
+    cursor: pointer; align-self: flex-start;
+    border-bottom: 1px solid var(--ink);
+    padding-bottom: 2px;
+    transition: color .2s, border-color .2s;
+  }
+  .demo-meta button:hover { color: var(--accent); border-color: var(--accent); }
+
+  .stage {
+    background: var(--paper-warm);
+    border: 1px solid var(--rule-soft);
+    aspect-ratio: 16/10;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Cursor stage with markers */
+  .cursor-stage {
+    background:
+      repeating-linear-gradient(45deg, rgba(26,24,20,.025) 0 14px, transparent 14px 28px),
+      var(--paper-warm);
+  }
+  .marker {
+    position: absolute;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--ink);
+    transform: translate(-50%, -50%);
+    cursor: none;
+  }
+  .marker::after {
+    content: attr(data-label);
+    position: absolute; left: 50%; top: 100%;
+    transform: translate(-50%, 8px);
+    font-family: var(--display); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--ink); white-space: nowrap;
+  }
+  .marker[data-accent] { background: var(--accent); }
+
+  /* Panel stage = mini scene */
+  .panel-stage { aspect-ratio: 16/12; }
+  .panel-stage .scene-mock {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 65%, rgba(184,52,47,0.18) 0%, transparent 55%),
+      repeating-linear-gradient(110deg, rgba(26,24,20,.04) 0 6px, transparent 6px 14px),
+      repeating-linear-gradient(20deg, rgba(26,24,20,.05) 0 5px, transparent 5px 12px),
+      var(--paper-warm);
+  }
+  .panel-stage .scene-marker {
+    position: absolute;
+    left: 50%; top: 55%;
+    transform: translate(-50%, -50%);
+    width: 28px; height: 36px;
+    background: var(--ink);
+    clip-path: polygon(50% 0, 100% 35%, 100% 100%, 0 100%, 0 35%);
+  }
+
+  /* Code blocks */
+  .code {
+    background: #1a1814;
+    color: #e8dec8;
+    padding: 18px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.55;
+    overflow-x: auto;
+    white-space: pre;
+    border: 1px solid var(--ink);
+  }
+  .code .c { color: #8a7d63; }
+  .code .k { color: #c9a961; }
+  .code .s { color: #c45a55; }
+
+  details {
+    margin-top: 18px;
+    border-top: 1px solid var(--rule-soft);
+    padding-top: 14px;
+  }
+  details summary {
+    cursor: pointer;
+    font-family: var(--display); font-size: 10px; letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    list-style: none;
+    text-transform: uppercase;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::before { content: "+ "; color: var(--accent); }
+  details[open] summary::before { content: "− "; }
+  details .code { margin-top: 12px; }
+
+  /* Tokens table */
+  .tokens { padding: 60px 0; border-top: 1px solid var(--rule-soft); }
+  .tokens h2 { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; margin: 0 0 32px; }
+  .swatches { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; margin-bottom: 32px; }
+  .swatch { }
+  .swatch .chip { aspect-ratio: 1; border: 1px solid var(--rule-soft); margin-bottom: 8px; }
+  .swatch .name { font-family: var(--display); font-size: 10px; letter-spacing: 0.16em; color: var(--ink); }
+  .swatch .val  { font-family: var(--mono); font-size: 11px; color: var(--ink-mute); }
+
+  /* Footer */
+  footer.foot {
+    border-top: 1px solid var(--rule-soft);
+    padding: 60px 0;
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+  footer.foot p { font-family: var(--serif); color: var(--ink-2); margin: 0; max-width: 50ch;}
+  footer.foot .label { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; color: var(--ink-mute); margin-bottom: 12px; text-transform: uppercase;}
+  footer.foot a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--accent); }
+
+</style>
+</head>
+<body class="paper">
+  <!-- Chrome -->
+  <div class="chrome">
+    <div class="chrome-l"><span><u>MENU</u></span><span>RE</span><span>FE</span><span>RENZ</span></div>
+    <div class="chrome-c">PAASLEBEN</div>
+    <div class="chrome-r">BRIEF<div class="arrow"><i></i><i></i></div></div>
+  </div>
+
+  <main>
+    <section class="hero">
+      <div>
+        <div class="hero-cap">Implementation Brief · Three.js · April 2026</div>
+        <h1 class="hero-title">
+          <span class="stagger">EIN ORT</span>
+          <span class="stagger">FÜR SKULP-</span>
+          <span class="stagger">TUREN.</span>
+        </h1>
+        <div class="hero-sub">
+          <span class="plus">+</span>
+          PAASLEBEN · MAREN &amp; TILL PAAS<br>
+          DESIGNSYSTEM &amp; INTERAKTIONS-REFERENZ
+        </div>
+      </div>
+    </section>
+
+    <section class="intro">
+      <h2>Worum es geht</h2>
+      <p class="lede">
+        Diese Seite ist <em>der Brief</em>. Sie definiert das Designsystem
+        für die Three.js-Seite paasleben — warmes Papier, klassische Serif,
+        American Typewriter als UI-Chrome, ein einziger roter Akzent.
+        Die drei Interaktionen unten sind <em>klickbar</em>, nicht nur
+        beschrieben.
+      </p>
+      <div></div>
+    </section>
+
+    <section class="tokens">
+      <h2>FARBE</h2>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#f4ecd8"></div><div class="name">PAPER</div><div class="val">#f4ecd8</div></div>
+        <div class="swatch"><div class="chip" style="background:#efe7d2"></div><div class="name">PAPER WARM</div><div class="val">#efe7d2</div></div>
+        <div class="swatch"><div class="chip" style="background:#1a1814"></div><div class="name">INK</div><div class="val">#1a1814</div></div>
+        <div class="swatch"><div class="chip" style="background:#6b5f4e"></div><div class="name">INK MUTE</div><div class="val">#6b5f4e</div></div>
+        <div class="swatch"><div class="chip" style="background:#b8342f"></div><div class="name">ACCENT</div><div class="val">#b8342f</div></div>
+      </div>
+      <h2 style="margin-top:48px">TYPE</h2>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 32px;">
+        <div>
+          <div class="t-caption" style="margin-bottom:8px;">DISPLAY · AMERICAN TYPEWRITER</div>
+          <div class="t-display" style="font-size: 28px;">MENU · CARTE · + ÖFFNEN</div>
+        </div>
+        <div>
+          <div class="t-caption" style="margin-bottom:8px;">HEADLINE · CORMORANT GARAMOND</div>
+          <div class="t-headline" style="font-size: 36px;">Das Atelier am Hang</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="demos">
+      <h2 class="t-caption" style="border-top:1px solid var(--rule-soft);padding-top:32px;">DREI INTERAKTIONEN · KLICKBAR</h2>
+
+      <!-- DEMO 1: Loader -->
+      <div class="demo">
+        <div class="demo-meta">
+          <div class="num">01 / LOADING</div>
+          <h3>Typewriter</h3>
+          <p>
+            Ein Satz wird Buchstabe für Buchstabe getippt, mit Jitter. Unten
+            eine Hairline mit echtem LoadingManager-Progress. Caret blinkt,
+            Linie kollabiert zur Mitte, Cream fadet aus.
+          </p>
+          <div class="actions">
+            <button onclick="runLoader()">▶ DEMO STARTEN</button>
+            <button onclick="runLoader(true)">▶ MIT LANGSAMEM PROGRESS</button>
+          </div>
+        </div>
+        <div class="stage" style="display:flex; align-items:center; justify-content:center;">
+          <div style="text-align:center; max-width: 60%;">
+            <div class="t-caption" style="color: var(--ink-mute); margin-bottom: 12px;">VORSCHAU IN VOLLBILD</div>
+            <div class="t-headline" style="font-size: 28px;">Klick links → Loader übernimmt das ganze Fenster.</div>
+          </div>
+        </div>
+      </div>
+      <details>
+        <summary>CODE — paas-loader.js / Aufruf</summary>
+<pre class="code"><span class="c">// 1. Hänge den LoadingManager an alle Three.js-Loader</span>
+<span class="k">const</span> manager = <span class="k">new</span> THREE.LoadingManager();
+<span class="k">const</span> gltf    = <span class="k">new</span> GLTFLoader(manager);
+<span class="k">const</span> tex     = <span class="k">new</span> THREE.TextureLoader(manager);
+
+<span class="c">// 2. Loader instanziieren — er hört automatisch auf onProgress/onLoad</span>
+<span class="k">const</span> loader = <span class="k">new</span> PaasLoader({
+  text: <span class="s">"Ein Ort zum Atmen. Ein Ort für Skulpturen."</span>,
+  manager,
+});
+<span class="k">await</span> loader.start();   <span class="c">// resolves wenn Reveal fertig</span>
+startScene();           <span class="c">// → eigene Three.js-Init</span></pre>
+      </details>
+
+      <!-- DEMO 2: Cursor -->
+      <div class="demo">
+        <div class="demo-meta">
+          <div class="num">02 / CURSOR</div>
+          <h3>Magnetisches Crosshair</h3>
+          <p>
+            Crosshair als Default. Wächst zu einem Ring mit „+ ÖFFNEN“ wenn
+            ein Schild näher als 120&nbsp;px ist, und gleitet hin
+            (smoothstep-Pull). Squash entlang Velocity bei schneller
+            Bewegung, Bouncy-Recover.
+          </p>
+          <div class="actions">
+            <button onclick="toggleCursor()">▶ CURSOR AKTIVIEREN</button>
+          </div>
+        </div>
+        <div class="stage cursor-stage" id="cursorStage">
+          <div class="marker" data-marker data-label="SKULPTUR 01" style="left:22%; top:38%;"></div>
+          <div class="marker" data-marker data-label="STUDIO" style="left:62%; top:30%;"></div>
+          <div class="marker" data-marker data-accent data-label="GARTEN" style="left:78%; top:62%;"></div>
+          <div class="marker" data-marker data-label="HAUS" style="left:38%; top:72%;"></div>
+        </div>
+      </div>
+      <details>
+        <summary>CODE — paas-cursor.js / Aufruf</summary>
+<pre class="code"><span class="c">// Marker im DOM mit data-marker markieren</span>
+<span class="c">// (für Three.js: in jedem Frame worldToScreen → DOM-Element positionieren)</span>
+&lt;div data-marker data-id=<span class="s">"skulptur-01"</span>&gt;&lt;/div&gt;
+
+<span class="k">const</span> cursor = <span class="k">new</span> PaasCursor({
+  magneticTargets: () =&gt; document.querySelectorAll(<span class="s">'[data-marker]'</span>),
+  magneticRadius: <span class="s">120</span>,
+});
+cursor.mount();</pre>
+      </details>
+
+      <!-- DEMO 3: Panel -->
+      <div class="demo">
+        <div class="demo-meta">
+          <div class="num">03 / PANEL</div>
+          <h3>Schild-Detail</h3>
+          <p>
+            Klick auf den Marker → Panel kommt von unten als Glass über die
+            Szene. Beim Scrollen (innerhalb des Panels) wird der Cream
+            opak, die Szene tritt zurück, Phase 3 ist reines Editorial.
+          </p>
+          <div class="actions">
+            <button onclick="openPanel('skulptur')">▶ SKULPTUR ÖFFNEN</button>
+            <button onclick="openPanel('studio')">▶ STUDIO ÖFFNEN</button>
+          </div>
+        </div>
+        <div class="stage panel-stage">
+          <div class="scene-mock"></div>
+          <div class="scene-marker"></div>
+          <div style="position:absolute; left:50%; top:30%; transform: translateX(-50%); text-align:center;">
+            <div class="t-caption" style="color: var(--ink-mute); margin-bottom: 8px;">PAASLEBEN · GARTEN SÜD</div>
+            <div class="t-headline" style="font-size: 32px;">DAS ATELIER</div>
+          </div>
+        </div>
+      </div>
+      <details>
+        <summary>CODE — paas-panel.js / Aufruf</summary>
+<pre class="code"><span class="k">const</span> panel = <span class="k">new</span> PaasPanel({ sceneVeil: document.querySelector(<span class="s">'.scene-veil'</span>) });
+
+raycaster.on(<span class="s">'click'</span>, hit =&gt; {
+  panel.open({
+    caption: <span class="s">"SKULPTUR · 04"</span>,
+    title: <span class="s">"ARCH IM REGEN"</span>,
+    meta: [
+      { label: <span class="s">"MATERIAL"</span>, value: <span class="s">"BRONZE"</span> },
+      { label: <span class="s">"HÖHE"</span>,    value: <span class="s">"220 CM"</span> },
+      { label: <span class="s">"STANDORT"</span>,value: <span class="s">"GARTEN SÜD"</span> },
+    ],
+    body: <span class="s">"Lorem ipsum dolor sit amet …"</span>,
+    image: <span class="s">"/img/skulptur-04.jpg"</span>,
+  });
+});</pre>
+      </details>
+    </section>
+
+    <footer class="foot">
+      <div>
+        <div class="label">DOWNLOAD</div>
+        <p>
+          Vollständiger Brief in <a href="BRIEF.md">BRIEF.md</a>. Tokens in
+          <a href="tokens.css">tokens.css</a>, Komponenten in
+          <a href="components.css">components.css</a> +
+          <a href="paas-loader.js">paas-loader.js</a> /
+          <a href="paas-cursor.js">paas-cursor.js</a> /
+          <a href="paas-panel.js">paas-panel.js</a>.
+        </p>
+      </div>
+      <div>
+        <div class="label">REFERENZ</div>
+        <p>
+          Visuelle Inspiration: chartogne-taillet.com. Three.js-Patterns
+          (Cursor, Marker, Picking): bruno-simon.com.
+        </p>
+      </div>
+    </footer>
+  </main>
+
+  <!-- Hidden scene veil so panel can dim a (fake) scene -->
+  <div class="scene-veil" id="sceneVeil"></div>
+
+  <script src="paas-loader.js"></script>
+  <script src="paas-cursor.js"></script>
+  <script src="paas-panel.js"></script>
+  <script>
+    // ── Loader demo ───────────────────────────────────────
+    let _loader = null;
+    async function runLoader(slow = false) {
+      if (_loader) return;
+      _loader = new PaasLoader({
+        text: "Ein Ort zum Atmen. Ein Ort für Skulpturen.",
+      });
+      const total = slow ? 7000 : 3500;
+      const start = performance.now();
+      const assets = ['hero.glb','garten.hdr','skulptur-01.gltf','studio.glb','tex/holz.jpg','tex/stein.jpg','envmap.hdr'];
+      const tick = () => {
+        const t = Math.min(1, (performance.now() - start) / total);
+        const idx = Math.min(assets.length - 1, Math.floor(t * assets.length));
+        _loader.setProgress(t, assets[idx]);
+        if (t < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+      await _loader.start();
+      _loader = null;
+    }
+
+    // ── Cursor demo ───────────────────────────────────────
+    let _cursor = null;
+    function toggleCursor() {
+      if (_cursor) { _cursor.unmount(); _cursor = null; return; }
+      _cursor = new PaasCursor({
+        magneticTargets: () => document.querySelectorAll('#cursorStage [data-marker]'),
+        magneticRadius: 120,
+      });
+      _cursor.mount();
+    }
+
+    // ── Panel demo ────────────────────────────────────────
+    const PANEL_DATA = {
+      skulptur: {
+        caption: "SKULPTUR · 04",
+        title: "ARCH IM REGEN",
+        meta: [
+          { label: "MATERIAL", value: "BRONZE" },
+          { label: "HÖHE",     value: "220 CM" },
+          { label: "STANDORT", value: "GARTEN SÜD" },
+        ],
+        body: `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris.`,
+      },
+      studio: {
+        caption: "ATELIER · 02",
+        title: "DAS STUDIO",
+        meta: [
+          { label: "GEBAUT",   value: "1962" },
+          { label: "LICHT",    value: "NORD" },
+          { label: "FUNKTION", value: "ARBEIT · ENTWURF" },
+        ],
+        body: `Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.
+
+Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.`,
+      },
+    };
+    let _panel = null;
+    function openPanel(key) {
+      if (!_panel) _panel = new PaasPanel({ sceneVeil: document.getElementById('sceneVeil') });
+      _panel.open(PANEL_DATA[key]);
+    }
+  </script>
+</body>
+</html>

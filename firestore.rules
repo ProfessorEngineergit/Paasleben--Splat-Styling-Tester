@@ -1,0 +1,60 @@
+rules_version = '2';
+
+// Das Projekt `tasks-4182a` beherbergt mehrere Apps in Zonen:
+//   1. Conquer-Zone: Collections mit Präfix `cq_` — nur Owner-Identität.
+//   2. Paasleben-Zone: Collections mit Präfix `paas_` — öffentlicher Lesezugriff
+//      auf paas_locations, Schreibzugriff nur für E-Mails in `paas_admins`
+//      (Doc-ID = lowercased E-Mail; Pflege nur über die Firebase-Konsole).
+//   3. Legacy-Zone: alles andere — wie ursprünglich (jeder authentifizierte
+//      Nutzer), mit Carve-outs für die beiden Zonen oben.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner() {
+      return request.auth != null
+        && request.auth.token.email == 'bahriannovotny@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function isConquer(collection) {
+      return collection.matches('cq_.*');
+    }
+
+    function isPaas(collection) {
+      return collection.matches('paas_.*');
+    }
+
+    // Doc-IDs in paas_admins sind kleingeschrieben; die E-Mail aus dem Token
+    // ebenfalls kleinschreiben, sonst scheitert das Schreiben trotz Login.
+    function isPaasAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/paas_admins/$(request.auth.token.email.lower()));
+    }
+
+    // ── Conquer-Zone: nur der Owner ─────────────────────────────────────
+    match /{collection}/{document=**} {
+      allow read, write: if isConquer(collection) && isOwner();
+    }
+
+    // ── Paasleben-Zone ──────────────────────────────────────────────────
+    match /paas_locations/{locationId} {
+      allow read: if true;
+      allow write: if isPaasAdmin();
+    }
+    // Hochgeladene Fotos als Base64-Dokumente (kein Firebase Storage nötig;
+    // Storage erfordert im Projekt den Blaze-Tarif). Max. 1 MB pro Doc.
+    match /paas_images/{imageId} {
+      allow read: if true;
+      allow write: if isPaasAdmin();
+    }
+    match /paas_admins/{email} {
+      allow read: if request.auth != null && request.auth.token.email.lower() == email;
+      allow write: if false; // nur über die Firebase-Konsole
+    }
+
+    // ── Legacy-Zone (Bestands-App „tasks"): Verhalten unverändert ──────
+    match /{collection}/{document=**} {
+      allow read, write: if !isConquer(collection) && !isPaas(collection) && request.auth != null;
+    }
+  }
+}
