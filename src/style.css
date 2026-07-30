@@ -344,41 +344,7 @@ body.paper { min-height: 100%; }
   .no-cursor, .no-cursor * { cursor: auto !important; }
 }
 
-@media (max-width: 640px) {
-  .brand-lede-sub { font-size: 0.76em; }
-  .footer span:nth-child(3) { display: none; }
-  .footer-dot { display: none; }
 
-  /* Der Markenblock lief bisher unter den Chips (Ton/Bedienung) hindurch und
-     beanspruchte fast ein Drittel der Höhe. Jetzt startet er unterhalb der
-     Chip-Reihe und ist kompakter, damit mehr Karte sichtbar bleibt. */
-  .brand {
-    top: 68px;
-    left: 0;
-    right: 0;
-    max-width: none;
-    gap: 8px;
-    padding: 0 18px 8px;
-  }
-  .brand-title { font-size: 30px; }
-  .brand-rule { width: 62px; }
-  .brand-lede { font-size: 14px; line-height: 1.35; }
-  .ui-chips { top: 16px; right: 16px; }
-
-  /* Schilder auf Nummern-Plaketten reduzieren — die vollen Schilder
-     überdeckten sich im Hochformat gegenseitig. Der Name steht nach dem
-     Antippen im Panel. */
-  .schild-marker .sm-card { display: none; }
-  .schild-marker .sm-badge { display: inline-flex; }
-  .schild-marker .sm-stem { height: 10px; }
-  .schild-marker { filter: drop-shadow(0 2px 5px rgba(40, 30, 18, 0.22)); }
-  .paas-panel .pp-article {
-    grid-template-columns: 1fr !important;
-    padding: 6vh 6vw 12vh !important;
-    gap: 28px !important;
-  }
-  .paas-panel .pp-head { padding: 0 6vw 60vh !important; }
-}
 
 /* ─── UI Chips (Audio + Info) ─── */
 .ui-chips {
@@ -668,3 +634,64 @@ body.show-help .help-card { transform: translateY(0); }
 }
 .paas-panel.pp-editing [contenteditable]:hover { outline-color: rgb(138 47 31 / 45%); }
 .paas-panel.pp-editing [contenteditable]:focus { outline-color: var(--link-hover); }
+
+/* ─── Mobile zuletzt ───
+   Dieser Block muss am Dateiende stehen: seine Selektoren haben die
+   gleiche Spezifität wie die Grundregeln oben (je eine Klasse), also
+   entscheidet die Reihenfolge. Weiter oben gewann sonst z. B. das
+   `.ui-chips { top: 22px }` von unten und die Bedienelemente saßen
+   nicht mehr auf Höhe der Titelzeile. */
+/* Touch-Geräte und schmale Fenster: eine einzige Titelzeile auf Höhe der
+   Bedienelemente, statt eines Textblocks, der die halbe Karte verdeckt.
+   Beide Bedingungen, weil ein Handy im Querformat breiter als 640px ist,
+   aber dieselbe Behandlung braucht. */
+@media (pointer: coarse), (max-width: 640px) {
+  .footer span:nth-child(3) { display: none; }
+  .footer-dot { display: none; }
+
+  /* Titelzeile: nur der Name, auf gleicher Höhe wie Ton und Bedienung.
+     Eyebrow, Trennlinie und Vorspann entfallen — auf dem Handy kostete das
+     rund ein Drittel der Bildhöhe. */
+  .brand {
+    top: 0;
+    left: 0;
+    right: 0;
+    max-width: none;
+    height: 62px;
+    justify-content: center;
+    gap: 0;
+    padding: 0 96px 0 18px;
+  }
+  .brand::before { display: none; }
+  .brand-eyebrow,
+  .brand-rule,
+  .brand-lede { display: none; }
+  .brand-title { font-size: 25px; line-height: 1; }
+
+  /* Bedienelemente auf reine Symbole eindampfen — der Platz gehört dem Titel. */
+  .ui-chips { top: 12px; right: 14px; gap: 6px; }
+  .ui-chip { width: 38px; padding: 0; justify-content: center; gap: 0; }
+  .ui-chip .ui-chip-label { display: none; }
+
+  /* Ortsschilder verschwinden ganz. Sie überdeckten sich gegenseitig zu einer
+     unlesbaren Wand; navigiert wird über die Zeitleiste am unteren Rand, der
+     Name steht nach dem Antippen im Panel. Es bleibt der Punkt am Ort selbst,
+     mit großzügiger Trefferfläche. */
+  .schild-marker .sm-card,
+  .schild-marker .sm-badge,
+  .schild-marker .sm-stem { display: none; }
+  .schild-marker {
+    padding: 13px;
+    margin: -13px;
+    filter: drop-shadow(0 2px 5px rgba(40, 30, 18, 0.25));
+    /* Ohne Karte und Halm sitzt der Punkt direkt auf dem Ort. */
+    transform: translate(var(--mx, -9999px), var(--my, -9999px)) translate(-50%, -50%);
+  }
+  .schild-marker .sm-dot { width: 11px; height: 11px; margin-top: 0; }
+  .paas-panel .pp-article {
+    grid-template-columns: 1fr !important;
+    padding: 6vh 6vw 12vh !important;
+    gap: 28px !important;
+  }
+  .paas-panel .pp-head { padding: 0 6vw 60vh !important; }
+}

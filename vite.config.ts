@@ -53,6 +53,11 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? '/',
   plugins: [imageLibraryPlugin()],
   build: {
+    // Ohne dieses Ziel schreibt der CSS-Minifier `@media (max-width: 640px)`
+    // in die Range-Syntax `@media (width <= 640px)` um. Die versteht Safari
+    // erst ab 16.4 — auf älteren iPhones wurde der komplette Block still
+    // übersprungen, wodurch die Mobile-Anpassungen dort nie griffen.
+    cssTarget: ['safari13', 'chrome87', 'firefox78', 'edge88'],
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),

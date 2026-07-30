@@ -287,6 +287,83 @@ const boot = async () => {
       .add(dir.multiplyScalar(clamp(baseDist * fit.distScale, orbit.minDistance, orbit.maxDistance)));
   };
 
+  // Einflug in die Szene: aus der Höhe und Ferne auf die Heim-Ansicht zu.
+  //
+  // Die Kamera wird dabei direkt gefahren, nicht über die Orbit-Steuerung —
+  // sonst würde deren Klammer (maxDistance 14, minPolarAngle) den Startpunkt
+  // sofort wieder hereinziehen und aus dem Flug ein Ruckeln machen. Am Ende
+  // steht die Kamera exakt auf cameraHome, also innerhalb aller Grenzen; das
+  // abschließende orbit.update() verschiebt daher nichts mehr.
+  // Läuft der Einflug, darf die Render-Schleife orbit.update() nicht aufrufen:
+  // update() klammert Distanz und Neigung auch bei enabled:false und zog den
+  // Startpunkt sonst von 16,5 auf maxDistance 14 zurück — der Flug begann
+  // dadurch zu dicht und zu flach.
+  let introFlying = false;
+
+  const playIntroFlight = () => new Promise((done) => {
+    const home = cameraHome.position.clone();
+    const target = cameraHome.target.clone();
+    const dir = home.clone().sub(target);
+    const dist = dir.length();
+    if (REDUCED_MOTION || !dist) { done(); return; }
+    dir.normalize();
+
+    // Start: deutlich weiter draußen und höher — der Blick beginnt über dem
+    // Areal und senkt sich hinein. Nicht weiter, weil der Splat nach außen hin
+    // unscharf wird und der Flug sonst zu lange durch Matsch führt.
+    const start = target.clone().add(dir.clone().multiplyScalar(dist * 2.6));
+    start.y += dist * 1.15;
+
+    orbit.enabled = false;
+    introFlying = true;
+    // Startpunkt sofort einnehmen, nicht erst beim ersten Tween-Tick: sonst
+    // steht das erste Bild noch auf der Heim-Ansicht und springt dann nach
+    // außen, bevor der Flug beginnt.
+    camera.position.copy(start);
+    camera.lookAt(target);
+    invalidate();
+    const fly = { t: 0 };
+    const pos = new THREE.Vector3();
+    const DUR = 3.4;
+
+    // Genau einmal aufräumen, egal ob der Flug durchlief oder abgebrochen
+    // wurde. gsap hängt an requestAnimationFrame: in einem Hintergrund-Tab
+    // läuft der Ticker nicht, onComplete käme dort nie — ohne die Reissleine
+    // unten bliebe boot() für immer stehen und die Seite nie bedienbar.
+    let fertig = false;
+    let reissleine;
+    const abschliessen = (tween) => {
+      if (fertig) return;
+      fertig = true;
+      clearTimeout(reissleine);
+      tween?.kill();
+      introFlying = false;
+      camera.position.copy(home);
+      orbit.target.copy(target);
+      orbit.enabled = true;
+      orbit.update();
+      invalidate();
+      done();
+    };
+
+    const tween = gsap.to(fly, {
+      t: 1,
+      duration: DUR,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        pos.lerpVectors(start, home, fly.t);
+        // Leichter Bogen: die Bahn hängt in der Mitte etwas durch, damit der
+        // Flug nicht wie eine gerade Schiene wirkt.
+        pos.y += Math.sin(fly.t * Math.PI) * dist * 0.12;
+        camera.position.copy(pos);
+        camera.lookAt(target);
+        invalidate();
+      },
+      onComplete: () => abschliessen(tween),
+    });
+    reissleine = setTimeout(() => abschliessen(tween), DUR * 1000 + 1500);
+  });
+
   // Zieht die Rahmung nach, solange der Nutzer die Ansicht noch nicht selbst
   // bewegt hat. Nötig, weil der Viewport beim ersten resize() noch 0×0 sein
   // kann (etwa in einem Hintergrund-Tab): dann greift resize() nicht und das
@@ -1386,6 +1463,11 @@ const boot = async () => {
   // Bei Deep-Link/Editor-Vorschau das Intro sofort überspringen.
   if (DEEP_LINK_ORT || EDIT_MODE) setTimeout(() => loader._finish(true), 60);
   await Promise.all([startLoadAssets(), loader.start()]);
+
+  // Einflug vor der Freigabe: währenddessen soll niemand die Kamera greifen.
+  // Bei Deep-Link oder Editor-Vorschau entfällt er — dort will man sofort am
+  // Ziel sein, nicht erst eine Anflugschleife sehen.
+  if (!DEEP_LINK_ORT && !EDIT_MODE) await playIntroFlight();
   interactionLocked = false;
 
   if (DEEP_LINK_ORT) {
@@ -1422,7 +1504,9 @@ const boot = async () => {
       acc = 0; frames = 0;
     }
 
-    orbit.update();
+    // Waehrend des Einflugs faehrt playIntroFlight() die Kamera selbst;
+    // orbit.update() wuerde sie in die Grenzen zurueckziehen.
+    if (!introFlying) orbit.update();
 
     if (renderInvalidated || hasViewChanged() || isDragging) {
       renderInvalidated = false;
@@ -1446,7 +1530,10 @@ const boot = async () => {
   // Nur im Dev-Server: Handle zum Nachmessen (Drift, Marker-Positionen).
   // Wird beim Produktions-Build wegoptimiert.
   if (import.meta.env.DEV) {
-    window.__paas = { camera, orbit, markers, renderer, THREE, updateMarkers };
+    window.__paas = {
+      camera, orbit, markers, renderer, THREE, updateMarkers,
+      cameraHome, playIntroFlight,
+    };
   }
 };
 
