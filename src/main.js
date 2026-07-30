@@ -40,6 +40,38 @@ const DRAG_PAN_FORWARD_SPEED = 0.015;
 const DRAG_INERTIA_MULTIPLIER = 3.75;
 const DRAG_INERTIA_MAX = 0.42;
 
+// ── Hochformat-Rahmung ─────────────────────────────────────────────────
+// Die Kameraführung ist für breite Fenster austariert (Referenz 16:9). Weil
+// THREE die FOV *vertikal* definiert, schrumpft das horizontale Blickfeld auf
+// hohen, schmalen Displays drastisch: 16:9 ergibt 91°, ein iPhone im
+// Hochformat nur noch 30°. Vom Areal blieb dadurch gut ein Viertel der Breite
+// sichtbar — die Gebäude als schmaler Streifen oben, darunter leere Wiese.
+// Das war der „schief/nach hinten verbogen"-Eindruck auf dem Handy.
+// Gegenmaßnahme in drei Teilen: vertikale FOV moderat weiten, den Rest über
+// Kameradistanz ausgleichen und den Blick zur Mitte des Areals nachführen.
+// FOV und Distanz sind gedeckelt — sonst entsteht Fischauge-Verzerrung bzw.
+// die unscharfen Splat-Ränder geraten ins Bild. Ab 16:9 aufwärts bleibt alles
+// unverändert wie bisher.
+const VIEW_REFERENCE_ASPECT = 16 / 9;
+const VIEW_BASE_FOV = 60;
+const VIEW_MAX_FOV = 72;
+const VIEW_MAX_DIST_SCALE = 1.9;
+// Erst ab deutlich schmalen Fenstern eingreifen: Notebook- und Desktop-Formate
+// (16:10 = 1.6, 3:2 = 1.5, 4:3 = 1.33) bleiben dadurch exakt so wie bisher.
+// Zwischen den beiden Schwellen wird die Anpassung stufenlos eingeblendet,
+// damit beim Verkleinern des Fensters nichts springt.
+const VIEW_FIT_START_ASPECT = 1.2;
+const VIEW_FIT_FULL_ASPECT = 0.55;
+// Mittel der Standpunkt-Positionen = Mitte des bebauten Areals. Dorthin
+// wandert der Blick im Hochformat, damit die Gebäude im Bild zentriert sind
+// statt an den Rand zu rutschen.
+const VIEW_PORTRAIT_AIM = { x: -1.424, y: 0.21, z: -0.457 };
+// Nicht ganz auf die Mitte ziehen: „Willkommen" (Nr. 01) liegt abseits der
+// übrigen Standpunkte und rutscht bei vollem Nachführen aus dem Bild — es
+// landet dann fast unter der Kamera. Bei 0.7 sind nachgemessen alle 16
+// Standpunkte im Bild, bei 0.85 fehlt der erste.
+const VIEW_MAX_AIM_BLEND = 0.7;
+
 // Standpunkt-Daten (Namen, Nummern, Texte, Bilder, Positionen) kommen aus
 // Firestore (`paas_locations`), gepflegt über den Editor unter /admin.html.
 // Fallback bei fehlender Verbindung: src/data/locations-snapshot.json.
@@ -118,6 +150,31 @@ const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const COARSE_POINTER = matchMedia('(pointer: coarse)').matches;
 
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
+
+// Liefert zum Seitenverhältnis die passende Rahmung (siehe VIEW_*-Konstanten).
+// `aimBlend` läuft von 0 (breites Fenster, alles wie bisher) bis 1 (extremes
+// Hochformat, Blick voll auf die Areal-Mitte) und hält den Übergang stufenlos.
+const fitForAspect = (aspect) => {
+  const unchanged = { fov: VIEW_BASE_FOV, distScale: 1, aimBlend: 0 };
+  if (!(aspect > 0) || aspect >= VIEW_FIT_START_ASPECT) return unchanged;
+  // 0 an der oberen Schwelle, 1 im ausgeprägten Hochformat.
+  const engage = clamp(
+    (VIEW_FIT_START_ASPECT - aspect) / (VIEW_FIT_START_ASPECT - VIEW_FIT_FULL_ASPECT),
+    0, 1,
+  );
+  // Zielwerte: so viel horizontales Blickfeld zurückholen, wie 16:9 hätte —
+  // begrenzt durch VIEW_MAX_FOV, der Rest über die Distanz.
+  const wantTanH = Math.tan(THREE.MathUtils.degToRad(VIEW_BASE_FOV / 2)) * VIEW_REFERENCE_ASPECT;
+  const maxTanV = Math.tan(THREE.MathUtils.degToRad(VIEW_MAX_FOV / 2));
+  const tanV = Math.min(wantTanH / aspect, maxTanV);
+  const fullFov = THREE.MathUtils.radToDeg(2 * Math.atan(tanV));
+  const fullDistScale = clamp(wantTanH / (tanV * aspect), 1, VIEW_MAX_DIST_SCALE);
+  return {
+    fov: VIEW_BASE_FOV + (fullFov - VIEW_BASE_FOV) * engage,
+    distScale: 1 + (fullDistScale - 1) * engage,
+    aimBlend: engage * VIEW_MAX_AIM_BLEND,
+  };
+};
 // buildSplatAlignment mit dem projektspezifischen Fallback-Yaw aus STYLE.
 const buildSplatAlignment = (gltfScene) => buildSplatAlignmentShared(gltfScene, STYLE.splatRotation);
 
@@ -200,6 +257,49 @@ const boot = async () => {
   let renderInvalidated = true;
   const invalidate = () => { renderInvalidated = true; };
 
+  // Unveränderte Referenz-Rahmung (breites Fenster). cameraHome wird daraus
+  // je Seitenverhältnis abgeleitet; ohne diese Basis würde jede erneute
+  // Anpassung auf der bereits angepassten Ansicht aufsetzen und sich addieren.
+  const homeBase = {
+    position: camera.position.clone(),
+    target: orbit.target.clone(),
+  };
+
+  // true, sobald homeBase die echten (ausgerichteten) Werte hält.
+  let viewFitReady = false;
+
+  // Leitet die Heim-Ansicht aus homeBase + Seitenverhältnis ab.
+  const applyViewFit = () => {
+    const fit = fitForAspect(camera.aspect);
+    const dir = homeBase.position.clone().sub(homeBase.target);
+    const baseDist = dir.length();
+    if (!baseDist) return;
+    dir.normalize();
+    const aim = new THREE.Vector3(VIEW_PORTRAIT_AIM.x, VIEW_PORTRAIT_AIM.y, VIEW_PORTRAIT_AIM.z);
+    cameraHome.target.copy(homeBase.target).lerp(aim, fit.aimBlend);
+    cameraHome.position.copy(cameraHome.target)
+      .add(dir.multiplyScalar(clamp(baseDist * fit.distScale, orbit.minDistance, orbit.maxDistance)));
+  };
+
+  // Zieht die Rahmung nach, solange der Nutzer die Ansicht noch nicht selbst
+  // bewegt hat. Nötig, weil der Viewport beim ersten resize() noch 0×0 sein
+  // kann (etwa in einem Hintergrund-Tab): dann greift resize() nicht und das
+  // Seitenverhältnis bleibt beim Platzhalter 1:1 stehen — die Rahmung wäre
+  // dauerhaft falsch. Bewegt der Nutzer bereits, bleibt die Kamera stehen und
+  // nur der Heim-Punkt wandert mit; so setzt der FPS-Regler, der ebenfalls
+  // resize() auslöst, niemandem mitten im Ziehen die Ansicht zurück.
+  const refitViewIfUntouched = () => {
+    if (!viewFitReady) return;
+    const atHome = camera.position.distanceToSquared(cameraHome.position) < 1e-6
+      && orbit.target.distanceToSquared(cameraHome.target) < 1e-6;
+    applyViewFit();
+    if (!atHome) return;
+    camera.position.copy(cameraHome.position);
+    orbit.target.copy(cameraHome.target);
+    orbit.update();
+    invalidate();
+  };
+
   const lastCamPos = camera.position.clone();
   const lastTarget = orbit.target.clone();
   const lastQuat = camera.quaternion.clone();
@@ -218,8 +318,13 @@ const boot = async () => {
     const h = viewport.clientHeight;
     if (!w || !h) return;
     camera.aspect = w / h;
+    // Hier nur die FOV nachziehen: sie hängt allein am Seitenverhältnis und
+    // ist damit idempotent, egal wo der Nutzer gerade steht. Position und Ziel
+    // setzt applyViewFit().
+    camera.fov = fitForAspect(camera.aspect).fov;
     camera.updateProjectionMatrix();
     renderer.setSize(w, h, false);
+    refitViewIfUntouched();
     invalidate();
   };
   new ResizeObserver(resize).observe(viewport);
@@ -447,11 +552,16 @@ const boot = async () => {
     btn.dataset.marker = '';
     btn.dataset.id = sp.id;
     btn.setAttribute('aria-label', `${sp.display} — ${sp.name} — öffnen`);
+    // sm-badge ist die Hochformat-Variante: nur die Nummer als kleine
+    // Plakette. Die vollen Schilder sind ~140px breit und überdeckten sich auf
+    // schmalen Displays zu einer unlesbaren Wand. Welche der beiden sichtbar
+    // ist, entscheidet allein CSS (siehe style.css, max-width: 640px).
     btn.innerHTML = `
       <span class="sm-card">
         <span class="sm-num">Nr. ${sp.display}</span>
         <span class="sm-title">${sp.name}</span>
       </span>
+      <span class="sm-badge" aria-hidden="true">${sp.display}</span>
       <span class="sm-stem" aria-hidden="true"></span>
       <span class="sm-dot" aria-hidden="true"></span>
     `;
@@ -1233,8 +1343,15 @@ const boot = async () => {
         orbit.update();
       }
 
-      cameraHome.position.copy(camera.position);
-      cameraHome.target.copy(orbit.target);
+      homeBase.position.copy(camera.position);
+      homeBase.target.copy(orbit.target);
+      viewFitReady = true;
+      // Rahmung an das aktuelle Seitenverhältnis anpassen und die Kamera
+      // direkt dorthin setzen — im Hochformat ist das der eigentliche Fix.
+      applyViewFit();
+      camera.position.copy(cameraHome.position);
+      orbit.target.copy(cameraHome.target);
+      orbit.update();
       lastCamPos.copy(camera.position);
       lastTarget.copy(orbit.target);
       lastQuat.copy(camera.quaternion);
