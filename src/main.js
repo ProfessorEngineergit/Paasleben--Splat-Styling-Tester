@@ -57,7 +57,7 @@ const DRAG_INERTIA_MAX = 0.42;
 const VIEW_REFERENCE_ASPECT = 16 / 9;
 const VIEW_BASE_FOV = 60;
 const VIEW_MAX_FOV = 72;
-const VIEW_MAX_DIST_SCALE = 1.9;
+const VIEW_MAX_DIST_SCALE = 2.72;
 // Erst ab deutlich schmalen Fenstern eingreifen: Notebook- und Desktop-Formate
 // (16:10 = 1.6, 3:2 = 1.5, 4:3 = 1.33) bleiben dadurch exakt so wie bisher.
 // Zwischen den beiden Schwellen wird die Anpassung stufenlos eingeblendet,
@@ -69,10 +69,23 @@ const VIEW_FIT_FULL_ASPECT = 0.55;
 // statt an den Rand zu rutschen.
 const VIEW_PORTRAIT_AIM = { x: -1.424, y: 0.21, z: -0.457 };
 // Nicht ganz auf die Mitte ziehen: „Willkommen" (Nr. 01) liegt abseits der
-// übrigen Standpunkte und rutscht bei vollem Nachführen aus dem Bild — es
-// landet dann fast unter der Kamera. Bei 0.7 sind nachgemessen alle 16
-// Standpunkte im Bild, bei 0.85 fehlt der erste.
+// übrigen Standpunkte und rutscht bei vollem Nachführen aus dem Bild.
+//
+// Die drei Werte darüber hängen zusammen und sind zusammen ausgemessen: bei
+// 2,72-facher Distanz (7,6 Einheiten) passt „Willkommen" gerade wieder ins
+// Bild, und genau dadurch springt die genutzte Bildhöhe von 18 auf 60 Prozent
+// — vorher lag das Areal als schmales Band in der Mitte. Bei 40° Polarwinkel
+// liegt der Horizont 14° über der oberen Bildkante, also sicher außerhalb;
+// flacher lugte der leere Himmel wieder herein.
 const VIEW_MAX_AIM_BLEND = 0.7;
+// Blickneigung im Hochformat. Die Desktop-Führung schaut nur rund 30° unter
+// die Horizontale — auf einem hohen Display füllt dann der leere Himmel die
+// obere Hälfte und die Bodenebene läuft schräg aus dem Bild. Steiler von oben
+// liest sich das Areal als Karte statt als Landschaftsfoto. 38° Polarwinkel
+// entspricht 52° unter der Horizontalen.
+const VIEW_PORTRAIT_POLAR_DEG = 40;
+// Ursprüngliche Neigungsgrenze der Orbit-Steuerung, als Bezug für applyViewFit.
+const ORBIT_MIN_POLAR = Math.PI * 0.28;
 
 // ── Bewegungsspielraum auf Touch-Geräten ───────────────────────────────
 // Auf dem Handy wird nicht frei durch die Szene gefahren. Freies Panning führt
@@ -173,7 +186,7 @@ const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 // `aimBlend` läuft von 0 (breites Fenster, alles wie bisher) bis 1 (extremes
 // Hochformat, Blick voll auf die Areal-Mitte) und hält den Übergang stufenlos.
 const fitForAspect = (aspect) => {
-  const unchanged = { fov: VIEW_BASE_FOV, distScale: 1, aimBlend: 0 };
+  const unchanged = { engage: 0, fov: VIEW_BASE_FOV, distScale: 1, aimBlend: 0 };
   if (!(aspect > 0) || aspect >= VIEW_FIT_START_ASPECT) return unchanged;
   // 0 an der oberen Schwelle, 1 im ausgeprägten Hochformat.
   const engage = clamp(
@@ -188,6 +201,7 @@ const fitForAspect = (aspect) => {
   const fullFov = THREE.MathUtils.radToDeg(2 * Math.atan(tanV));
   const fullDistScale = clamp(wantTanH / (tanV * aspect), 1, VIEW_MAX_DIST_SCALE);
   return {
+    engage,
     fov: VIEW_BASE_FOV + (fullFov - VIEW_BASE_FOV) * engage,
     distScale: 1 + (fullDistScale - 1) * engage,
     aimBlend: engage * VIEW_MAX_AIM_BLEND,
@@ -257,7 +271,7 @@ const boot = async () => {
   orbit.enablePan = false;
   orbit.minDistance = 1.5;
   orbit.maxDistance = 14;
-  orbit.minPolarAngle = Math.PI * 0.28;
+  orbit.minPolarAngle = ORBIT_MIN_POLAR;
   orbit.maxPolarAngle = Math.PI * 0.495; // never go below horizon
   orbit.mouseButtons = {
     LEFT: THREE.MOUSE.PAN,
@@ -295,8 +309,20 @@ const boot = async () => {
     dir.normalize();
     const aim = new THREE.Vector3(VIEW_PORTRAIT_AIM.x, VIEW_PORTRAIT_AIM.y, VIEW_PORTRAIT_AIM.z);
     cameraHome.target.copy(homeBase.target).lerp(aim, fit.aimBlend);
-    cameraHome.position.copy(cameraHome.target)
-      .add(dir.multiplyScalar(clamp(baseDist * fit.distScale, orbit.minDistance, orbit.maxDistance)));
+
+    // Richtung in Kugelkoordinaten zerlegen, damit sich die Neigung getrennt
+    // nachführen lässt. Die Himmelsrichtung (theta) bleibt unangetastet — der
+    // Blickwinkel auf das Areal soll derselbe sein wie am Desktop, nur steiler.
+    const sph = new THREE.Spherical().setFromVector3(dir.clone().multiplyScalar(baseDist));
+    const wantPolar = THREE.MathUtils.degToRad(VIEW_PORTRAIT_POLAR_DEG);
+    sph.phi += (wantPolar - sph.phi) * fit.engage;
+    sph.radius = clamp(baseDist * fit.distScale, orbit.minDistance, orbit.maxDistance);
+    cameraHome.position.copy(cameraHome.target).add(new THREE.Vector3().setFromSpherical(sph));
+
+    // Ohne das Nachziehen der Grenze zieht orbit.update() die Kamera sofort
+    // wieder auf minPolarAngle zurück und die steilere Sicht wäre wirkungslos.
+    // Am Desktop (engage = 0) bleibt die Grenze bei ihrem alten Wert.
+    orbit.minPolarAngle = Math.min(ORBIT_MIN_POLAR, Math.max(0.08, sph.phi - 0.06));
   };
 
   // Einflug in die Szene: aus der Höhe und Ferne auf die Heim-Ansicht zu.

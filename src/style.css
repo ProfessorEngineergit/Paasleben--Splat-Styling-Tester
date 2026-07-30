@@ -790,14 +790,22 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
     max-width: none;
     height: 62px;
     justify-content: center;
-    gap: 0;
-    padding: 0 96px 0 18px;
+    gap: 2px;
+    padding: 0 104px 0 18px;
   }
   .brand::before { display: none; }
-  .brand-eyebrow,
   .brand-rule,
   .brand-lede { display: none; }
-  .brand-title { font-size: 25px; line-height: 1; }
+  /* Die Gastgeberzeile bleibt — sie sagt, wessen Ort das ist. Enger gesetzt,
+     damit sie neben den Bedienelementen einzeilig bleibt. */
+  .brand-eyebrow {
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .brand-title { font-size: 22px; line-height: 1; }
 
   /* Bedienelemente auf reine Symbole eindampfen — der Platz gehört dem Titel. */
   .ui-chips { top: 12px; right: 14px; gap: 6px; }
