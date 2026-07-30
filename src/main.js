@@ -8,6 +8,7 @@ import { initTheme } from './lib/paas-theme.js';
 import { PaasLoader } from './lib/paas-loader.js';
 import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
+import { createSky } from './lib/paas-sky.js';
 import { fetchLocations, resolveImages } from './lib/locations.js';
 import {
   REFERENCE_SPLAT, REFERENCE_CAMERA,
@@ -999,6 +1000,114 @@ const boot = async () => {
     }
   };
 
+  // Wird weiter unten im Audio-Block mit der echten Umsetzung belegt. Die
+  // Draufsicht braucht den Ton, steht aber vor dem Audio-Block.
+  let startAudio = () => {};
+
+  // ── Draufsicht ─────────────────────────────────────────────────────
+  // Senkrecht über das Areal, mit Wolken- und Nebelschicht darüber und Ton.
+  // Die Kamera wird dabei wie beim Einflug direkt gefahren: orbit.update()
+  // würde die Neigung sofort auf minPolarAngle (50°) zurückziehen, senkrecht
+  // nach unten ist damit über die Steuerung nicht erreichbar.
+  const sky = createSky(document.querySelector('#stage'));
+  const topDownBtn = document.querySelector('#topdown-button');
+  let topDown = false;
+  let poseBeforeTopDown = null;
+
+  // Höhe so wählen, dass das ganze Areal ins Bild passt — quer und längs,
+  // abgeleitet aus den tatsächlichen Standpunkten statt fest verdrahtet.
+  const topDownPose = () => {
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity, sumY = 0;
+    for (const sp of standpoints) {
+      minX = Math.min(minX, sp.world.x); maxX = Math.max(maxX, sp.world.x);
+      minZ = Math.min(minZ, sp.world.z); maxZ = Math.max(maxZ, sp.world.z);
+      sumY += sp.world.y;
+    }
+    if (!standpoints.length) {
+      return { target: cameraHome.target.clone(), height: 9 };
+    }
+    const target = new THREE.Vector3(
+      (minX + maxX) / 2, sumY / standpoints.length, (minZ + maxZ) / 2,
+    );
+    const halbV = THREE.MathUtils.degToRad(camera.fov / 2);
+    const halbH = Math.atan(Math.tan(halbV) * camera.aspect);
+    const nötigQuer = ((maxX - minX) / 2) / Math.tan(halbH);
+    const nötigLängs = ((maxZ - minZ) / 2) / Math.tan(halbV);
+    // Etwas Luft ringsum, und in vernünftigen Grenzen halten.
+    return { target, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.35, 6, 18) };
+  };
+
+  const driveCameraTo = (pos, target, dauer) => new Promise((done) => {
+    const vonPos = camera.position.clone();
+    const vonZiel = orbit.target.clone();
+    const t = { v: 0 };
+    const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+    let fertig = false;
+    let notaus;
+    const abschluss = (tw) => {
+      if (fertig) return;
+      fertig = true;
+      clearTimeout(notaus);
+      tw?.kill();
+      camera.position.copy(pos);
+      orbit.target.copy(target);
+      camera.lookAt(target);
+      invalidate();
+      done();
+    };
+    const tw = gsap.to(t, {
+      v: 1,
+      duration: REDUCED_MOTION ? 0.001 : dauer,
+      ease: 'power2.inOut',
+      onUpdate: () => {
+        camera.position.copy(tmpP.lerpVectors(vonPos, pos, t.v));
+        orbit.target.copy(tmpT.lerpVectors(vonZiel, target, t.v));
+        camera.lookAt(orbit.target);
+        invalidate();
+      },
+      onComplete: () => abschluss(tw),
+    });
+    // Gleiche Reissleine wie beim Einflug: ohne laufendes requestAnimationFrame
+    // käme onComplete nie und die Ansicht bliebe für immer gesperrt.
+    notaus = setTimeout(() => abschluss(tw), (REDUCED_MOTION ? 0 : dauer * 1000) + 1500);
+  });
+
+  const setTopDown = async (an) => {
+    if (an === topDown) return;
+    topDown = an;
+    topDownBtn?.setAttribute('aria-pressed', String(an));
+    document.body.classList.toggle('is-topdown', an);
+
+    if (an) {
+      poseBeforeTopDown = {
+        position: camera.position.clone(),
+        target: orbit.target.clone(),
+      };
+      const { target, height } = topDownPose();
+      // Winziger Versatz in Z: genau senkrecht ist die Blickrichtung parallel
+      // zum Up-Vektor, dann ist die Ausrichtung nicht definiert und das Bild
+      // kann umklappen.
+      const pos = new THREE.Vector3(target.x, target.y + height, target.z + 0.001);
+      orbit.enabled = false;
+      introFlying = true;          // hält orbit.update() aus der Schleife
+      sky.show();
+      panel.close();
+      startAudio(true);            // in dieser Ansicht spielt der Ton
+      await driveCameraTo(pos, target, 1.8);
+    } else {
+      sky.hide();
+      const zurück = poseBeforeTopDown;
+      if (zurück) await driveCameraTo(zurück.position, zurück.target, 1.5);
+      introFlying = false;
+      orbit.enabled = true;
+      orbit.update();
+      captureLookAnchor();
+      invalidate();
+    }
+  };
+
+  topDownBtn?.addEventListener('click', () => setTopDown(!topDown));
+
   // ── Tippen auf den oberen Rand schließt ──
   // Vorher nur in der Glasphase (--reveal < 0.5) aktiv — sobald man etwas
   // mehr als eine halbe Bildschirmhöhe gescrollt hatte, war die Zone tot
@@ -1137,6 +1246,10 @@ const boot = async () => {
     };
     setMuted(true);
     audioBtn.addEventListener('click', () => setMuted(!audio.muted));
+    // Von der Draufsicht aus: dort spielt der Ton automatisch. Der Klick auf
+    // den Knopf ist die Nutzergeste, die Browser fuer Ton mit Lautstaerke
+    // verlangen — deshalb funktioniert das Aufheben der Stummschaltung hier.
+    startAudio = (unmute) => { if (unmute) setMuted(false); else tryPlay(); };
   }
 
   let splatAlignmentReady = false;
