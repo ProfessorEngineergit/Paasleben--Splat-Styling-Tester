@@ -6,9 +6,12 @@ import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { TransformControls } from 'three/examples/jsm/controls/TransformControls.js';
 import {
-  collection, addDoc, updateDoc, deleteDoc, doc,
+  collection, addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
+import {
+  THEMES, applyTheme, cachedTheme, isTheme,
+} from '../lib/paas-theme.js';
 import { subscribeLocations } from '../lib/locations.js';
 import {
   REFERENCE_CAMERA, buildSplatAlignment, applyAlignmentToSplat, applySplatOffset,
@@ -593,6 +596,48 @@ export const startEditor = () => {
   const previewUI = setupPreview({
     onEdit: (locId, fields) => save(locId, fields),
   });
+
+  // ── Design-Umschalter ──────────────────────────────────────────────
+  // Gilt seitenweit: der gewählte Wert landet in paas_config/site und die
+  // Website liest ihn beim Laden — die Umstellung wirkt also sofort für alle
+  // Besucher, ohne Deploy. Ändert ausschließlich Farben und Schriften.
+  const setupThemePicker = async () => {
+    const select = document.querySelector('#theme-select');
+    if (!select) return;
+    for (const t of THEMES) {
+      const option = document.createElement('option');
+      option.value = t.id;
+      option.textContent = t.label;
+      option.title = t.hint;
+      select.appendChild(option);
+    }
+    const ref = doc(db, 'paas_config', 'site');
+    try {
+      const snap = await getDoc(ref);
+      const stored = snap.exists() ? snap.data()?.theme : null;
+      select.value = isTheme(stored) ? stored : cachedTheme();
+    } catch (err) {
+      console.warn('Design-Einstellung konnte nicht geladen werden:', err);
+      select.value = cachedTheme();
+    }
+    select.addEventListener('change', async () => {
+      const next = select.value;
+      // Im Editor sofort anwenden, damit die End-Ansicht das neue Design zeigt.
+      applyTheme(next);
+      previewUI?.reload?.();
+      try {
+        // merge, damit das Dokument beim ersten Mal auch angelegt wird.
+        await setDoc(ref, { theme: next, updatedAt: new Date().toISOString() }, { merge: true });
+        flashSave('Design gespeichert ✓');
+        hideBanner();
+      } catch (err) {
+        console.error('Design speichern fehlgeschlagen:', err);
+        flashSave('Speichern fehlgeschlagen ✕');
+        showBanner(describeSaveError(err));
+      }
+    });
+  };
+  setupThemePicker();
 
   // ── Live-Daten ─────────────────────────────────────────────────────
   subscribeLocations(

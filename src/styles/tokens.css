@@ -23,10 +23,40 @@
   --accent-soft:  #c45a55;
   --accent-pale:  rgba(184, 52, 47, 0.12);
 
+  /* Schilder-Emaille (Marker) und Panel-Links. Ausgelagert, damit die
+     Laufzeit-Themes (src/styles/themes/) sie mit austauschen können — vorher
+     standen die Werte hart im Stylesheet. */
+  --sign-top:     #fbf3df;
+  --sign-mid:     #f0e6cc;
+  --sign-low:     #e6dcc1;
+  --sign-top-hi:  #fff7df;
+  --sign-mid-hi:  #f4eacd;
+  --sign-low-hi:  #e8dec1;
+  --sign-edge:    rgba(255, 246, 222, 0.9);
+  --rivet-hi:     #fff8e1;
+  --rivet-lo:     #8a7a55;
+  --link:         #b3232a;
+  --link-hover:   #8a1a20;
+  --sign-border:     rgba(40, 30, 18, 0.28);
+  --sign-border-low: rgba(40, 30, 18, 0.42);
+  /* Trennring der Plaketten bzw. des Ortspunkts — nimmt die Papierfarbe auf,
+     damit sich überlappende Marker in jedem Theme voneinander abheben. */
+  --sign-ring:       rgba(244, 236, 216, 0.92);
+  --dot-ring:        rgba(244, 236, 216, 0.85);
+  /* Weicher Auslauf der Karte zum Seitenrand hin. */
+  --vignette:        rgba(244, 236, 216, 0.45);
+
   /* Type */
   --display: "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
   --serif:   "Cormorant Garamond", "EB Garamond", "Garamond", Georgia, "Times New Roman", serif;
   --mono:    "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
+  /* Überschriften getrennt vom Fließtext ansprechbar: die Laufzeit-Themes
+     brauchen das, weil manche Marken für Titel und Text verschiedene
+     Schriften verwenden. Standard = wie bisher, also die Serife. */
+  --title:           var(--serif);
+  --title-weight:    600;
+  --title-transform: none;
+  --title-spacing:   0.01em;
 
   /* Bouncy easings (smoothness ~70) */
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.46, 1);    /* light overshoot */

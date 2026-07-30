@@ -32,6 +32,12 @@
           <div class="topbar-actions">
             <button id="add-point-button" class="btn" type="button" aria-pressed="false">＋ Neuer Ort</button>
             <button id="top-view-button" class="btn" type="button" aria-pressed="false" title="Von oben auf die Karte schauen (nochmal drücken: zurück)">Draufsicht</button>
+            <!-- Gilt für die ganze Website, nicht für einen einzelnen Ort —
+                 deshalb hier oben und nicht im Ort-Formular. -->
+            <label class="theme-picker" for="theme-select">
+              <span class="theme-picker-label">Design</span>
+              <select id="theme-select" class="theme-select" title="Design der Website — wirkt sofort für alle Besucher"></select>
+            </label>
             <a class="btn" href="./" target="_blank" rel="noopener">Website ansehen</a>
             <span id="user-chip" class="user-chip"></span>
             <button id="logout-button" class="btn btn-quiet" type="button">Abmelden</button>

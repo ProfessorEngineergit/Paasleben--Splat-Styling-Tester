@@ -1,0 +1,74 @@
+/* Theme „Altes Branding" — bewusst originalgetreue Nachbildung des heutigen
+   Außenauftritts von top-executive-events.com, damit der Unterschied zu den
+   anderen beiden Optionen unmittelbar erkennbar ist. Nicht verbessert,
+   nicht geschönt: Weiß statt Papier, Orange als Signalfarbe, Oxygen für
+   Fließtext, Barlow Condensed in Versalien für Titel.
+
+   Alle Werte am 30.07.2026 direkt aus den berechneten Stilen der Website
+   abgegriffen (nicht geschätzt):
+     Fließtext  #403a3c auf #ffffff / #f8f8f6
+     CTA-Orange #e98517, Orange als Textfarbe #ea8200
+     Dunkelgrün #0d4622 (Icons, kleine Details)
+     Schriften  Oxygen (Text, Gewicht 300), Barlow Condensed (H1, 2px
+                Laufweite, Versalien) */
+:root[data-theme='legacy-brand'] {
+  --paper:        #ffffff;
+  --paper-warm:   #f8f8f6;
+  --paper-pale:   #ffffff;
+  --paper-edge:   #f0ebe8;
+  --paper-shadow: rgba(51, 51, 51, 0.10);
+
+  --ink:          #403a3c;
+  --ink-2:        #333333;
+  --ink-mute:     #6f6a6b;
+  --ink-faint:    #9a9597;
+  --rule:         rgba(64, 58, 60, 0.30);
+  --rule-soft:    rgba(64, 58, 60, 0.14);
+
+  --accent:       #e98517;
+  --accent-soft:  #ea8200;
+  --accent-pale:  rgba(233, 133, 23, 0.12);
+
+  /* Schilder werden zu nüchternen weißen Kärtchen — der Emaille-Charakter
+     des aktuellen Designs ist hier gerade nicht gewollt. */
+  --sign-top:     #ffffff;
+  --sign-mid:     #fbfbfa;
+  --sign-low:     #f0ebe8;
+  --sign-top-hi:  #ffffff;
+  --sign-mid-hi:  #fff7ee;
+  --sign-low-hi:  #fae7d2;
+  --sign-edge:    rgba(255, 255, 255, 0.95);
+  /* Die Nieten greifen das Dunkelgrün auf, das die Website für Icons nutzt. */
+  --rivet-hi:     #dfe6e0;
+  --rivet-lo:     #0d4622;
+  --link:         #ea8200;
+  --link-hover:   #b8650a;
+  --sign-border:     rgba(51, 51, 51, 0.22);
+  --sign-border-low: rgba(51, 51, 51, 0.32);
+  --sign-ring:       rgba(255, 255, 255, 0.94);
+  --dot-ring:        rgba(255, 255, 255, 0.9);
+  --vignette:        rgba(248, 248, 246, 0.5);
+
+  --display: "Barlow Condensed", "Oxygen", "Helvetica Neue", Arial, sans-serif;
+  --serif:   "Oxygen", "Open Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono:    "Oxygen", "Helvetica Neue", Arial, sans-serif;
+  --title:           "Barlow Condensed", "Oxygen", "Helvetica Neue", Arial, sans-serif;
+  --title-weight:    400;
+  --title-transform: uppercase;
+  --title-spacing:   0.05em;
+}
+
+/* Der Fließtext der Website ist durchgängig licht gesetzt (Gewicht 300) und
+   aufrecht — ohne das wirkt die Nachbildung zu schwer und zu „verlagsmäßig". */
+:root[data-theme='legacy-brand'] .brand-lede,
+:root[data-theme='legacy-brand'] .t-headline {
+  font-style: normal;
+  font-weight: 300;
+}
+:root[data-theme='legacy-brand'] .schild-marker .sm-title {
+  font-style: normal;
+  font-weight: 400;
+}
+/* Die Papier-Körnung gehört zum Ort, nicht zu dieser Marke — der bestehende
+   Auftritt ist glattes Weiß. */
+:root[data-theme='legacy-brand'] .paper::before { opacity: 0; }

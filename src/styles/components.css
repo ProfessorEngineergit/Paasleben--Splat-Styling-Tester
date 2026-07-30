@@ -388,7 +388,7 @@
 }
 .paas-panel .pp-body p { margin: 0 0 1.1em; }
 .paas-panel .pp-body a {
-  color: #b3232a;
+  color: var(--link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
@@ -397,8 +397,8 @@
 }
 .paas-panel .pp-body a:hover,
 .paas-panel .pp-body a:focus-visible {
-  color: #8a1a20;
-  text-decoration-color: #8a1a20;
+  color: var(--link-hover);
+  text-decoration-color: var(--link-hover);
 }
 .paas-panel .pp-foot {
   grid-column: 1 / -1;

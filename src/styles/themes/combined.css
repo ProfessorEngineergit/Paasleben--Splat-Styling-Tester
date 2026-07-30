@@ -1,0 +1,84 @@
+/* Theme „Neues kombiniertes Design" — der Vorschlag, nicht die Bestandsaufnahme.
+   Nimmt aus dem aktuellen PAASLEBEN-Auftritt die Wärme und Stofflichkeit des
+   Ortes, aus dem bestehenden Branding die klare, geschäftliche Ansprache, und
+   führt beides in eine zeitgemäße, auf Coaching zugeschnittene Form.
+
+   Farbe: Kalkstein-Weiß statt Cream — dieselbe Wärme, aber weniger Vintage,
+   dadurch mehr Ruhe hinter der Karte. Das Tiefschwarz hat einen grünen
+   Unterton und verbindet so das Naturthema des Areals mit dem Dunkelgrün, das
+   die bestehende Marke für Details nutzt. Der Akzent liegt bewusst genau
+   zwischen den beiden Bestandsfarben — Rot #b8342f (heute) und Orange #e98517
+   (Branding) ergeben gemischt ein gebranntes Siena. Das ist der eigentliche
+   „kombinierte" Teil, und zwar in der Farbe statt in der Form.
+
+   Schrift: Fraunces für Titel (moderne redaktionelle Serife, warm und
+   eigenständig — trägt Anspruch, ohne antiquiert zu wirken) über Inter für
+   Text und Beschriftungen (ruhig, exzellent lesbar, auch klein). Bewusst OHNE
+   American Typewriter: die Schreibmaschinen-Anmutung war der stärkste Vintage-
+   Marker des aktuellen Designs und passt nicht zur Coaching-Positionierung. */
+:root[data-theme='combined'] {
+  --paper:        #f7f4ee;
+  --paper-warm:   #efeae1;
+  --paper-pale:   #fdfbf7;
+  --paper-edge:   #e3ddd1;
+  --paper-shadow: rgba(31, 36, 32, 0.10);
+
+  --ink:          #1f2420;
+  --ink-2:        #2c332c;
+  --ink-mute:     #5f665e;
+  --ink-faint:    #8d9389;
+  --rule:         rgba(31, 36, 32, 0.28);
+  --rule-soft:    rgba(31, 36, 32, 0.13);
+
+  --accent:       #b8562b;
+  --accent-soft:  #c97244;
+  --accent-pale:  rgba(184, 86, 43, 0.12);
+
+  /* Schilder als ruhige, leicht erhabene Plaketten: weniger Emaille-Glanz,
+     mehr gebürsteter Kalkstein. */
+  --sign-top:     #fdfbf7;
+  --sign-mid:     #f4f0e8;
+  --sign-low:     #e8e2d6;
+  --sign-top-hi:  #ffffff;
+  --sign-mid-hi:  #f9f4ea;
+  --sign-low-hi:  #eee7da;
+  --sign-edge:    rgba(255, 255, 255, 0.92);
+  --rivet-hi:     #ffffff;
+  --rivet-lo:     #7d8479;
+  --link:         #b8562b;
+  --link-hover:   #8f3f1c;
+  --sign-border:     rgba(31, 36, 32, 0.22);
+  --sign-border-low: rgba(31, 36, 32, 0.34);
+  --sign-ring:       rgba(247, 244, 238, 0.94);
+  --dot-ring:        rgba(247, 244, 238, 0.88);
+  --vignette:        rgba(247, 244, 238, 0.5);
+
+  --display: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --serif:   "Inter", "Helvetica Neue", Arial, sans-serif;
+  --mono:    "Inter", "Helvetica Neue", Arial, sans-serif;
+  --title:           "Fraunces", "Cormorant Garamond", Georgia, serif;
+  --title-weight:    500;
+  --title-transform: none;
+  --title-spacing:   -0.01em;
+}
+
+/* Inter ist eine Sans — die Kursiv-Auszeichnungen des aktuellen Designs
+   wirken darin schnell nachlässig. Deshalb hier aufrecht und stattdessen über
+   Gewicht und Laufweite differenziert. */
+:root[data-theme='combined'] .brand-lede,
+:root[data-theme='combined'] .t-headline {
+  font-style: normal;
+  font-weight: 500;
+}
+:root[data-theme='combined'] .schild-marker .sm-title {
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.005em;
+}
+:root[data-theme='combined'] .brand-eyebrow,
+:root[data-theme='combined'] .t-caption {
+  letter-spacing: 0.2em;
+}
+/* Körnung bleibt — sie trägt die Stofflichkeit des Ortes —, aber deutlich
+   zurückgenommen, damit die Fläche moderner und ruhiger wirkt. */
+:root[data-theme='combined'] .paper::before { opacity: 0.18; }

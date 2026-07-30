@@ -6,6 +6,19 @@
     <meta name="theme-color" content="#f4ecd8" />
     <title>PAASLEBEN · Ein Ort zum Atmen</title>
 
+    <!-- Theme noch vor dem ersten Zeichnen setzen, sonst blitzt beim Laden
+         kurz das Standard-Theme auf. Verbindlich ist der Wert aus Firestore,
+         den src/lib/paas-theme.js gleich danach nachzieht. -->
+    <script>
+      try {
+        var t = localStorage.getItem('paas-theme');
+        document.documentElement.dataset.theme =
+          ['current', 'legacy-brand', 'combined'].indexOf(t) >= 0 ? t : 'current';
+      } catch (e) {
+        document.documentElement.dataset.theme = 'current';
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

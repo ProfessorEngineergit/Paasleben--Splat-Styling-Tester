@@ -1,0 +1,51 @@
+/* Theme „Aktuelles Design" — der heutige Live-Auftritt von PAASLEBEN.
+   Warmes Cream-Papier, tiefes warmes Schwarz, sparsamer Rot-Akzent,
+   American Typewriter über Cormorant Garamond.
+
+   Die Werte sind bewusst identisch zu den Vorgaben in tokens.css: ohne
+   gesetztes data-theme sieht die Seite genauso aus, und ein bewusstes
+   Umschalten auf dieses Theme ändert nichts. Das macht es zum sicheren
+   Rückweg aus jedem anderen Theme. */
+:root[data-theme='current'] {
+  --paper:        #f4ecd8;
+  --paper-warm:   #efe7d2;
+  --paper-pale:   #faf5e6;
+  --paper-edge:   #e6dcc4;
+  --paper-shadow: rgba(40, 30, 18, 0.08);
+
+  --ink:          #1a1814;
+  --ink-2:        #2a2620;
+  --ink-mute:     #6b5f4e;
+  --ink-faint:    #9a8e7a;
+  --rule:         rgba(26, 24, 20, 0.3);
+  --rule-soft:    rgba(26, 24, 20, 0.15);
+
+  --accent:       #b8342f;
+  --accent-soft:  #c45a55;
+  --accent-pale:  rgba(184, 52, 47, 0.12);
+
+  --sign-top:     #fbf3df;
+  --sign-mid:     #f0e6cc;
+  --sign-low:     #e6dcc1;
+  --sign-top-hi:  #fff7df;
+  --sign-mid-hi:  #f4eacd;
+  --sign-low-hi:  #e8dec1;
+  --sign-edge:    rgba(255, 246, 222, 0.9);
+  --rivet-hi:     #fff8e1;
+  --rivet-lo:     #8a7a55;
+  --link:         #b3232a;
+  --link-hover:   #8a1a20;
+  --sign-border:     rgba(40, 30, 18, 0.28);
+  --sign-border-low: rgba(40, 30, 18, 0.42);
+  --sign-ring:       rgba(244, 236, 216, 0.92);
+  --dot-ring:        rgba(244, 236, 216, 0.85);
+  --vignette:        rgba(244, 236, 216, 0.45);
+
+  --display: "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
+  --serif:   "Cormorant Garamond", "EB Garamond", "Garamond", Georgia, "Times New Roman", serif;
+  --mono:    "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;
+  --title:           var(--serif);
+  --title-weight:    600;
+  --title-transform: none;
+  --title-spacing:   0.01em;
+}

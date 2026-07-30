@@ -47,6 +47,13 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isPaasAdmin();
     }
+    // Seitenweite Einstellungen, aktuell nur das gewählte Design-Theme
+    // (Dokument `site`, Feld `theme`). Öffentlich lesbar, weil die Website den
+    // Wert beim Laden braucht; schreiben darf nur der Editor.
+    match /paas_config/{docId} {
+      allow read: if true;
+      allow write: if isPaasAdmin();
+    }
     match /paas_admins/{email} {
       allow read: if request.auth != null && request.auth.token.email.lower() == email;
       allow write: if false; // nur über die Firebase-Konsole

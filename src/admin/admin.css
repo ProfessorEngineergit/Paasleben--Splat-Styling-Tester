@@ -92,6 +92,32 @@ html, body {
 .topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
 .user-chip { font-size: 0.8rem; color: var(--paas-muted); }
 
+/* Design-Umschalter — gilt für die ganze Website, deshalb in der Kopfzeile. */
+.theme-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0.2rem 0 0.6rem;
+  border-left: 1px solid var(--paas-line);
+}
+.theme-picker-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paas-muted);
+}
+.theme-select {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--paas-line);
+  border-radius: 4px;
+  background: var(--paas-card);
+  color: var(--paas-ink);
+  cursor: pointer;
+}
+.theme-select:hover { border-color: var(--paas-muted); }
+
 .editor-main {
   flex: 1;
   display: flex;

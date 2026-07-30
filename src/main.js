@@ -4,6 +4,7 @@ import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 
+import { initTheme } from './lib/paas-theme.js';
 import { PaasLoader } from './lib/paas-loader.js';
 import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
@@ -137,6 +138,11 @@ const loadSheetContent = async () => {
 };
 
 loadSheetContent();
+
+// Theme aus Firestore anwenden (paas_config/site). Absichtlich nicht
+// abgewartet: der zwischengespeicherte Wert steht sofort, der verbindliche
+// kommt nach — das Laden der Szene soll darauf nicht warten.
+initTheme();
 
 // ── Deep-Link & Editor-Vorschau ────────────────────────────────────────
 // ?ort=NN  → nach dem Laden direkt diesen Standpunkt öffnen (Intro entfällt)

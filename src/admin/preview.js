@@ -25,10 +25,14 @@ export const setupPreview = ({ onEdit }) => {
     currentId = null;
   };
 
+  // Neu laden, falls die Vorschau offen ist — etwa nach einem Design-Wechsel,
+  // damit die End-Ansicht das neue Theme sofort zeigt.
+  const reload = () => {
+    if (currentId && !overlay.hidden) frame.src = buildSrc();
+  };
+
   document.querySelector('#preview-close').addEventListener('click', close);
-  document.querySelector('#preview-reload').addEventListener('click', () => {
-    if (currentId) frame.src = buildSrc();
-  });
+  document.querySelector('#preview-reload').addEventListener('click', reload);
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !overlay.hidden) close();
   });
@@ -41,5 +45,5 @@ export const setupPreview = ({ onEdit }) => {
     onEdit(msg.id, { [msg.field]: String(msg.value ?? '') });
   });
 
-  return { open, close };
+  return { open, close, reload };
 };
