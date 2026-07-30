@@ -1,7 +1,14 @@
 # Bilder-Zuordnungsplan — Paasleben
 
-Status: Vorschlag / Platzhalter. Nichts am Website-Code wurde verändert.
-Alle Texte sind Beispieltexte — keine konkreten Behauptungen.
+Status: umgesetzt. Die Zuordnungen stehen in Firestore (`paas_locations`, Feld
+`images`) und sind über den Editor unter /admin.html änderbar. Die Datei hier
+dokumentiert, welches Rohbild wohin gewandert ist und warum — und welche
+Bestände geprüft sind.
+
+Zweiter Durchgang am 30.07.2026: die im ersten Durchgang offen gelassenen
+Ordner (`Canon/`, `LEICA/`, `Skulpturen/`) wurden vollständig durchgesehen und
+die vier bis dahin bildlosen Orte befüllt. Siehe Abschnitt
+„Zweiter Durchgang" weiter unten.
 
 ---
 
@@ -115,8 +122,81 @@ Alle Originaldateien bleiben unverändert in `Paasleben-Bilder/`. Es werden **Ko
 
 ### Nicht geprüft (sehr großer Restbestand)
 
-- `Canon/*.JPG` (≈ 70 Bilder), Großteil von `LEICA/*.JPG` (≈ 110 Bilder), Großteil von `Skulpturen/*.JPG` (≈ 120 Bilder).
-- Aus Zeit-/Risiko-Gründen wurde eine kleine kuratierte Auswahl getroffen. Du kannst aus den restlichen Sets später gezielt nachziehen — am besten Ordner für Ordner gegen die selben Personen-Kriterien prüfen.
+~~`Canon/*.JPG` (≈ 70 Bilder), Großteil von `LEICA/*.JPG` (≈ 110 Bilder),
+Großteil von `Skulpturen/*.JPG` (≈ 120 Bilder).~~
+**Erledigt im zweiten Durchgang (30.07.2026): alle 330 web-taugliche Dateien
+sind gesichtet.** Siehe unten.
+
+---
+
+## Zweiter Durchgang (30.07.2026)
+
+Methode: alle 330 Dateien in `neue Fotos/` mit web-tauglichem Format (jpg/jpeg/
+png) als Kontaktabzüge gesichtet, Verdachtsfälle einzeln in Großansicht
+geprüft. Kriterien unverändert wie oben.
+
+### Ergebnis der drei offenen Ordner
+
+| Ordner        | gesichtet | übernommen | Grund für den Rest |
+| :------------ | --------: | ---------: | :----------------- |
+| `Canon/`      |        58 |          3 | überwiegend Personen (zwei Männer über eine ganze Serie, Nahaufnahmen von Gesichtern); dazu Nachtaufnahmen ohne erkennbares Motiv |
+| `LEICA/`      |       103 |          0 | Wanderungs-Serie mit Personen, Sandgrube und Waldwege abseits des Areals, fremdes Industriegelände, Selbstporträts |
+| `Skulpturen/` |       121 |          9 | sehr viele Beinah-Dubletten derselben Skulpturen; je Motiv wurde die beste Aufnahme genommen |
+
+### Neu übernommen (Quelle → Ziel)
+
+| Quelle                                | Ziel                                             | Ort im Editor |
+| :------------------------------------ | :----------------------------------------------- | :------------ |
+| Areal Stimmung/DSC_0466.JPG           | atelier/atelier-festtafel-kerzen.jpg             | 14 Atelier |
+| Areal Stimmung/DSC_0464.JPG           | atelier/atelier-festtafel-tageslicht.jpg         | 14 Atelier |
+| Loft/L1010143.JPG                     | atelier/atelier-weite-treppe-fluegel.jpg         | 14 Atelier |
+| Skulpturen/L1100996.JPG               | atelier/atelier-werkraum-hocker.jpg              | 14 Atelier |
+| Umgebung/Strohballen Frühstück.JPG    | versorgung/hofkost-brot-kaese-wein.jpg           | 10 Hühner-Stall |
+| Badehaus/Picknick Teich.JPG           | versorgung/picknick-teich-hund.jpg               | 10 Hühner-Stall |
+| Sonstiges/Foto Stalldinner.JPG        | versorgung/stall-dinner-tafel.jpg                | 10 Hühner-Stall, 08 Pferde-Stall |
+| Areal Stimmung/IMG_2711.JPG           | sandplatz/halle-stroh-glasdach.jpg               | 16 Sandplatz |
+| Skulpturen/L1100895.JPG               | sandplatz/pferd-sandboden-stall.jpg              | 15 Round Pen, 16 Sandplatz, 08 Pferde-Stall |
+| Areal Stimmung/IMG_2716.JPG           | sandplatz/stall-strohbetten.jpg                  | 16 Sandplatz, 08 Pferde-Stall |
+| Loft/Frühstück Dachterrasse.JPG       | loft/dachterrasse-fruehstueck-weite.jpg          | 13 Unterkunft |
+| Loft/IMG_8716.JPG                     | loft/kamin-lounge-kunst.jpg                      | 13 Unterkunft |
+| Canon/IMG_3746.JPG                    | skulpturen/pferd-skulptur-dach-morgenrot.jpg     | 07 Turm |
+| Canon/IMG_3736.JPG                    | skulpturen/hut-figur-nebel-morgenrot.jpg         | 01 Willkommen |
+| Canon/IMG_3740.JPG                    | skulpturen/ring-skulptur-nebel.jpg               | 01 Willkommen |
+| Skulpturen/L1100961.JPG               | skulpturen/spirale-stahl.jpg                     | 04 Hallen |
+| Skulpturen/L1100945.JPG               | skulpturen/buch-skulptur-frontal.jpg             | 12 Pfauen-Stall |
+| Skulpturen/L1100987.JPG               | skulpturen/reisig-krone-nah.jpg                  | 11 Storchen-Nest |
+| Skulpturen/L1100893.JPG               | areal/lange-tafel-steinhocker.jpg                | 04 Hallen |
+| Skulpturen/L1100963.JPG               | werkstatt/werkstatt-maschine-alt.jpg             | 09 Werkstatt |
+| Skulpturen/L1100984.JPG               | werkstatt/zahnrad-gross.jpg                      | 09 Werkstatt |
+| Skulpturen/L1100912.JPG               | umgebung/nandu-kopf-nah.jpg                      | 12 Pfauen-Stall |
+| Umgebung/11.JPG                       | umgebung/rehe-schnee-feld.jpg                    | 06 Pferde-Wiese |
+| Badehaus/Rahmenprogramm Safari.JPG    | umgebung/defender-nandu-wiese.jpg                | 12 Pfauen-Stall |
+
+### Drei Bilder aus der alten Sperrliste sind jetzt drin
+
+Im ersten Durchgang wurden `Badehaus/Picknick Teich.JPG`,
+`Badehaus/Rahmenprogramm Safari.JPG`, `Umgebung/Strohballen Frühstück.JPG` und
+`Sonstiges/Foto Stalldinner.JPG` allein wegen ihrer Dateinamen als
+„vermutlich Personen" ausgeschlossen. In der Großansicht ist auf allen vier
+keine Person zu sehen — es sind gedeckte Tische, ein Hund und ein Nandu.
+Ebenso `Loft/L1010143.JPG`: die dort vermutete „unklare Figur" ist keine.
+
+### Aufbereitung
+
+Alle neuen Dateien mit `sips` auf 1600 px längste Kante und JPEG-Qualität 62
+gebracht — das entspricht der Größenordnung der bereits vorhandenen Bilder und
+der Editor-Upload-Grenze (`MAX_EDGE_PX = 1600` in `src/admin/images.js`). Die
+Bibliothek liegt damit bei 58 Bildern und rund 18 MB; die größte Einzeldatei
+hat 532 KB. Eine Build-Zeit-Kompression gibt es weiterhin nicht.
+
+### Offen
+
+- **17 Lounge** und **18 Piazza** sind leere Platzhalter ohne Titel und Text und
+  stehen auf `visible: false`. Sie brauchen eine Entscheidung: fertig anlegen
+  oder löschen. Bis dahin bleiben sie ohne Bilder und für Besucher unsichtbar.
+- `LEICA/` hat viele stimmungsvolle Landschafts- und Industrieaufnahmen, die
+  aber nicht auf dem Areal entstanden sind. Falls die Website später eine
+  Umgebungs- oder Anreise-Sektion bekommt, lohnt ein erneuter Blick darauf.
 
 ---
 

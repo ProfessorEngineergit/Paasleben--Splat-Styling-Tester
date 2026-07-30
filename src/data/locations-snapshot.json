@@ -1,44 +1,53 @@
 [
   {
     "id": "01-willkommen",
+    "images": [
+      {
+        "alt": "Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel",
+        "order": 0,
+        "url": "images/areal/turm-regenbogen.jpg"
+      },
+      {
+        "url": "images/skulpturen/hut-figur-nebel-morgenrot.jpg",
+        "order": 1,
+        "alt": "Schreitende Figur mit Hut als Skulptur, im Morgennebel gegen die Sonne"
+      },
+      {
+        "url": "images/areal/piazza-gruen-baumallee.jpg",
+        "order": 2,
+        "alt": "Piazza mit Baumallee und Cor-Ten-Skulptur unter blauem Himmel"
+      },
+      {
+        "order": 3,
+        "url": "images/skulpturen/ring-skulptur-nebel.jpg",
+        "alt": "Ringförmige Stahlskulptur auf der nebligen Wiese am frühen Morgen"
+      },
+      {
+        "url": "images/areal/areal-pferd-skulptur.jpg",
+        "order": 4,
+        "alt": "Bronzene Pferde-Skulptur auf gepflastertem Hof vor Backsteingebäude"
+      },
+      {
+        "alt": "Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne",
+        "url": "images/areal/areal-stimmung-sonne-skulptur.jpg",
+        "order": 5
+      }
+    ],
+    "visible": true,
+    "subtitle": "Ankommen",
     "position": {
       "x": 2.630760908126831,
       "z": 1.2558014392852783,
       "y": 0.2590149939060211
     },
+    "body": "PAASLEBEN ist ein privater Tier- und Skulpturenpark in der Metropolregion Wolfsburg-Braunschweig, direkt am Naturschutzgebiet Lappwald. Seit Sommer 2024 öffnet das Areal seine Tore für Unternehmen, Berater und Coaches — für Offsites, Teambuildings, Coachings und pferdegestützte Interventionen. Es findet immer nur eine Veranstaltung zur Zeit statt.\n\nDas ehemalige Fabrikgelände hat eine eigene Geschichte: bekannt aus der ZDF-Dokumentation <a href=\"https://www.zdf.de/video/dokus/terra-x-history-ein-tag-in-der-ddr-100/terra-x-history-die-flucht-mit-der-raupe-film-doku-100\" target=\"_blank\" rel=\"noopener\">‚Die Flucht mit der Raupe'</a>. 1963 floh ein Bauarbeiter mit einer Planierraupe über die innerdeutsche Grenze in den Westen — eine der filmreifsten DDR-Fluchten überhaupt. Der Schauplatz dieser Geschichte ist heute PAASLEBEN.\n\nAb 2013 wurde das Gelände renaturiert, 500 Bäume gepflanzt, historische Gebäudeteile erhalten und ertüchtigt. Heute leben hier domestizierte und wilde Tiere zwischen Skulpturen — und der Künstler, der diesen Ort geschaffen hat. Gastgeber sind Maren & Til Paas.",
+    "displayNumber": "01",
     "title": "Willkommen",
     "order": 1,
-    "subtitle": "Ankommen",
-    "updatedAt": "2026-07-14T12:06:23.451Z",
-    "body": "PAASLEBEN ist ein privater Tier- und Skulpturenpark in der Metropolregion Wolfsburg-Braunschweig, direkt am Naturschutzgebiet Lappwald. Seit Sommer 2024 öffnet das Areal seine Tore für Unternehmen, Berater und Coaches — für Offsites, Teambuildings, Coachings und pferdegestützte Interventionen. Es findet immer nur eine Veranstaltung zur Zeit statt.\n\nDas ehemalige Fabrikgelände hat eine eigene Geschichte: bekannt aus der ZDF-Dokumentation <a href=\"https://www.zdf.de/video/dokus/terra-x-history-ein-tag-in-der-ddr-100/terra-x-history-die-flucht-mit-der-raupe-film-doku-100\" target=\"_blank\" rel=\"noopener\">‚Die Flucht mit der Raupe'</a>. 1963 floh ein Bauarbeiter mit einer Planierraupe über die innerdeutsche Grenze in den Westen — eine der filmreifsten DDR-Fluchten überhaupt. Der Schauplatz dieser Geschichte ist heute PAASLEBEN.\n\nAb 2013 wurde das Gelände renaturiert, 500 Bäume gepflanzt, historische Gebäudeteile erhalten und ertüchtigt. Heute leben hier domestizierte und wilde Tiere zwischen Skulpturen — und der Künstler, der diesen Ort geschaffen hat. Gastgeber sind Maren & Til Paas.",
-    "visible": true,
-    "images": [
-      {
-        "alt": "Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel",
-        "url": "images/areal/turm-regenbogen.jpg",
-        "order": 0
-      },
-      {
-        "url": "images/areal/piazza-gruen-baumallee.jpg",
-        "order": 1,
-        "alt": "Piazza mit Baumallee und Cor-Ten-Skulptur unter blauem Himmel"
-      },
-      {
-        "alt": "Bronzene Pferde-Skulptur auf gepflastertem Hof vor Backsteingebäude",
-        "url": "images/areal/areal-pferd-skulptur.jpg",
-        "order": 2
-      },
-      {
-        "alt": "Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne",
-        "order": 3,
-        "url": "images/areal/areal-stimmung-sonne-skulptur.jpg"
-      }
-    ],
-    "displayNumber": "01"
+    "updatedAt": "2026-07-30T07:32:00.000Z"
   },
   {
     "id": "02-trafo-haus",
-    "displayNumber": "02",
     "images": [
       {
         "alt": "Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken",
@@ -46,98 +55,115 @@
         "order": 0
       },
       {
-        "order": 1,
+        "alt": "Loftraum mit Mezzanin, Holzleiter, pinkem Sofa und Bildersammlung",
         "url": "images/badehaus/badehaus-loft-treppe.jpg",
-        "alt": "Loftraum mit Mezzanin, Holzleiter, pinkem Sofa und Bildersammlung"
+        "order": 1
       },
       {
+        "alt": "Stillleben aus Wildblumenstrauß, Weinflasche und gerahmtem Bild",
         "order": 2,
-        "url": "images/badehaus/badehaus-stillleben.jpg",
-        "alt": "Stillleben aus Wildblumenstrauß, Weinflasche und gerahmtem Bild"
+        "url": "images/badehaus/badehaus-stillleben.jpg"
       }
     ],
-    "updatedAt": "2026-07-14T12:06:23.451Z",
     "visible": true,
+    "subtitle": "Hier ist die Energie.",
     "body": "Im Erdgeschoß: Tagungsraum mit großem Glastisch für zehn Personen, Bibliotheksecke, Kitchenette, Kaminofen.\n\nDas Zwischengeschoß bleibt ohne Bestuhlung — Stuhlkreis, freie Bewegung, stille Reflexion.\n\nAuf der Empore stehen ein historischer Schreibtisch und ein Doppelbett mit Blick über das Areal. Arbeiten und Übernachten unter einem Dach.",
     "position": {
-      "x": -0.8026981949806213,
       "z": -1.0839382410049438,
+      "x": -0.8026981949806213,
       "y": 0.2210998684167862
     },
     "title": "Trafo-Haus",
-    "subtitle": "Hier ist die Energie.",
-    "order": 2
+    "displayNumber": "02",
+    "order": 2,
+    "updatedAt": "2026-07-14T12:06:23.451Z"
   },
   {
     "id": "03-frauen-haus",
-    "title": "Frauen-Haus",
-    "order": 3,
+    "visible": true,
     "subtitle": "Küche",
-    "position": {
-      "x": -1.1448870782819278,
-      "z": -1.4508173786505207,
-      "y": 0.19817891716957092
-    },
     "images": [
       {
         "alt": "Lange weiße Festtafel mit Stühlen und Kerzen in einem hohen Saal",
-        "order": 0,
-        "url": "images/areal/halle-festtafel.jpg"
+        "url": "images/areal/halle-festtafel.jpg",
+        "order": 0
       },
       {
-        "url": "images/areal/halle-festtafel-fenster.jpg",
         "order": 1,
+        "url": "images/areal/halle-festtafel-fenster.jpg",
         "alt": "Festtafel in einer Halle mit hohen Sprossenfenstern und Konzertflügel"
       },
       {
-        "url": "images/areal/areal-stimmung-sonne-skulptur.jpg",
+        "alt": "Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne",
         "order": 2,
-        "alt": "Außenbereich mit Skulptur und gedeckten Tafeln in der Abendsonne"
+        "url": "images/areal/areal-stimmung-sonne-skulptur.jpg"
       }
     ],
-    "displayNumber": "03",
+    "order": 3,
+    "updatedAt": "2026-07-14T16:49:16.926Z",
     "body": "Der ehemalige Aufenthaltsbereich der weiblichen Belegschaft. Die in den Raum integrierte Küche ist groß genug für Teamkochen, daneben ein historischer Holztisch für bis zu zwölf Personen, Lounge-Bereich und ein Bullerjan-Holzofen.\n\nIm Obergeschoß drei Doppelschlafzimmer und ein Bad. Gut für kleinere Gruppen, die kochen, essen, reden und schlafen wollen, ohne den Raum zu wechseln.",
-    "visible": true,
-    "updatedAt": "2026-07-14T16:49:16.926Z"
+    "position": {
+      "z": -1.4508173786505207,
+      "x": -1.1448870782819278,
+      "y": 0.19817891716957092
+    },
+    "title": "Frauen-Haus",
+    "displayNumber": "03"
   },
   {
     "id": "04-hallen",
-    "title": "Hallen",
-    "order": 4,
+    "visible": true,
     "subtitle": "Hohe Räume",
+    "images": [
+      {
+        "alt": "Festtafel in einer Halle mit hohen Sprossenfenstern und Konzertflügel",
+        "url": "images/areal/halle-festtafel-fenster.jpg",
+        "order": 0
+      },
+      {
+        "alt": "Lange Tafel aus Holz und Stahl im Freien, dazu Hocker aus Stein und Holz",
+        "url": "images/areal/lange-tafel-steinhocker.jpg",
+        "order": 1
+      },
+      {
+        "url": "images/skulpturen/spirale-stahl.jpg",
+        "order": 2,
+        "alt": "Spiralförmige Stahlskulptur vor einer Mauer aus Bruchstein"
+      },
+      {
+        "alt": "Innenraum mit Fensterblick auf ein kleines Backsteinhaus im Abendlicht",
+        "url": "images/areal/atmosphere-fenster-haus.jpg",
+        "order": 3
+      },
+      {
+        "alt": "Reihe vertikaler Stahlskulpturen vor altem Backsteingebäude",
+        "url": "images/skulpturen/skulptur-saeulen.jpg",
+        "order": 4
+      }
+    ],
+    "order": 4,
+    "updatedAt": "2026-07-30T07:32:00.000Z",
+    "body": "Die Hallen sind das industrielle Rückgrat des Areals: hohe Sprossenfenster, Backstein, Stahl. Platz für Festtafeln, Konzerte und große Runden.\n\nWo früher gefertigt wurde, wird heute getafelt und gesprochen. Die Architektur trägt das Gespräch, ohne es zu überdecken.",
     "position": {
       "x": -2.0674703121185303,
       "z": -1.318606972694397,
       "y": 0.1132616400718689
     },
-    "visible": true,
-    "body": "Die Hallen sind das industrielle Rückgrat des Areals: hohe Sprossenfenster, Backstein, Stahl. Platz für Festtafeln, Konzerte und große Runden.\n\nWo früher gefertigt wurde, wird heute getafelt und gesprochen. Die Architektur trägt das Gespräch, ohne es zu überdecken.",
-    "updatedAt": "2026-07-14T12:06:23.451Z",
-    "images": [
-      {
-        "alt": "Festtafel in einer Halle mit hohen Sprossenfenstern und Konzertflügel",
-        "order": 0,
-        "url": "images/areal/halle-festtafel-fenster.jpg"
-      },
-      {
-        "url": "images/areal/atmosphere-fenster-haus.jpg",
-        "order": 1,
-        "alt": "Innenraum mit Fensterblick auf ein kleines Backsteinhaus im Abendlicht"
-      },
-      {
-        "order": 2,
-        "url": "images/skulpturen/skulptur-saeulen.jpg",
-        "alt": "Reihe vertikaler Stahlskulpturen vor altem Backsteingebäude"
-      }
-    ],
+    "title": "Hallen",
     "displayNumber": "04"
   },
   {
     "id": "05-teich-haus",
-    "visible": true,
+    "position": {
+      "y": 0.09427573531866074,
+      "z": -1.2475457191467285,
+      "x": -2.982354164123535
+    },
     "body": "Das Pumpenhaus am Teich öffnet sich über ein überdimensionales Flügeltor zum Wasser. Im Erdgeschoß: Tagungsraum mit großem Tisch für zehn Personen, integrierter Küchenzeile, Lounge-Ecke vor dem Kaminofen.\n\nAuf der Empore liegt ein Doppelbett mit Blick über den Teich.\n\nTerrasse und Steg bieten Sitzgruppen für bis zu 30 Personen und einen Schwenkgrill.",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
     "displayNumber": "05",
+    "title": "Pumpenhaus",
+    "order": 5,
+    "updatedAt": "2026-07-18T11:43:29.953Z",
     "images": [
       {
         "url": "images/areal/teichhaus-tisch-mahlzeit.jpg",
@@ -150,114 +176,120 @@
         "alt": "Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung"
       },
       {
-        "alt": "Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken",
         "url": "images/badehaus/badehaus-wohnraum.jpg",
-        "order": 2
+        "order": 2,
+        "alt": "Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken"
       },
       {
-        "alt": "Sommerlich gedeckter Picknick-Tisch unter Bäumen, neben dem Tisch ein Hund",
         "url": "images/areal/picknick-tisch-hund.jpg",
-        "order": 3
+        "order": 3,
+        "alt": "Sommerlich gedeckter Picknick-Tisch unter Bäumen, neben dem Tisch ein Hund"
       }
     ],
-    "subtitle": "Weitblick über das Wasser.",
-    "order": 5,
-    "title": "Pumpenhaus",
-    "position": {
-      "x": -2.982354164123535,
-      "z": -1.2475457191467285,
-      "y": 0.09427573531866074
-    }
+    "visible": true,
+    "subtitle": "Weitblick über das Wasser."
   },
   {
     "id": "06-pferde-wiese",
+    "body": "Die Pferde leben in einer Herde auf dem Areal mit Offenstall. Schon das Beobachten der Herde ist für viele Menschen ungewohnt.\n\nPferde spiegeln innere Haltung und Stimmung direkt — unbeeinflusst von Rang, Status oder bisherigen Leistungen. Sie reagieren auf Authentizität und Präsenz, nicht auf Druck.\n\nPferdegestützte Interventionen eignen sich, um Wirksamkeit, Resilienz, Ausstrahlung und Selbstführung zu bearbeiten, Entscheidungen zu finden, Authentizität zu entwickeln. Alle Übungen erfolgen vom Boden — es wird nicht geritten.",
+    "position": {
+      "y": 0.259002149105072,
+      "x": -3.3446009159088135,
+      "z": 0.5720416307449341
+    },
     "displayNumber": "06",
+    "title": "Pferde-Wiese",
+    "order": 6,
+    "updatedAt": "2026-07-30T07:32:00.000Z",
     "images": [
       {
+        "alt": "Pferde grasen auf einer Koppel, darüber ein klarer Regenbogen",
         "order": 0,
-        "url": "images/umgebung/pferde-regenbogen-koppel.jpg",
-        "alt": "Pferde grasen auf einer Koppel, darüber ein klarer Regenbogen"
+        "url": "images/umgebung/pferde-regenbogen-koppel.jpg"
       },
       {
+        "alt": "Vier dunkle Pferde auf grüner Weide, eines steht, drei liegen",
         "url": "images/umgebung/pferde-koppel-vier.jpg",
-        "order": 1,
-        "alt": "Vier dunkle Pferde auf grüner Weide, eines steht, drei liegen"
-      },
-      {
-        "url": "images/umgebung/teich-pferde.jpg",
-        "order": 2,
-        "alt": "Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung"
+        "order": 1
       },
       {
         "alt": "Stute mit Fohlen auf Frühlingswiese, im Hintergrund Baumreihe und Rapsfeld",
-        "order": 3,
+        "order": 2,
         "url": "images/umgebung/stute-fohlen-raps.jpg"
       },
       {
-        "order": 4,
+        "url": "images/umgebung/rehe-schnee-feld.jpg",
+        "order": 3,
+        "alt": "Zwei Rehe queren ein schneebedecktes Feld vor winterlichem Gehölz"
+      },
+      {
+        "alt": "Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung",
+        "url": "images/umgebung/teich-pferde.jpg",
+        "order": 4
+      },
+      {
+        "alt": "Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen",
         "url": "images/umgebung/pferd-cor-ten-bogen.jpg",
-        "alt": "Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen"
+        "order": 5
       },
       {
         "alt": "Pferd auf eingezäunter Wiese, im Vordergrund Nandu und Skulptur",
         "url": "images/umgebung/pferd-nandu-skulptur.jpg",
-        "order": 5
+        "order": 6
       }
     ],
-    "updatedAt": "2026-07-14T12:06:23.451Z",
     "visible": true,
-    "body": "Die Pferde leben in einer Herde auf dem Areal mit Offenstall. Schon das Beobachten der Herde ist für viele Menschen ungewohnt.\n\nPferde spiegeln innere Haltung und Stimmung direkt — unbeeinflusst von Rang, Status oder bisherigen Leistungen. Sie reagieren auf Authentizität und Präsenz, nicht auf Druck.\n\nPferdegestützte Interventionen eignen sich, um Wirksamkeit, Resilienz, Ausstrahlung und Selbstführung zu bearbeiten, Entscheidungen zu finden, Authentizität zu entwickeln. Alle Übungen erfolgen vom Boden — es wird nicht geritten.",
-    "position": {
-      "x": -3.3446009159088135,
-      "z": 0.5720416307449341,
-      "y": 0.259002149105072
-    },
-    "title": "Pferde-Wiese",
-    "subtitle": "Begegnung ohne Wertung.",
-    "order": 6
+    "subtitle": "Begegnung ohne Wertung."
   },
   {
     "id": "07-turm",
     "images": [
       {
+        "url": "images/areal/turm-regenbogen.jpg",
         "order": 0,
-        "url": "images/skulpturen/storchen-turm-skulptur.jpg",
-        "alt": "Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd"
+        "alt": "Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel"
+      },
+      {
+        "alt": "Pferde-Skulptur auf einem Dachfirst als Silhouette vor dem Morgenhimmel",
+        "order": 1,
+        "url": "images/skulpturen/pferd-skulptur-dach-morgenrot.jpg"
+      },
+      {
+        "alt": "Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd",
+        "order": 2,
+        "url": "images/skulpturen/storchen-turm-skulptur.jpg"
       },
       {
         "alt": "Schornstein und Skulptur als Silhouette vor orange-rosa Abendhimmel",
-        "order": 1,
+        "order": 3,
         "url": "images/skulpturen/schornstein-sonnenuntergang.jpg"
-      },
-      {
-        "url": "images/areal/turm-regenbogen.jpg",
-        "order": 2,
-        "alt": "Backsteinturm im Abendlicht, darüber ein Regenbogen am grauen Himmel"
       }
     ],
-    "displayNumber": "07",
-    "body": "Der Turm gehört zum alten Fabrikbestand. Nach Abbruchmaßnahmen wurde das Gelände ab 2013 renaturiert: 500 Bäume gepflanzt, historische Gebäudeteile erhalten und ertüchtigt.\n\nBekannt geworden ist der Ort durch die ZDF-Dokumentation <a href=\"https://www.zdf.de/video/dokus/terra-x-history-ein-tag-in-der-ddr-100/terra-x-history-die-flucht-mit-der-raupe-film-doku-100\" target=\"_blank\" rel=\"noopener\">‚Die Flucht mit der Raupe'</a> — ein DDR-Bauarbeiter durchbrach 1963 mit einer Planierraupe die innerdeutsche Grenze. Schauplatz war dieses Gelände.\n\nHeute steht der Turm zwischen Skulpturen, Bäumen und Tieren. Das Alte bleibt sichtbar, das Neue wächst dazu.",
     "visible": true,
-    "updatedAt": "2026-07-14T16:49:33.778Z",
+    "subtitle": "Geschichte des Areals.",
+    "body": "Der Turm gehört zum alten Fabrikbestand. Nach Abbruchmaßnahmen wurde das Gelände ab 2013 renaturiert: 500 Bäume gepflanzt, historische Gebäudeteile erhalten und ertüchtigt.\n\nBekannt geworden ist der Ort durch die ZDF-Dokumentation <a href=\"https://www.zdf.de/video/dokus/terra-x-history-ein-tag-in-der-ddr-100/terra-x-history-die-flucht-mit-der-raupe-film-doku-100\" target=\"_blank\" rel=\"noopener\">‚Die Flucht mit der Raupe'</a> — ein DDR-Bauarbeiter durchbrach 1963 mit einer Planierraupe die innerdeutsche Grenze. Schauplatz war dieses Gelände.\n\nHeute steht der Turm zwischen Skulpturen, Bäumen und Tieren. Das Alte bleibt sichtbar, das Neue wächst dazu.",
+    "position": {
+      "y": 0.30642837285995483,
+      "x": -0.5895425819360818,
+      "z": -0.40111739246025235
+    },
+    "displayNumber": "07",
     "title": "Turm",
     "order": 7,
-    "subtitle": "Geschichte des Areals.",
-    "position": {
-      "x": -0.5895425819360818,
-      "z": -0.40111739246025235,
-      "y": 0.30642837285995483
-    }
+    "updatedAt": "2026-07-30T07:32:00.000Z"
   },
   {
     "id": "08-pferde-stall",
     "position": {
+      "y": 0.09186094254255295,
       "x": -1.789057970046997,
-      "z": 0.5469812750816345,
-      "y": 0.09186094254255295
+      "z": 0.5469812750816345
     },
+    "body": "Der Stall mit angeschlossener Pferdehalle bietet Platz für lange Landtafeln oder kleinere Arbeitsgruppen. Eine Reiterbar mit acht Sätteln ist ein ungewöhnlicher Tresen — Worte fallen dort oft leichter.\n\nOptional kann im Stall auf Strohbetten geschlafen oder geruht werden. Für die Arbeit mit Pferden stehen ein großer Sandplatz und die Halle zur Verfügung — wettergeschützt, ganzjährig nutzbar.\n\nBerater und Coaches können hier pferdegestützte Elemente in eigene Konzepte einbauen, begleitet von Maren Paas.",
     "title": "Pferde-Stall",
+    "displayNumber": "08",
     "order": 8,
-    "subtitle": "Heu",
+    "updatedAt": "2026-07-30T07:32:00.000Z",
     "images": [
       {
         "alt": "Großzügiger Reitstall mit Heuballen und Glasdach",
@@ -265,234 +297,341 @@
         "url": "images/stall/stall-weitwinkel.jpg"
       },
       {
-        "alt": "Stallgasse mit hellen, geschlossenen Pferdeboxen und Tageslicht",
-        "url": "images/stall/stall-gasse.jpg",
+        "alt": "Festlich gedeckte Tafel mit Kerzenleuchtern im Stall, dahinter die Pferdeboxen",
+        "url": "images/versorgung/stall-dinner-tafel.jpg",
         "order": 1
       },
       {
         "order": 2,
-        "url": "images/umgebung/pferd-cor-ten-bogen.jpg",
-        "alt": "Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen"
+        "url": "images/sandplatz/stall-strohbetten.jpg",
+        "alt": "Strohballen als Betten im Stall, mit karierter Decke"
+      },
+      {
+        "order": 3,
+        "url": "images/stall/stall-gasse.jpg",
+        "alt": "Stallgasse mit hellen, geschlossenen Pferdeboxen und Tageslicht"
+      },
+      {
+        "alt": "Helles Pferd auf Sandboden an der Holzwand des Stalls",
+        "url": "images/sandplatz/pferd-sandboden-stall.jpg",
+        "order": 4
       }
     ],
-    "displayNumber": "08",
-    "updatedAt": "2026-07-14T12:06:23.451Z",
     "visible": true,
-    "body": "Der Stall mit angeschlossener Pferdehalle bietet Platz für lange Landtafeln oder kleinere Arbeitsgruppen. Eine Reiterbar mit acht Sätteln ist ein ungewöhnlicher Tresen — Worte fallen dort oft leichter.\n\nOptional kann im Stall auf Strohbetten geschlafen oder geruht werden. Für die Arbeit mit Pferden stehen ein großer Sandplatz und die Halle zur Verfügung — wettergeschützt, ganzjährig nutzbar.\n\nBerater und Coaches können hier pferdegestützte Elemente in eigene Konzepte einbauen, begleitet von Maren Paas."
+    "subtitle": "Heu"
   },
   {
     "id": "09-werkstatt",
-    "position": {
-      "x": -1.7497985363006592,
-      "z": 0.23968803882598877,
-      "y": 0.19068783521652222
-    },
     "order": 9,
-    "subtitle": "Aktiver Arbeitsraum.",
+    "updatedAt": "2026-07-30T07:32:00.000Z",
+    "position": {
+      "y": 0.19068783521652222,
+      "z": 0.23968803882598877,
+      "x": -1.7497985363006592
+    },
+    "body": "Die Werkstatt ist ebenerdig und in Betrieb — hier wird gearbeitet, Material liegt bereit, Werkzeug bleibt sichtbar.\n\nOptional lässt sich der Raum mit großen Tischen ausstatten oder als Kreativraum nutzen.\n\nVerfügbar nur auf individuelle Anfrage.",
+    "displayNumber": "09",
     "title": "Werkstatt",
+    "visible": true,
+    "subtitle": "Aktiver Arbeitsraum.",
     "images": [
       {
-        "url": "images/trafohaus/trafohaus-essbereich.jpg",
+        "url": "images/werkstatt/werkstatt-maschine-alt.jpg",
         "order": 0,
-        "alt": "Hoher Raum im Trafohaus mit Glastisch, Skulptur und blauer Treppe"
+        "alt": "Alte Werkstattmaschine mit Handrädern und Spindeln vor Bruchsteinwand"
       },
       {
-        "alt": "Küchenbereich mit Reihe aufgehängter Kupferpfannen am Fenster",
-        "url": "images/trafohaus/trafohaus-kueche-kupfer.jpg",
-        "order": 1
+        "url": "images/werkstatt/zahnrad-gross.jpg",
+        "order": 1,
+        "alt": "Großes rostiges Zahnrad mit Antriebswelle aus der Nähe"
       },
       {
         "order": 2,
-        "url": "images/trafohaus/trafohaus-leuchter-glas.jpg",
-        "alt": "Bunter Glas-Leuchter über dunkelblauem Sofa unter einem Dachfenster"
+        "url": "images/skulpturen/skulptur-rad.jpg",
+        "alt": "Übergroßes rostiges Eisenrad als Skulptur, daneben ein Holzstapel"
       },
       {
-        "url": "images/skulpturen/skulptur-rad.jpg",
+        "url": "images/trafohaus/trafohaus-kueche-kupfer.jpg",
         "order": 3,
-        "alt": "Übergroßes rostiges Eisenrad als Skulptur, daneben ein Holzstapel"
+        "alt": "Küchenbereich mit Reihe aufgehängter Kupferpfannen am Fenster"
       }
-    ],
-    "displayNumber": "09",
-    "updatedAt": "2026-07-14T12:06:23.451Z",
-    "body": "Die Werkstatt ist ebenerdig und in Betrieb — hier wird gearbeitet, Material liegt bereit, Werkzeug bleibt sichtbar.\n\nOptional lässt sich der Raum mit großen Tischen ausstatten oder als Kreativraum nutzen.\n\nVerfügbar nur auf individuelle Anfrage.",
-    "visible": true
+    ]
   },
   {
     "id": "10-huehner-stall",
-    "images": [],
-    "displayNumber": "10",
-    "updatedAt": "2026-07-14T12:06:23.451Z",
-    "body": "Die Versorgung folgt der Philosophie ‚Vom Einfachen das Beste'. Eier kommen von den freilaufenden Hühnern auf dem Areal, Gemüse aus dem Hausgarten, Honig vom befreundeten Imker.\n\nWild wird von der Köchin selbst erlegt und zubereitet. Vegane und vegetarische Gerichte sind selbstverständlich. Im Rahmen von Teambuildings ist gemeinsames Team-Kochen möglich, wahlweise mit Profi-Köchin.\n\nDer Hühner-Stall ist Teil dieser Versorgung — der Anfang einer Mahlzeit liegt hier.",
-    "visible": true,
+    "order": 10,
+    "updatedAt": "2026-07-30T07:30:00.000Z",
     "position": {
       "x": -1.6045680046081543,
       "z": -0.03564402461051941,
       "y": 0.20408223569393158
     },
+    "body": "Die Versorgung folgt der Philosophie ‚Vom Einfachen das Beste'. Eier kommen von den freilaufenden Hühnern auf dem Areal, Gemüse aus dem Hausgarten, Honig vom befreundeten Imker.\n\nWild wird von der Köchin selbst erlegt und zubereitet. Vegane und vegetarische Gerichte sind selbstverständlich. Im Rahmen von Teambuildings ist gemeinsames Team-Kochen möglich, wahlweise mit Profi-Köchin.\n\nDer Hühner-Stall ist Teil dieser Versorgung — der Anfang einer Mahlzeit liegt hier.",
     "title": "Hühner-Stall",
-    "order": 10,
-    "subtitle": "Vom Einfachen das Beste."
-  },
-  {
-    "id": "11-storchen-nest",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "body": "Auf dem Areal leben zwei Storchenpaare.\n\nEine Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd — eine der Skulpturen, die das Areal prägen. Tier und Skulptur stehen hier nicht nebeneinander, sondern ineinander.\n\nZwischen Schornstein-Silhouetten, alten Mauern und neuen Skulpturen entstehen Bilder, die nicht inszeniert sind. Die Tiere kommen, gehen, bleiben kurz oder lange.",
+    "displayNumber": "10",
     "visible": true,
-    "displayNumber": "11",
-    "images": [
-      {
-        "alt": "Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd",
-        "url": "images/skulpturen/storchen-turm-skulptur.jpg",
-        "order": 0
-      },
-      {
-        "alt": "Schornstein und Skulptur als Silhouette vor orange-rosa Abendhimmel",
-        "order": 1,
-        "url": "images/skulpturen/schornstein-sonnenuntergang.jpg"
-      }
-    ],
-    "position": {
-      "x": -1.1147150993347168,
-      "z": -0.04252830147743225,
-      "y": 0.3262205719947815
-    },
-    "title": "Storchen-Nest",
-    "order": 11,
-    "subtitle": "Zwei Storchenpaare auf dem Areal."
-  },
-  {
-    "id": "12-pfauen-stall",
-    "order": 12,
-    "subtitle": "Pfauen",
-    "title": "Pfauen-Stall",
-    "position": {
-      "x": -1.119042992591858,
-      "z": 0.2597971558570862,
-      "y": 0.17460617423057556
-    },
+    "subtitle": "Vom Einfachen das Beste.",
     "images": [
       {
         "order": 0,
-        "url": "images/skulpturen/skulptur-buch-pfauen.jpg",
-        "alt": "Buch-Skulptur aus Cor-Ten-Stahl im Garten, Pfauen davor"
+        "url": "images/versorgung/hofkost-brot-kaese-wein.jpg",
+        "alt": "Gedeckter Tisch mit Brot, Käse, Wurst und Tomaten vor einem Strohballen"
       },
       {
-        "alt": "Drei Nandus auf einer Sommerwiese unter Wolkenhimmel",
-        "url": "images/umgebung/nandus-wiese.jpg",
+        "url": "images/versorgung/stall-dinner-tafel.jpg",
+        "order": 1,
+        "alt": "Festlich gedeckte Tafel mit Kerzenleuchtern im Stall, dahinter die Pferdeboxen"
+      },
+      {
+        "order": 2,
+        "url": "images/versorgung/picknick-teich-hund.jpg",
+        "alt": "Picknicktisch mit blau-weißer Decke unter Bäumen, davor ein liegender Hund"
+      }
+    ]
+  },
+  {
+    "id": "11-storchen-nest",
+    "images": [
+      {
+        "alt": "Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd",
+        "order": 0,
+        "url": "images/skulpturen/storchen-turm-skulptur.jpg"
+      },
+      {
+        "alt": "Reisig-Krone der Skulptur aus der Nähe, dichtes Geflecht aus Zweigen",
+        "url": "images/skulpturen/reisig-krone-nah.jpg",
         "order": 1
       },
       {
-        "alt": "Nandu eingerahmt von einer Cor-Ten-Stahl-Skulptur",
         "order": 2,
-        "url": "images/umgebung/nandu-cor-ten.jpg"
+        "url": "images/skulpturen/schornstein-sonnenuntergang.jpg",
+        "alt": "Schornstein und Skulptur als Silhouette vor orange-rosa Abendhimmel"
+      }
+    ],
+    "visible": true,
+    "subtitle": "Zwei Storchenpaare auf dem Areal.",
+    "position": {
+      "y": 0.3262205719947815,
+      "x": -1.1147150993347168,
+      "z": -0.04252830147743225
+    },
+    "body": "Auf dem Areal leben zwei Storchenpaare.\n\nEine Eisensäule mit Reisig-Krone, an ein Storchennest erinnernd — eine der Skulpturen, die das Areal prägen. Tier und Skulptur stehen hier nicht nebeneinander, sondern ineinander.\n\nZwischen Schornstein-Silhouetten, alten Mauern und neuen Skulpturen entstehen Bilder, die nicht inszeniert sind. Die Tiere kommen, gehen, bleiben kurz oder lange.",
+    "displayNumber": "11",
+    "title": "Storchen-Nest",
+    "order": 11,
+    "updatedAt": "2026-07-30T07:30:00.000Z"
+  },
+  {
+    "id": "12-pfauen-stall",
+    "images": [
+      {
+        "alt": "Buch-Skulptur aus Cor-Ten-Stahl, aufgeschlagen wie ein Foliant",
+        "url": "images/skulpturen/buch-skulptur-frontal.jpg",
+        "order": 0
+      },
+      {
+        "alt": "Kopf eines Nandus aus der Nähe, dahinter die Koppel",
+        "order": 1,
+        "url": "images/umgebung/nandu-kopf-nah.jpg"
+      },
+      {
+        "alt": "Buch-Skulptur aus Cor-Ten-Stahl im Garten, Pfauen davor",
+        "url": "images/skulpturen/skulptur-buch-pfauen.jpg",
+        "order": 2
+      },
+      {
+        "alt": "Nandu vor einem Geländewagen auf der Sommerwiese",
+        "order": 3,
+        "url": "images/umgebung/defender-nandu-wiese.jpg"
+      },
+      {
+        "order": 4,
+        "url": "images/umgebung/nandus-wiese.jpg",
+        "alt": "Drei Nandus auf einer Sommerwiese unter Wolkenhimmel"
       },
       {
         "url": "images/umgebung/nandu-wildwiese.jpg",
-        "order": 3,
+        "order": 5,
         "alt": "Nandu in hoher Wildwiese mit Königskerze und Disteln"
       }
     ],
-    "displayNumber": "12",
-    "body": "In PAASLEBEN leben domestizierte und wilde Tiere zwischen Kunst und Skulpturen. Pfauen flanieren über das Areal, Nandus stehen im hohen Gras — manchmal eingerahmt von einer Cor-Ten-Skulptur, manchmal mitten in der Wildwiese.\n\nDer Pfauen-Stall ist Ausgangspunkt und Rückzugsort dieser gefiederten Bewohner.",
+    "subtitle": "Pfauen",
     "visible": true,
-    "updatedAt": "2026-07-14T12:06:23.451Z"
+    "displayNumber": "12",
+    "title": "Pfauen-Stall",
+    "body": "In PAASLEBEN leben domestizierte und wilde Tiere zwischen Kunst und Skulpturen. Pfauen flanieren über das Areal, Nandus stehen im hohen Gras — manchmal eingerahmt von einer Cor-Ten-Skulptur, manchmal mitten in der Wildwiese.\n\nDer Pfauen-Stall ist Ausgangspunkt und Rückzugsort dieser gefiederten Bewohner.",
+    "position": {
+      "y": 0.17460617423057556,
+      "x": -1.119042992591858,
+      "z": 0.2597971558570862
+    },
+    "updatedAt": "2026-07-30T07:32:00.000Z",
+    "order": 12
   },
   {
     "id": "13-loft",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "visible": true,
-    "body": "Übernachtung erfolgt in den ehemaligen, historischen Arbeiterwohnungen. Sie wurden der Bausubstanz entsprechend renoviert und modern möbliert.\n\nHolzbalken, Backstein, klare Möbel; Kunstdrucke an den Wänden, Stillleben aus Wildblumen, Wein und Buch. Räume, die zum Areal gehören — nicht hinzugefügt, sondern weitergebaut.",
-    "images": [
-      {
-        "alt": "Loft-Treppe als Silhouette im Gegenlicht",
-        "url": "images/loft/loft-treppe-silhouette.jpg",
-        "order": 0
-      }
-    ],
+    "updatedAt": "2026-07-30T07:32:00.000Z",
+    "order": 13,
+    "title": "Unterkunft",
     "displayNumber": "13",
+    "body": "Übernachtung erfolgt in den ehemaligen, historischen Arbeiterwohnungen. Sie wurden der Bausubstanz entsprechend renoviert und modern möbliert.\n\nHolzbalken, Backstein, klare Möbel; Kunstdrucke an den Wänden, Stillleben aus Wildblumen, Wein und Buch. Räume, die zum Areal gehören — nicht hinzugefügt, sondern weitergebaut.",
     "position": {
       "x": -0.975,
       "z": -1.786,
       "y": 0.3
     },
     "subtitle": "Wohnen im Industriedenkmal.",
-    "title": "Unterkunft",
-    "order": 13
+    "visible": true,
+    "images": [
+      {
+        "alt": "Loft-Treppe als Silhouette im Gegenlicht",
+        "url": "images/loft/loft-treppe-silhouette.jpg",
+        "order": 0
+      },
+      {
+        "order": 1,
+        "url": "images/loft/kamin-lounge-kunst.jpg",
+        "alt": "Lounge mit offenem Kamin, Ledersessel, Kunst und Blumen"
+      },
+      {
+        "alt": "Gedeckter Frühstückstisch auf der Dachterrasse mit Blick über die Felder",
+        "order": 2,
+        "url": "images/loft/dachterrasse-fruehstueck-weite.jpg"
+      },
+      {
+        "alt": "Heller Wohnraum mit Holzbalkendecke, pinkem Sofa und Kunstdrucken",
+        "url": "images/badehaus/badehaus-wohnraum.jpg",
+        "order": 3
+      }
+    ]
   },
   {
     "id": "14-atelier",
-    "displayNumber": "14",
-    "images": [],
-    "visible": true,
     "body": "Lichtdurchflutete Einheit mit großem Holztisch für bis zu 30 Personen, Lounge-Bereich und Blick in die Natur. Drei Flügel öffnen den Raum nach außen.\n\nGeeignet für große Runden, kreative Arbeit, Momente, die Weite brauchen.\n\nVerfügbar nur auf individuelle Anfrage.",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "title": "Atelier",
-    "subtitle": "Lichtdurchflutet",
-    "order": 14,
     "position": {
-      "x": -1.524,
-      "z": 0.567,
-      "y": 0.3
-    }
+      "y": 0.3000128255407778,
+      "z": 0.3019152273836314,
+      "x": -1.917364176381288
+    },
+    "title": "Atelier",
+    "displayNumber": "14",
+    "order": 14,
+    "updatedAt": "2026-07-30T07:30:00.000Z",
+    "images": [
+      {
+        "order": 0,
+        "url": "images/atelier/atelier-weite-treppe-fluegel.jpg",
+        "alt": "Weiter, lichtdurchfluteter Raum mit freitragender Stahltreppe und Sitzgruppen"
+      },
+      {
+        "url": "images/atelier/atelier-festtafel-tageslicht.jpg",
+        "order": 1,
+        "alt": "Lange gedeckte Tafel im hohen Raum, Tageslicht durch die Fensterreihe"
+      },
+      {
+        "url": "images/atelier/atelier-festtafel-kerzen.jpg",
+        "order": 2,
+        "alt": "Lange Tafel mit brennenden Kerzen und Kronleuchtern am Abend"
+      },
+      {
+        "alt": "Werkraum mit fellbezogenen Hockern, langem Tisch und Blick nach draußen",
+        "order": 3,
+        "url": "images/atelier/atelier-werkraum-hocker.jpg"
+      }
+    ],
+    "visible": true,
+    "subtitle": "Lichtdurchflutet"
   },
   {
     "id": "15-round-pen",
+    "subtitle": "Runder Platz, Arbeit vom Boden.",
+    "visible": true,
+    "images": [
+      {
+        "alt": "Helles Pferd auf Sandboden an der Holzwand des Stalls",
+        "url": "images/sandplatz/pferd-sandboden-stall.jpg",
+        "order": 0
+      },
+      {
+        "alt": "Stiller Teich mit Pferden auf der gegenüberliegenden Wiese, Spiegelung",
+        "order": 1,
+        "url": "images/umgebung/teich-pferde.jpg"
+      },
+      {
+        "alt": "Pferd, eingerahmt von einem rostigen Cor-Ten-Stahl-Bogen",
+        "url": "images/umgebung/pferd-cor-ten-bogen.jpg",
+        "order": 2
+      }
+    ],
+    "updatedAt": "2026-07-30T07:30:00.000Z",
+    "order": 15,
+    "displayNumber": "15",
+    "title": "Round Pen",
     "position": {
       "x": -2.787,
       "z": -2.174,
       "y": 0.15
     },
-    "order": 15,
-    "subtitle": "Runder Platz, Arbeit vom Boden.",
-    "title": "Round Pen",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "visible": true,
-    "body": "Der Round Pen liegt am Teich: ein kreisrunder Sandplatz mit geschlossener Einfassung.\n\nHier wird mit einzelnen Pferden gearbeitet. Alle Übungen erfolgen vom Boden — es wird nicht geritten.",
-    "images": [],
-    "displayNumber": "15"
+    "body": "Der Round Pen liegt am Teich: ein kreisrunder Sandplatz mit geschlossener Einfassung.\n\nHier wird mit einzelnen Pferden gearbeitet. Alle Übungen erfolgen vom Boden — es wird nicht geritten."
   },
   {
     "id": "16-sandplatz",
-    "images": [],
-    "displayNumber": "16",
-    "visible": true,
-    "body": "Der große Sandplatz liegt zentral zwischen Halle und Stall.\n\nFür die Arbeit mit Pferden stehen der Sandplatz und die angeschlossene Halle zur Verfügung — wettergeschützt und ganzjährig nutzbar.",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "title": "Sandplatz",
-    "order": 16,
     "subtitle": "Der große Platz in der Mitte.",
+    "visible": true,
+    "images": [
+      {
+        "alt": "Weite Reithalle mit Strohballen und lichtem Glasdach",
+        "url": "images/sandplatz/halle-stroh-glasdach.jpg",
+        "order": 0
+      },
+      {
+        "alt": "Großzügiger Reitstall mit Heuballen und Glasdach",
+        "url": "images/stall/stall-weitwinkel.jpg",
+        "order": 1
+      },
+      {
+        "url": "images/sandplatz/stall-strohbetten.jpg",
+        "order": 2,
+        "alt": "Strohballen als Betten im Stall, mit karierter Decke"
+      }
+    ],
+    "updatedAt": "2026-07-30T07:30:00.000Z",
+    "order": 16,
+    "displayNumber": "16",
+    "title": "Sandplatz",
     "position": {
+      "y": 0.16,
       "x": -1.427,
-      "z": -0.951,
-      "y": 0.16
-    }
+      "z": -0.951
+    },
+    "body": "Der große Sandplatz liegt zentral zwischen Halle und Stall.\n\nFür die Arbeit mit Pferden stehen der Sandplatz und die angeschlossene Halle zur Verfügung — wettergeschützt und ganzjährig nutzbar."
   },
   {
     "id": "17-lounge",
-    "displayNumber": "17",
+    "subtitle": "",
+    "visible": false,
     "images": [],
     "updatedAt": "2026-07-18T11:43:29.953Z",
-    "visible": false,
+    "order": 17,
+    "title": "Lounge",
+    "displayNumber": "17",
     "body": "",
     "position": {
-      "x": -1.438,
       "z": 0.18,
+      "x": -1.438,
       "y": 0.2
-    },
-    "title": "Lounge",
-    "subtitle": "",
-    "order": 17
+    }
   },
   {
     "id": "18-piazza",
-    "visible": false,
-    "body": "",
-    "updatedAt": "2026-07-18T11:43:29.953Z",
-    "displayNumber": "18",
-    "images": [],
-    "title": "Piazza",
     "subtitle": "",
+    "visible": false,
+    "images": [],
+    "updatedAt": "2026-07-18T11:43:29.953Z",
     "order": 18,
+    "title": "Piazza",
+    "displayNumber": "18",
+    "body": "",
     "position": {
       "x": -1.232,
       "z": 0.231,
