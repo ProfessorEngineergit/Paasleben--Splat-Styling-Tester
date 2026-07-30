@@ -61,6 +61,13 @@
         </button>
       </div>
 
+      <!-- Zeitleiste: auf Touch-Geräten der Weg zwischen den Orten, weil die
+           Kamera dort absichtlich kaum frei bewegt wird. Die Einträge baut
+           src/main.js aus den Standpunkten. -->
+      <nav id="timeline" class="timeline" aria-label="Orte auf dem Areal">
+        <div id="tl-track" class="tl-track"></div>
+      </nav>
+
       <audio id="bgm" src="./paasleben.mp3" loop autoplay muted preload="auto" playsinline webkit-playsinline></audio>
 
       <div id="debug-panel" class="debug-panel" hidden>

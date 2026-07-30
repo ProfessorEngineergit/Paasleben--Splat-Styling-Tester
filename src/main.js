@@ -73,6 +73,17 @@ const VIEW_PORTRAIT_AIM = { x: -1.424, y: 0.21, z: -0.457 };
 // Standpunkte im Bild, bei 0.85 fehlt der erste.
 const VIEW_MAX_AIM_BLEND = 0.7;
 
+// ── Bewegungsspielraum auf Touch-Geräten ───────────────────────────────
+// Auf dem Handy wird nicht frei durch die Szene gefahren. Freies Panning führt
+// dort schnell an die unscharfen Ränder des Splats und man verliert die
+// Orientierung; navigiert wird stattdessen über die Zeitleiste. Was bleibt, ist
+// ein kleiner Blickspielraum um den aktuellen Standpunkt — gerade so viel, dass
+// sich die Ansicht lebendig anfühlt.
+const LOOK_YAW_LIMIT_DEG = 6;    // ±6° ⇒ 12° Gesamtschwenk
+const LOOK_PITCH_LIMIT_DEG = 4;
+const LOOK_YAW_SPEED = 0.0042;   // Radiant pro Pixel Zeigerbewegung
+const LOOK_PITCH_SPEED = 0.0032;
+
 // Standpunkt-Daten (Namen, Nummern, Texte, Bilder, Positionen) kommen aus
 // Firestore (`paas_locations`), gepflegt über den Editor unter /admin.html.
 // Fallback bei fehlender Verbindung: src/data/locations-snapshot.json.
@@ -342,6 +353,7 @@ const boot = async () => {
       orbit.target.copy(target);
       orbit.enabled = true;
       orbit.update();
+      captureLookAnchor();
       invalidate();
       done();
     };
@@ -595,6 +607,40 @@ const boot = async () => {
     moveByWorldDelta(move);
   };
 
+  // ── Begrenzter Blickspielraum (Touch) ──────────────────────────────
+  // Der Anker ist die Blickrichtung, mit der die Kamera am aktuellen Ort
+  // angekommen ist; der Nutzer darf sich davon nur um LOOK_*_LIMIT entfernen.
+  // Der Versatz wird selbst mitgeführt statt aus der Kamera zurückgelesen —
+  // Rücklesen über Spherical.theta bricht am Übergang bei ±π.
+  const RESTRICTED_LOOK = COARSE_POINTER;
+  let lookAnchor = null;
+  const lookOffset = { yaw: 0, pitch: 0 };
+  const lookSph = new THREE.Spherical();
+  const lookVec = new THREE.Vector3();
+
+  const captureLookAnchor = () => {
+    lookSph.setFromVector3(lookVec.copy(camera.position).sub(orbit.target));
+    lookAnchor = { radius: lookSph.radius, phi: lookSph.phi, theta: lookSph.theta };
+    lookOffset.yaw = 0;
+    lookOffset.pitch = 0;
+  };
+
+  const applyLimitedLook = (dx, dy) => {
+    if (!lookAnchor) captureLookAnchor();
+    const yawMax = THREE.MathUtils.degToRad(LOOK_YAW_LIMIT_DEG);
+    const pitchMax = THREE.MathUtils.degToRad(LOOK_PITCH_LIMIT_DEG);
+    lookOffset.yaw = clamp(lookOffset.yaw - dx * LOOK_YAW_SPEED, -yawMax, yawMax);
+    lookOffset.pitch = clamp(lookOffset.pitch - dy * LOOK_PITCH_SPEED, -pitchMax, pitchMax);
+    lookSph.set(
+      lookAnchor.radius,
+      clamp(lookAnchor.phi + lookOffset.pitch, orbit.minPolarAngle, orbit.maxPolarAngle),
+      lookAnchor.theta + lookOffset.yaw,
+    );
+    camera.position.copy(orbit.target).add(lookVec.setFromSpherical(lookSph));
+    camera.lookAt(orbit.target);
+    invalidate();
+  };
+
   renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
   renderer.domElement.addEventListener('pointerdown', (e) => {
     if (interactionLocked) return;
@@ -610,15 +656,17 @@ const boot = async () => {
     const dx = e.clientX - previousPointer.x;
     const dy = e.clientY - previousPointer.y;
     previousPointer.set(e.clientX, e.clientY);
-    applyPan(dx, dy);
+    if (RESTRICTED_LOOK) applyLimitedLook(dx, dy);
+    else applyPan(dx, dy);
   });
   const stop = (e) => {
     if (!isDragging) return;
     isDragging = false;
     try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
-    const outsideBounds = isOutsideMovementBounds();
-    releaseDragCameraZoom(outsideBounds);
-    glideAfterDrag();
+    releaseDragCameraZoom(RESTRICTED_LOOK ? false : isOutsideMovementBounds());
+    // Nachgleiten und Rueckfedern gehoeren zum freien Fahren; im begrenzten
+    // Blickspielraum gibt es keine Grenze, an die man stossen koennte.
+    if (!RESTRICTED_LOOK) glideAfterDrag();
   };
   renderer.domElement.addEventListener('pointerup', stop);
   renderer.domElement.addEventListener('pointercancel', stop);
@@ -715,11 +763,21 @@ const boot = async () => {
   // ein noch wartendes, verzögertes Öffnen ab.
   let pendingOpenTimer = 0;
   let pendingOpenCancelled = false;
+  // Zusätzlich eine Markierung am <body>: daran hängt das Ausblenden der
+  // Zeitleiste, die sonst hinter dem Panel durchschimmert. Die Klassen des
+  // Panels selbst liegen am Panel-Element, das kein Geschwister der Leiste ist
+  // — deshalb hier und nicht per CSS-Nachbarschaft.
   const panelClose = panel.close.bind(panel);
   panel.close = () => {
     clearTimeout(pendingOpenTimer);
     pendingOpenCancelled = true;
+    document.body.classList.remove('pp-is-open');
     panelClose();
+  };
+  const panelOpen = panel.open.bind(panel);
+  panel.open = (data) => {
+    document.body.classList.add('pp-is-open');
+    panelOpen(data);
   };
 
   // Inject fold-line shape + close button INSIDE the head, directly above the title.
@@ -792,6 +850,9 @@ const boot = async () => {
       x: worldPos.x, y: worldPos.y, z: worldPos.z,
       duration: dur, ease: 'power3.inOut',
       onUpdate: invalidate,
+      // Am Ziel gilt die neue Blickrichtung als Anker fuer den begrenzten
+      // Spielraum — sonst zaehlt weiter der Winkel vom vorherigen Ort.
+      onComplete: captureLookAnchor,
     });
   };
 
@@ -806,6 +867,7 @@ const boot = async () => {
     gsap.to(orbit.target, {
       x: cameraHome.target.x, y: cameraHome.target.y, z: cameraHome.target.z,
       duration: dur, ease: 'power3.inOut', onUpdate: invalidate,
+      onComplete: captureLookAnchor,
     });
   };
 
@@ -855,6 +917,7 @@ const boot = async () => {
   const openStandpoint = (sp) => {
     const idx = standpoints.indexOf(sp);
     if (idx >= 0) activeIndex = idx;
+    syncTimeline();
     // Bilder auflösen (statische URLs sofort, hochgeladene aus Firestore) —
     // einmal pro Standpunkt, danach gecacht.
     sp.imagesReady = sp.imagesReady || resolveImages(sp, import.meta.env.BASE_URL);
@@ -894,6 +957,46 @@ const boot = async () => {
     if (interactionLocked) return;
     if (idx < 0 || idx >= standpoints.length) return;
     openStandpoint(standpoints[idx]);
+  };
+
+  // ── Zeitleiste ─────────────────────────────────────────────────────
+  // Auf Touch-Geräten der eigentliche Weg zwischen den Orten: die Kamera lässt
+  // sich dort absichtlich kaum frei bewegen, und die Ortsschilder sind
+  // ausgeblendet, weil sie sich gegenseitig überdeckten.
+  const tlTrack = document.querySelector('#tl-track');
+
+  const buildTimeline = () => {
+    if (!tlTrack) return;
+    tlTrack.textContent = '';
+    standpoints.forEach((sp, idx) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'tl-item';
+      b.dataset.idx = String(idx);
+      b.setAttribute('aria-label', `${sp.display} ${sp.name} — ansehen`);
+      b.innerHTML = `<span class="tl-num">${sp.display}</span><span class="tl-name"></span>`;
+      // Namen als Text setzen, nicht als HTML — er kommt aus Firestore.
+      b.querySelector('.tl-name').textContent = sp.name;
+      b.addEventListener('click', () => openByIndex(idx));
+      tlTrack.appendChild(b);
+    });
+  };
+
+  // Hebt den aktiven Eintrag hervor und schiebt ihn in den sichtbaren Bereich.
+  const syncTimeline = () => {
+    if (!tlTrack) return;
+    const items = tlTrack.children;
+    for (let i = 0; i < items.length; i++) {
+      const on = i === activeIndex;
+      items[i].classList.toggle('is-active', on);
+      if (on) {
+        // Nur horizontal scrollen — scrollIntoView würde auch die Seite
+        // vertikal verschieben.
+        const el = items[i];
+        const ziel = el.offsetLeft - (tlTrack.clientWidth - el.offsetWidth) / 2;
+        tlTrack.scrollTo({ left: Math.max(0, ziel), behavior: 'smooth' });
+      }
+    }
   };
 
   // ── Tippen auf den oberen Rand schließt ──
@@ -1397,6 +1500,7 @@ const boot = async () => {
         });
       }
       updateMovementBounds();
+      buildTimeline();
     } catch (err) {
       console.error('Orte-Ladefehler:', err);
     }
@@ -1533,6 +1637,7 @@ const boot = async () => {
     window.__paas = {
       camera, orbit, markers, renderer, THREE, updateMarkers,
       cameraHome, playIntroFlight,
+      captureLookAnchor, applyLimitedLook, buildTimeline, syncTimeline,
     };
   }
 };
