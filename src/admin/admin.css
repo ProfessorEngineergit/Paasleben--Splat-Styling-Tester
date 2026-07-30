@@ -118,6 +118,67 @@ html, body {
 }
 .theme-select:hover { border-color: var(--paas-muted); }
 
+/* ─── Kurzeinführung (src/admin/tour.js) ─── */
+.btn-tour {
+  width: 2rem;
+  padding: 0;
+  text-align: center;
+  border-radius: 50%;
+  line-height: 1.7;
+}
+/* Solange die Tour nie benutzt wurde, macht der Knopf dezent auf sich
+   aufmerksam — aufgezwungen wird sie nicht. */
+.btn-tour.is-neu {
+  border-color: var(--paas-accent);
+  color: var(--paas-accent);
+  animation: tour-puls 2.4s ease-in-out infinite;
+}
+@keyframes tour-puls {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(138, 47, 31, 0.35); }
+  50%      { box-shadow: 0 0 0 5px rgba(138, 47, 31, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-tour.is-neu { animation: none; }
+}
+
+.tour-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(30, 26, 20, 0.55);
+}
+/* Der Ring hebt das Ziel hervor; der große Schatten nach außen dunkelt alles
+   andere ab, sodass kein zweites Overlay-Element nötig ist. */
+.tour-ring {
+  position: absolute;
+  border-radius: 6px;
+  border: 2px solid var(--paas-card);
+  box-shadow: 0 0 0 9999px rgba(30, 26, 20, 0.55);
+  pointer-events: none;
+  transition: left .2s ease, top .2s ease, width .2s ease, height .2s ease;
+}
+.tour-card {
+  position: absolute;
+  width: min(21rem, calc(100vw - 1rem));
+  background: var(--paas-card);
+  border: 1px solid var(--paas-line);
+  border-radius: 6px;
+  padding: 0.9rem 1rem 0.8rem;
+  box-shadow: 0 10px 30px rgba(30, 26, 20, 0.3);
+}
+.tour-step {
+  margin: 0 0 0.3rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--paas-muted);
+}
+.tour-title { margin: 0 0 0.4rem; font-size: 1.05rem; }
+.tour-text { margin: 0 0 0.9rem; font-size: 0.88rem; line-height: 1.5; }
+.tour-actions { display: flex; align-items: center; gap: 0.4rem; }
+.tour-spacer { flex: 1; }
+.tour-back:disabled { opacity: 0.4; cursor: default; }
+
 .editor-main {
   flex: 1;
   display: flex;

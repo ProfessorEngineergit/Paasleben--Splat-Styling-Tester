@@ -18,6 +18,7 @@ import {
 } from '../lib/splat-alignment.js';
 import { setupImagesUI } from './images.js';
 import { setupPreview } from './preview.js';
+import { setupTour } from './tour.js';
 
 const SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -638,6 +639,9 @@ export const startEditor = () => {
     });
   };
   setupThemePicker();
+
+  // ── Kurzeinführung ─────────────────────────────────────────────────
+  setupTour();
 
   // ── Live-Daten ─────────────────────────────────────────────────────
   subscribeLocations(
