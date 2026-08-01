@@ -43,12 +43,14 @@ export class PaasPanel {
     this.$body = el.querySelector('.pp-body');
     this.$close.addEventListener('click', () => this.close());
     el.querySelector('.pp-back').addEventListener('click', () => this.close());
-    this.$scroll.addEventListener('scroll', () => this._onScroll());
+    this.$scroll.addEventListener('scroll', () => this._onScroll(), { passive: true });
     this._keyHandler = (e) => { if (e.key === 'Escape' && this.open_) this.close(); };
     window.addEventListener('keydown', this._keyHandler);
   }
   open(data) {
     this.open_ = true;
+    this._closing = false;
+    clearTimeout(this._closeTimer);
     this.$cap.textContent = data.caption || '';
     this.$title.textContent = data.title || '';
     this.$meta.innerHTML = (data.meta || []).map(m =>
@@ -102,14 +104,18 @@ export class PaasPanel {
   }
   _onScroll() {
     if (this._closing) return;
-    const y = this.$scroll.scrollTop;
-    const h = this.$scroll.clientHeight;
-    // Ohne Layout (z. B. Tab im Hintergrund) ist h = 0 → 0/0 ergaebe NaN
-    // und schriebe ein ungueltiges --reveal ins CSS.
-    if (!h) return;
-    // Phase 1 (glass) → Phase 2 (revealing) between 0.3h and 0.8h
-    const t = Math.min(1, Math.max(0, (y - h * 0.3) / (h * 0.5)));
-    this.el.style.setProperty('--reveal', t);
-    if (this.sceneVeil) this.sceneVeil.style.opacity = String(t);
+    if (this._scrollRaf) return;
+    this._scrollRaf = requestAnimationFrame(() => {
+      this._scrollRaf = 0;
+      if (this._closing) return;
+      const y = this.$scroll.scrollTop;
+      const h = this.$scroll.clientHeight;
+      if (!h) return;
+      // Der Inhalt erreicht die Bilder nun deutlich früher. Nur GPU-günstige
+      // Opacity-Werte ändern; Blur und Masken bleiben währenddessen stabil.
+      const t = Math.min(1, Math.max(0, (y - h * 0.12) / (h * 0.30)));
+      this.el.style.setProperty('--reveal', t);
+      if (this.sceneVeil) this.sceneVeil.style.opacity = String(t);
+    });
   }
 }

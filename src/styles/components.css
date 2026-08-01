@@ -140,28 +140,22 @@
 .paas-panel.pp-open { pointer-events: auto; }
 .paas-panel .pp-glass {
   position: absolute; inset: 0;
-  /* phase 1: very transparent, light blur, only lower part of screen.
-     phase 2: glass extends + becomes opaque to host the article. */
-  background: rgba(244, 236, 216, calc(0.10 + var(--reveal) * 0.86));
-  backdrop-filter: blur(calc(3px + var(--reveal) * 6px)) saturate(1.1);
-  -webkit-backdrop-filter: blur(calc(3px + var(--reveal) * 6px)) saturate(1.1);
+  /* Statische Maske + statischer Blur: beim Scrollen ändert sich nur noch
+     Opacity. Das verhindert das sichtbare Zerreißen auf Mobile-Safari. */
+  background: rgba(244, 236, 216, 0.48);
+  backdrop-filter: blur(4px) saturate(1.06);
+  -webkit-backdrop-filter: blur(4px) saturate(1.06);
   transition: opacity .7s var(--ease-out-soft);
   opacity: 0;
-  /* In phase 1 only the lower part is glass; in phase 2 it covers everything. */
   -webkit-mask-image: linear-gradient(
     to bottom,
-    rgba(0,0,0, calc(var(--reveal) * 1)) 0%,
-    rgba(0,0,0, calc(var(--reveal) * 1)) calc(28% - var(--reveal) * 28%),
-    rgba(0,0,0,1) calc(38% - var(--reveal) * 38%),
-    rgba(0,0,0,1) 100%
+    transparent 0%, rgba(0,0,0,.22) 24%, #000 46%, #000 100%
   );
-          mask-image: linear-gradient(
+  mask-image: linear-gradient(
     to bottom,
-    rgba(0,0,0, calc(var(--reveal) * 1)) 0%,
-    rgba(0,0,0, calc(var(--reveal) * 1)) calc(28% - var(--reveal) * 28%),
-    rgba(0,0,0,1) calc(38% - var(--reveal) * 38%),
-    rgba(0,0,0,1) 100%
+    transparent 0%, rgba(0,0,0,.22) 24%, #000 46%, #000 100%
   );
+  will-change: opacity;
 }
 .paas-panel.pp-open .pp-glass { opacity: 1; }
 .paas-panel .pp-scroll {
@@ -174,7 +168,7 @@
   scrollbar-color: var(--rule-soft) transparent;
 }
 .paas-panel.pp-open .pp-scroll { transform: translateY(0%); }
-.paas-panel .pp-spacer { height: 32vh; pointer-events: none; }
+.paas-panel .pp-spacer { height: 25vh; pointer-events: none; }
 /* Fold-line: extends to scroll-content edges (no scrollbar offset). */
 .paas-panel .pp-folds {
   width: calc(100% + 16vw);
@@ -415,5 +409,5 @@
   background: var(--paper);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .15s linear;
+  will-change: opacity;
 }

@@ -57,7 +57,7 @@ const DRAG_INERTIA_MAX = 0.42;
 const VIEW_REFERENCE_ASPECT = 16 / 9;
 const VIEW_BASE_FOV = 60;
 const VIEW_MAX_FOV = 72;
-const VIEW_MAX_DIST_SCALE = 2.72;
+const VIEW_MAX_DIST_SCALE = 2.48;
 // Erst ab deutlich schmalen Fenstern eingreifen: Notebook- und Desktop-Formate
 // (16:10 = 1.6, 3:2 = 1.5, 4:3 = 1.33) bleiben dadurch exakt so wie bisher.
 // Zwischen den beiden Schwellen wird die Anpassung stufenlos eingeblendet,
@@ -67,7 +67,7 @@ const VIEW_FIT_FULL_ASPECT = 0.55;
 // Mittel der Standpunkt-Positionen = Mitte des bebauten Areals. Dorthin
 // wandert der Blick im Hochformat, damit die Gebäude im Bild zentriert sind
 // statt an den Rand zu rutschen.
-const VIEW_PORTRAIT_AIM = { x: -1.424, y: 0.21, z: -0.457 };
+const VIEW_PORTRAIT_AIM = { x: -1.16, y: 0.21, z: -0.42 };
 // Nicht ganz auf die Mitte ziehen: „Willkommen" (Nr. 01) liegt abseits der
 // übrigen Standpunkte und rutscht bei vollem Nachführen aus dem Bild.
 //
@@ -263,6 +263,7 @@ const boot = async () => {
   orbit.enableDamping = true;
   orbit.enableZoom = false;
   orbit.enablePan = false;
+  orbit.enableRotate = false;
   orbit.minDistance = 1.5;
   orbit.maxDistance = 14;
   orbit.minPolarAngle = ORBIT_MIN_POLAR;
@@ -272,7 +273,7 @@ const boot = async () => {
     MIDDLE: THREE.MOUSE.DOLLY,
     RIGHT: THREE.MOUSE.ROTATE,
   };
-  orbit.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  orbit.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.PAN };
   orbit.update();
 
   const cameraHome = {
@@ -282,6 +283,14 @@ const boot = async () => {
 
   let renderInvalidated = true;
   const invalidate = () => { renderInvalidated = true; };
+  // Der reguläre Render-Loop startet erst nach dem Loader. Der Einflug liegt
+  // bewusst davor, muss seine Frames deshalb selbst sichtbar zeichnen.
+  const renderSceneNow = () => {
+    try {
+      viewer.update();
+      viewer.render();
+    } catch {}
+  };
 
   // Unveränderte Referenz-Rahmung (breites Fenster). cameraHome wird daraus
   // je Seitenverhältnis abgeleitet; ohne diese Basis würde jede erneute
@@ -354,6 +363,7 @@ const boot = async () => {
     camera.position.copy(start);
     camera.lookAt(target);
     invalidate();
+    renderSceneNow();
     const fly = { t: 0 };
     const pos = new THREE.Vector3();
     const DUR = 3.4;
@@ -390,6 +400,7 @@ const boot = async () => {
         camera.position.copy(pos);
         camera.lookAt(target);
         invalidate();
+        renderSceneNow();
       },
       onComplete: () => abschliessen(tween),
     });
@@ -449,6 +460,7 @@ const boot = async () => {
   // ── Pan-only drag (no rotate, like before) ─────
   const previousPointer = new THREE.Vector2();
   let isDragging = false;
+  let activePointerId = null;
   let interactionLocked = true; // unlocked when loader done
   let debugMovementUnlocked = false;
   let dragCameraBaseFov = null;
@@ -459,13 +471,15 @@ const boot = async () => {
   const up = new THREE.Vector3(0, 1, 0);
 
   const rubberClamp = (v, min, max) => {
+    const limit = COARSE_POINTER ? 0.14 : MOVE_RUBBER_LIMIT;
+    const softness = COARSE_POINTER ? 0.28 : MOVE_RUBBER_SOFTNESS;
     if (v < min) {
       const over = min - v;
-      return min - MOVE_RUBBER_LIMIT * (1 - Math.exp(-over / MOVE_RUBBER_SOFTNESS));
+      return min - limit * (1 - Math.exp(-over / softness));
     }
     if (v > max) {
       const over = v - max;
-      return max + MOVE_RUBBER_LIMIT * (1 - Math.exp(-over / MOVE_RUBBER_SOFTNESS));
+      return max + limit * (1 - Math.exp(-over / softness));
     }
     return v;
   };
@@ -532,10 +546,11 @@ const boot = async () => {
       minZ = Math.min(minZ, sp.world.z);
       maxZ = Math.max(maxZ, sp.world.z);
     }
-    moveBounds.minX = minX - MOVE_BOUNDS_PADDING;
-    moveBounds.maxX = maxX + MOVE_BOUNDS_PADDING;
-    moveBounds.minZ = minZ - MOVE_BOUNDS_PADDING;
-    moveBounds.maxZ = maxZ + MOVE_BOUNDS_PADDING;
+    const padding = COARSE_POINTER ? 0.24 : MOVE_BOUNDS_PADDING;
+    moveBounds.minX = minX - padding;
+    moveBounds.maxX = maxX + padding;
+    moveBounds.minZ = minZ - padding;
+    moveBounds.maxZ = maxZ + padding;
   };
 
   const reboundToMovementBounds = () => {
@@ -593,8 +608,9 @@ const boot = async () => {
       reboundToMovementBounds();
       return;
     }
-    const glide = dragVelocity.clone().multiplyScalar(DRAG_INERTIA_MULTIPLIER);
-    if (glide.length() > DRAG_INERTIA_MAX) glide.setLength(DRAG_INERTIA_MAX);
+    const glide = dragVelocity.clone().multiplyScalar(COARSE_POINTER ? 0.8 : DRAG_INERTIA_MULTIPLIER);
+    const maxGlide = COARSE_POINTER ? 0.11 : DRAG_INERTIA_MAX;
+    if (glide.length() > maxGlide) glide.setLength(maxGlide);
     const state = { t: 0 };
     gsap.killTweensOf(camera.position, 'x,z');
     gsap.killTweensOf(orbit.target, 'x,z');
@@ -614,14 +630,18 @@ const boot = async () => {
   const applyPan = (dx, dy) => {
     gsap.killTweensOf(camera.position, 'x,z');
     gsap.killTweensOf(orbit.target, 'x,z');
-    forward.set(0, 0, -1).applyQuaternion(camera.quaternion);
+    // Kameraachsen statt horizontaler Blickrichtung: das funktioniert auch
+    // exakt senkrecht in der Draufsicht, wo der alte Vorwärtsvektor 0 wurde.
+    right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    right.y = 0;
+    forward.set(0, 1, 0).applyQuaternion(camera.quaternion);
     forward.y = 0;
-    if (forward.lengthSq() < 1e-8) return;
+    if (right.lengthSq() < 1e-8 || forward.lengthSq() < 1e-8) return;
+    right.normalize();
     forward.normalize();
-    right.copy(up).cross(forward).normalize();
 
     const move = new THREE.Vector3();
-    move.addScaledVector(right, dx * DRAG_PAN_RIGHT_SPEED);
+    move.addScaledVector(right, -dx * DRAG_PAN_RIGHT_SPEED);
     move.addScaledVector(forward, dy * DRAG_PAN_FORWARD_SPEED);
     dragVelocity.lerp(move, 0.35);
     moveByWorldDelta(move);
@@ -631,6 +651,11 @@ const boot = async () => {
   renderer.domElement.addEventListener('pointerdown', (e) => {
     if (interactionLocked) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (activePointerId !== null || (e.pointerType === 'touch' && !e.isPrimary)) {
+      e.preventDefault();
+      return;
+    }
+    activePointerId = e.pointerId;
     isDragging = true;
     dragVelocity.set(0, 0, 0);
     previousPointer.set(e.clientX, e.clientY);
@@ -638,15 +663,16 @@ const boot = async () => {
     try { renderer.domElement.setPointerCapture(e.pointerId); } catch {}
   });
   renderer.domElement.addEventListener('pointermove', (e) => {
-    if (!isDragging || interactionLocked) return;
+    if (!isDragging || interactionLocked || e.pointerId !== activePointerId) return;
     const dx = e.clientX - previousPointer.x;
     const dy = e.clientY - previousPointer.y;
     previousPointer.set(e.clientX, e.clientY);
     applyPan(dx, dy);
   });
   const stop = (e) => {
-    if (!isDragging) return;
+    if (!isDragging || e.pointerId !== activePointerId) return;
     isDragging = false;
+    activePointerId = null;
     try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
     releaseDragCameraZoom(isOutsideMovementBounds());
     glideAfterDrag();
@@ -987,7 +1013,10 @@ const boot = async () => {
   // Die Kamera wird dabei wie beim Einflug direkt gefahren: orbit.update()
   // würde die Neigung sofort auf minPolarAngle (50°) zurückziehen, senkrecht
   // nach unten ist damit über die Steuerung nicht erreichbar.
-  const sky = createSky(document.querySelector('#stage'));
+  const sky = createSky(document.querySelector('#stage'), {
+    camera,
+    getBounds: () => ({ ...moveBounds, y: orbit.target.y }),
+  });
   const topDownBtn = document.querySelector('#topdown-button');
   let topDown = false;
   let poseBeforeTopDown = null;
