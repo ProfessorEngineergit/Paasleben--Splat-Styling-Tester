@@ -2,7 +2,7 @@
    Drop in: const loader = new PaasLoader({ text, manager, onDone });
 */
 export class PaasLoader {
-  constructor({ text = "Ein Ort zum Atmen. Ein Ort für Skulpturen.", manager = null, root = document.body, onDone,
+  constructor({ text = "Ein Ort zum Atmen. Ein Ort für Skulpturen.", manager = null, root = document.body, onDone, onReveal,
     // Nach dieser Zeit wird nur die Schreibanimation abgekürzt. Ausgeblendet
     // wird erst, sobald die Szene wirklich bereit ist.
     autoAfterMs = 4200,
@@ -12,6 +12,7 @@ export class PaasLoader {
     this.manager = manager;
     this.root = root;
     this.onDone = onDone;
+    this.onReveal = onReveal;
     this.autoAfterMs = autoAfterMs;
     this.hardCapMs = hardCapMs;
     this.progress = 0;
@@ -125,6 +126,12 @@ export class PaasLoader {
     this.el.querySelector('.pl-line').style.transformOrigin = 'center';
     this.el.querySelector('.pl-line').style.transform = 'scaleX(0)';
     await new Promise(r => setTimeout(r, 700));
+    // Die Kamera beginnt bereits hinter dem ausblendenden Papier zu fliegen.
+    // Dadurch wird der Loader zum Vorhang der Szene statt zu einer Pause vor
+    // einer Animation, die erst nach seinem Entfernen startet.
+    try { this.onReveal?.(); } catch (error) {
+      console.warn('Einflug konnte nicht vorbereitet werden:', error);
+    }
     // crossfade paper out
     this.el.style.transition = 'opacity 1.2s cubic-bezier(.22,1,.36,1)';
     this.el.style.opacity = '0';

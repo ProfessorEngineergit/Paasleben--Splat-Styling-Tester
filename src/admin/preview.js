@@ -5,6 +5,9 @@ export const setupPreview = ({ onEdit }) => {
   const overlay = document.querySelector('#preview-overlay');
   const frame = document.querySelector('#preview-frame');
   const titleEl = document.querySelector('#preview-title');
+  const stage = document.querySelector('#preview-stage');
+  const deviceLabel = document.querySelector('#preview-device-label');
+  const deviceButtons = [...document.querySelectorAll('[data-preview-device]')];
   let currentId = null;
   let currentDisplay = null;
 
@@ -31,8 +34,22 @@ export const setupPreview = ({ onEdit }) => {
     if (currentId && !overlay.hidden) frame.src = buildSrc();
   };
 
+  const setDevice = (device) => {
+    const value = device === 'mobile' ? 'mobile' : 'desktop';
+    stage.dataset.device = value;
+    deviceLabel.textContent = value === 'mobile'
+      ? 'Mobile Website · bearbeitbare Vorschau'
+      : 'Desktop-Website · bearbeitbare Vorschau';
+    deviceButtons.forEach((button) => {
+      const active = button.dataset.previewDevice === value;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  };
+
   document.querySelector('#preview-close').addEventListener('click', close);
   document.querySelector('#preview-reload').addEventListener('click', reload);
+  deviceButtons.forEach((button) => button.addEventListener('click', () => setDevice(button.dataset.previewDevice)));
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !overlay.hidden) close();
   });
@@ -45,5 +62,5 @@ export const setupPreview = ({ onEdit }) => {
     onEdit(msg.id, { [msg.field]: String(msg.value ?? '') });
   });
 
-  return { open, close, reload };
+  return { open, close, reload, setDevice };
 };

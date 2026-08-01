@@ -65,7 +65,13 @@
           <span class="ui-chip-label t-caption">Draufsicht</span>
         </button>
         <button id="info-button" class="ui-chip" type="button" aria-label="Bedienung & Tastenkürzel">
-          <span class="info-glyph" aria-hidden="true">i</span>
+          <span class="info-glyph" aria-hidden="true">
+            <svg viewBox="0 0 18 18" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round">
+              <circle cx="9" cy="9" r="7.2" />
+              <path d="M9 8.1v4.25" />
+              <path d="M9 5.55h.01" stroke-width="2.2" />
+            </svg>
+          </span>
           <span class="ui-chip-label t-caption">Bedienung</span>
         </button>
       </div>
@@ -75,6 +81,16 @@
            src/main.js aus den Standpunkten. -->
       <nav id="timeline" class="timeline" aria-label="Orte auf dem Areal">
         <div id="tl-track" class="tl-track"></div>
+        <div id="tl-panel-nav" class="tl-panel-nav" aria-label="Zwischen geöffneten Standpunkten wechseln">
+          <button id="tl-prev" class="tl-nav-button" type="button" aria-label="Vorheriger Standpunkt">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5M9.5 12H20"/></svg>
+            <span class="tl-nav-copy"><span class="tl-nav-kicker">Zurück</span><span id="tl-prev-name" class="tl-nav-name"></span></span>
+          </button>
+          <button id="tl-next" class="tl-nav-button tl-nav-button--next" type="button" aria-label="Nächster Standpunkt">
+            <span class="tl-nav-copy"><span class="tl-nav-kicker">Weiter</span><span id="tl-next-name" class="tl-nav-name"></span></span>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6.5 5.5 5.5-5.5 5.5M4 12h10.5"/></svg>
+          </button>
+        </div>
       </nav>
 
       <audio id="bgm" src="./paasleben.mp3" loop autoplay muted preload="auto" playsinline webkit-playsinline></audio>

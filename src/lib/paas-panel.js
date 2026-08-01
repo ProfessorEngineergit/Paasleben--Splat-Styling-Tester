@@ -5,6 +5,7 @@ export class PaasPanel {
   constructor({ root = document.body, sceneVeil = null } = {}) {
     this.root = root;
     this.sceneVeil = sceneVeil; // optional element overlaying the three.js canvas
+    this._switchToken = 0;
     this._build();
   }
   _build() {
@@ -47,19 +48,20 @@ export class PaasPanel {
     this._keyHandler = (e) => { if (e.key === 'Escape' && this.open_) this.close(); };
     window.addEventListener('keydown', this._keyHandler);
   }
-  open(data) {
-    this.open_ = true;
-    this._closing = false;
-    clearTimeout(this._closeTimer);
+  _populate(data) {
     this.$cap.textContent = data.caption || '';
     this.$title.textContent = data.title || '';
     this.$meta.innerHTML = (data.meta || []).map(m =>
       `<li class="t-caption"><span>${m.label}</span> · <span>${m.value}</span></li>`).join('');
-    // Galerie: data.images = [{ src, alt }, ...] (1–6 Bilder).
-    // Fallback (Legacy): data.image / data.imageAlt = einzelnes Bild.
+    const images = Array.isArray(data.images) && data.images.length
+      ? data.images
+      : (data.image ? [{ src: data.image, alt: data.imageAlt }] : []);
+    this.updateImages(images, data.title);
+    this.$body.innerHTML = (data.body || '').split('\n\n').map(p => `<p>${p}</p>`).join('');
+  }
+  updateImages(images, title = '') {
     const _esc = (s) => String(s || '').replace(/"/g, '&quot;');
-    let imageList = Array.isArray(data.images) ? data.images.filter(Boolean) : [];
-    if (!imageList.length && data.image) imageList = [{ src: data.image, alt: data.imageAlt }];
+    const imageList = Array.isArray(images) ? images.filter(Boolean) : [];
     if (imageList.length) {
       const cls = `pp-gallery pp-gallery--${Math.min(imageList.length, 6)}`;
       this.$figure.className = `pp-figure ${cls}`;
@@ -70,9 +72,34 @@ export class PaasPanel {
       )).join('');
     } else {
       this.$figure.className = 'pp-figure';
-      this.$figure.innerHTML = `<div class="pp-placeholder"><span class="t-caption">BILD · ${data.title || ''}</span></div>`;
+      this.$figure.innerHTML = `<div class="pp-placeholder"><span class="t-caption">BILD · ${title || ''}</span></div>`;
     }
-    this.$body.innerHTML = (data.body || '').split('\n\n').map(p => `<p>${p}</p>`).join('');
+  }
+
+  open(data, { direction = 1 } = {}) {
+    if (this.open_) {
+      const token = ++this._switchToken;
+      this.el.dataset.switchDirection = direction < 0 ? 'back' : 'forward';
+      this.el.classList.remove('pp-switching-in');
+      this.el.classList.add('pp-switching-out');
+      clearTimeout(this._switchTimer);
+      this._switchTimer = setTimeout(() => {
+        if (token !== this._switchToken || !this.open_) return;
+        this._populate(data);
+        this.$scroll.scrollTop = 0;
+        this.el.style.setProperty('--reveal', 0);
+        if (this.sceneVeil) this.sceneVeil.style.opacity = '0';
+        this.el.classList.remove('pp-switching-out');
+        this.el.classList.add('pp-switching-in');
+        requestAnimationFrame(() => this.el.classList.remove('pp-switching-in'));
+        this._onScroll();
+      }, 150);
+      return;
+    }
+    this.open_ = true;
+    this._closing = false;
+    clearTimeout(this._closeTimer);
+    this._populate(data);
     this.$scroll.scrollTop = 0;
     this.el.classList.add('pp-opening');
     requestAnimationFrame(() => {
@@ -95,6 +122,9 @@ export class PaasPanel {
     this._closing = true;
     this.el.classList.remove('pp-open');
     this.el.classList.remove('pp-opening');
+    this.el.classList.remove('pp-switching-out', 'pp-switching-in');
+    this._switchToken = (this._switchToken || 0) + 1;
+    clearTimeout(this._switchTimer);
     this.el.style.setProperty('--reveal', 0);
     if (this.sceneVeil) this.sceneVeil.style.opacity = '0';
     // hart zuruecksetzen statt smooth — das Panel faehrt ohnehin herunter
@@ -116,6 +146,7 @@ export class PaasPanel {
       const t = Math.min(1, Math.max(0, (y - h * 0.12) / (h * 0.30)));
       this.el.style.setProperty('--reveal', t);
       if (this.sceneVeil) this.sceneVeil.style.opacity = String(t);
+      this.onScroll?.({ y, height: h, reveal: t });
     });
   }
 }

@@ -204,7 +204,7 @@
   cursor: none;
   pointer-events: auto;
   box-shadow: 0 4px 12px rgba(40, 30, 18, 0.18);
-  transition: transform .3s var(--ease-bounce), background .25s, color .25s;
+  transition: background .25s, color .25s, border-color .25s;
   font-family: var(--display);
   font-size: 11px;
   letter-spacing: 0.22em;
@@ -215,9 +215,28 @@
 .paas-panel .pp-close-label { display: inline-block; }
 .paas-panel .pp-close:hover {
   color: var(--accent);
-  transform: scale(1.04);
+  border-color: var(--accent);
   background: rgba(244, 236, 216, 0.85);
 }
+
+/* Beim Blättern bleibt das Panel stehen; nur sein redaktioneller Inhalt
+   wechselt mit einer kurzen, gerichteten Papierbewegung. */
+.paas-panel .pp-head,
+.paas-panel .pp-article {
+  transition: opacity .15s ease, transform .15s var(--ease-out-soft);
+}
+.paas-panel.pp-switching-out .pp-head,
+.paas-panel.pp-switching-out .pp-article { opacity: 0; }
+.paas-panel[data-switch-direction="forward"].pp-switching-out .pp-head,
+.paas-panel[data-switch-direction="forward"].pp-switching-out .pp-article { transform: translateX(-14px); }
+.paas-panel[data-switch-direction="back"].pp-switching-out .pp-head,
+.paas-panel[data-switch-direction="back"].pp-switching-out .pp-article { transform: translateX(14px); }
+.paas-panel.pp-switching-in .pp-head,
+.paas-panel.pp-switching-in .pp-article { animation: pp-content-in .28s var(--ease-out-soft) both; }
+.paas-panel[data-switch-direction="back"].pp-switching-in .pp-head,
+.paas-panel[data-switch-direction="back"].pp-switching-in .pp-article { animation-name: pp-content-in-back; }
+@keyframes pp-content-in { from { opacity: 0; transform: translateX(14px); } }
+@keyframes pp-content-in-back { from { opacity: 0; transform: translateX(-14px); } }
 
 .paas-panel .pp-head {
   position: relative;
@@ -406,6 +425,9 @@
 /* ─────── Scene veil (used by host) ─────── */
 .scene-veil {
   position: absolute; inset: 0;
+  /* Liegt bewusst über Markern und Vögeln: Beim Scroll-Reveal darf kein
+     Standortpunkt durch den hellen Papierverlauf wieder sichtbar werden. */
+  z-index: 12;
   background: var(--paper);
   opacity: 0;
   pointer-events: none;

@@ -131,11 +131,18 @@
           <span id="preview-title" class="preview-title">End-Ansicht</span>
           <span class="preview-hint">Titel, Untertitel und Text im Panel direkt anklicken und ändern — wird automatisch gespeichert.</span>
           <div class="preview-actions">
+            <div class="preview-device" role="group" aria-label="Vorschaugröße">
+              <button class="btn is-active" type="button" data-preview-device="desktop" aria-pressed="true">Desktop</button>
+              <button class="btn" type="button" data-preview-device="mobile" aria-pressed="false">Mobile</button>
+            </div>
             <button id="preview-reload" class="btn" type="button">Neu laden</button>
             <button id="preview-close" class="btn btn-primary" type="button">Zurück zum Editor</button>
           </div>
         </div>
-        <iframe id="preview-frame" class="preview-frame" title="End-Ansicht der Website"></iframe>
+        <div id="preview-stage" class="preview-stage" data-device="desktop">
+          <span id="preview-device-label" class="preview-device-label">Desktop-Website · bearbeitbare Vorschau</span>
+          <iframe id="preview-frame" class="preview-frame" title="End-Ansicht der Website"></iframe>
+        </div>
       </div>
 
       <!-- Bibliotheks-Auswahl -->

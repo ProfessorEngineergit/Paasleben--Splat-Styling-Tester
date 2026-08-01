@@ -64,21 +64,44 @@ export const createSky = (host, { camera, getBounds } = {}) => {
     addEventListener('resize', resize, { passive: true });
   };
 
-  const resetBird = (bird, first = false) => {
+  const parkBird = (bird, delaySeconds) => {
+    bird.active = false;
+    bird.object.visible = false;
+    bird.nextLaunch = performance.now() / 1000 + delaySeconds;
+  };
+
+  const launchBird = (bird) => {
     const b = bounds();
-    const pad = 0.55;
-    const angle = -0.58 + (Math.random() - 0.5) * 0.34;
-    bird.velocity.set(Math.cos(angle), 0, Math.sin(angle)).multiplyScalar(0.22 + Math.random() * 0.09);
-    bird.object.position.set(
-      first ? THREE.MathUtils.lerp(b.minX, b.maxX, 0.24 + bird.index * 0.43) : b.minX - pad,
-      b.y + 1.55 + Math.random() * 0.55,
-      first
-        ? THREE.MathUtils.lerp(b.minZ, b.maxZ, 0.24 + bird.index * 0.48)
-        : THREE.MathUtils.lerp(b.minZ, b.maxZ, 0.15 + Math.random() * 0.7),
-    );
-    bird.object.lookAt(bird.object.position.clone().add(bird.velocity));
-    const scale = 0.20 + Math.random() * 0.045;
+    const pad = 0.42;
+    const y = b.y + 1.65 + Math.random() * 0.62;
+    const start = new THREE.Vector3();
+    const destination = new THREE.Vector3();
+    const route = Math.floor(Math.random() * 4);
+    const alongA = 0.10 + Math.random() * 0.80;
+    const alongB = THREE.MathUtils.clamp(alongA + (Math.random() - 0.5) * 0.42, 0.06, 0.94);
+    if (route === 0) { // West → Ost
+      start.set(b.minX - pad, y, THREE.MathUtils.lerp(b.minZ, b.maxZ, alongA));
+      destination.set(b.maxX + pad, y, THREE.MathUtils.lerp(b.minZ, b.maxZ, alongB));
+    } else if (route === 1) { // Ost → West
+      start.set(b.maxX + pad, y, THREE.MathUtils.lerp(b.minZ, b.maxZ, alongA));
+      destination.set(b.minX - pad, y, THREE.MathUtils.lerp(b.minZ, b.maxZ, alongB));
+    } else if (route === 2) { // Nord → Süd
+      start.set(THREE.MathUtils.lerp(b.minX, b.maxX, alongA), y, b.minZ - pad);
+      destination.set(THREE.MathUtils.lerp(b.minX, b.maxX, alongB), y, b.maxZ + pad);
+    } else { // Süd → Nord
+      start.set(THREE.MathUtils.lerp(b.minX, b.maxX, alongA), y, b.maxZ + pad);
+      destination.set(THREE.MathUtils.lerp(b.minX, b.maxX, alongB), y, b.minZ - pad);
+    }
+    bird.object.position.copy(start);
+    bird.destination.copy(destination);
+    bird.velocity.subVectors(destination, start).normalize().multiplyScalar(0.18 + Math.random() * 0.055);
+    // Das Modell blickt nach -Z. Den Yaw direkt aus dem Bewegungsvektor
+    // ableiten; so kann der Schnabel niemals entgegen der Flugbahn zeigen.
+    bird.object.rotation.set(0, Math.atan2(-bird.velocity.x, -bird.velocity.z), 0);
+    const scale = 0.065 + Math.random() * 0.017;
     bird.object.scale.setScalar(scale);
+    bird.object.visible = true;
+    bird.active = true;
   };
 
   const addBirds = () => {
@@ -107,9 +130,11 @@ export const createSky = (host, { camera, getBounds } = {}) => {
           action.time = phase * Math.max(0.1, clip.duration);
         }
       }
-      const bird = { index: i, object, mixer, velocity: new THREE.Vector3() };
+      const bird = { index: i, object, mixer, velocity: new THREE.Vector3(), destination: new THREE.Vector3() };
       birds.push(bird);
-      resetBird(bird, true);
+      // Nicht sofort mit einem Schwarm beginnen. Ein einzelner Vogel taucht
+      // nach kurzer Ruhe auf, der zweite erst deutlich später.
+      parkBird(bird, i === 0 ? 2.2 + Math.random() * 2.8 : 22 + Math.random() * 20);
     }
   };
 
@@ -132,14 +157,16 @@ export const createSky = (host, { camera, getBounds } = {}) => {
   const render = (dt) => {
     if (!renderer || !camera) return;
     const b = bounds();
+    const now = performance.now() / 1000;
     for (const bird of birds) {
-      if (!REDUZIERT) {
+      if (!bird.active && now >= bird.nextLaunch) launchBird(bird);
+      if (bird.active && !REDUZIERT) {
         bird.object.position.addScaledVector(bird.velocity, dt);
         bird.mixer?.update(dt);
       }
-      if (bird.object.position.x > b.maxX + 0.8
-          || bird.object.position.z < b.minZ - 0.8
-          || bird.object.position.z > b.maxZ + 0.8) resetBird(bird);
+      if (bird.active && bird.object.position.distanceToSquared(bird.destination) < 0.035) {
+        parkBird(bird, 20 + Math.random() * 30);
+      }
     }
     renderer.render(scene, camera);
   };
@@ -162,6 +189,13 @@ export const createSky = (host, { camera, getBounds } = {}) => {
       if (running) return;
       running = true;
       last = 0;
+      // Meist beginnt ein einzelner Vogel. Nur gelegentlich folgt der zweite
+      // kurz darauf; oft bleibt er für eine ganze Passage geparkt.
+      const pair = Math.random() < 0.32;
+      birds.forEach((bird, index) => parkBird(
+        bird,
+        index === 0 ? 2.2 + Math.random() * 2.8 : (pair ? 4.5 + Math.random() * 4 : 24 + Math.random() * 24),
+      ));
       render(0);
       raf = requestAnimationFrame(tick);
     },

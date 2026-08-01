@@ -20,6 +20,15 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* Die Karte ist eine App-Oberfläche. Text lässt sich nur dort markieren, wo
+   er tatsächlich gelesen oder kopiert wird — nicht beim Navigieren. */
+#app,
+#app button,
+#app nav,
+#app header { user-select: none; -webkit-user-select: none; }
+.paas-panel .pp-body,
+.paas-panel .pp-body * { user-select: text; -webkit-user-select: text; }
+
 body.paper { min-height: 100%; }
 
 #app {
@@ -214,6 +223,21 @@ body.paper { min-height: 100%; }
   transform-origin: bottom center;
   transition: transform .35s var(--ease-bounce), filter .25s var(--ease-out-soft), background .25s;
 }
+.schild-marker {
+  --stack-depth: 0;
+}
+.schild-marker .sm-card {
+  opacity: calc(1 - var(--stack-depth) * .13);
+  filter: blur(calc(var(--stack-depth) * .28px));
+  transform: scale(calc(1 - var(--stack-depth) * .032));
+  transform-origin: center bottom;
+  transition: transform .28s var(--ease-out-soft), opacity .28s var(--ease-out-soft),
+    filter .28s var(--ease-out-soft), background .2s, box-shadow .2s;
+}
+.schild-marker.is-stacked .sm-stem,
+.schild-marker.is-stacked .sm-dot { opacity: calc(1 - var(--stack-depth) * .16); }
+.schild-marker:hover,
+.schild-marker:focus-visible { z-index: 5000 !important; }
 /* tiny rivets (top corners) */
 .schild-marker .sm-card::before,
 .schild-marker .sm-card::after {
@@ -291,7 +315,9 @@ body.paper { min-height: 100%; }
 
 .schild-marker:hover .sm-card,
 .schild-marker:focus-visible .sm-card {
-  transform: translateY(-2px) scale(1.03);
+  transform: scale(1.025);
+  opacity: 1;
+  filter: none;
   background: linear-gradient(180deg, var(--sign-top-hi) 0%, var(--sign-mid-hi) 60%, var(--sign-low-hi) 100%);
 }
 .schild-marker:hover .sm-title,
@@ -398,14 +424,8 @@ body.paper { min-height: 100%; }
 .info-glyph {
   width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  font-family: var(--serif);
-  font-style: italic;
-  font-weight: 700;
-  font-size: 11px;
-  line-height: 1;
 }
+.info-glyph svg { display: block; }
 .audio-glyph { display: inline-flex; align-items: center; }
 .audio-glyph-on { display: none; }
 #audio-button.is-on .audio-glyph-on { display: inline-flex; color: var(--accent); }
@@ -715,6 +735,7 @@ body.show-help .help-card { transform: translateY(0); }
    nicht durch den Glasrand schimmert. */
 body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
 .timeline { transition: opacity .3s var(--ease-out-soft); }
+.tl-panel-nav { display: none; }
 
 /* ─── Vögel in der Draufsicht (src/lib/paas-sky.js) ─── */
 .paas-sky {
@@ -747,6 +768,60 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
      und der Platz gehört der Zeitleiste. */
   .footer { display: none; }
   .timeline { display: block; }
+
+  /* Beim Öffnen verwandelt sich die Ortsleiste an ihrer vertrauten Position
+     in eine dezente Vor/Zurück-Navigation. Die normale Top-Bar bleibt stehen. */
+  body.pp-is-open .timeline { opacity: 1; pointer-events: none; background: none; }
+  body.pp-is-open .tl-track {
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+  }
+  .tl-track { transition: opacity .28s var(--ease-out-soft), transform .28s var(--ease-out-soft); }
+  .tl-panel-nav {
+    position: fixed;
+    display: flex;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    left: 12px;
+    right: 12px;
+    z-index: 910;
+    gap: 7px;
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: opacity .3s var(--ease-out-soft), transform .3s var(--ease-out-soft);
+  }
+  body.pp-is-open .tl-panel-nav {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  body.pp-nav-hidden .tl-panel-nav {
+    opacity: 0;
+    transform: translateY(12px);
+    pointer-events: none;
+  }
+  .tl-nav-button {
+    min-width: 0;
+    flex: 1 1 50%;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px;
+    border: 1px solid var(--rule-soft);
+    border-radius: 24px;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--paper-pale) 96%, transparent);
+    box-shadow: 0 2px 10px rgba(40, 30, 18, .10);
+    font: inherit;
+    text-align: left;
+  }
+  .tl-nav-button--next { justify-content: flex-end; text-align: right; }
+  .tl-nav-button svg { flex: 0 0 22px; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .tl-nav-copy { min-width: 0; display: flex; flex-direction: column; }
+  .tl-nav-kicker { font: 700 8px/1 var(--display); letter-spacing: .16em; text-transform: uppercase; color: var(--ink-mute); }
+  .tl-nav-name { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 13px/1.05 var(--serif); }
 
   /* Titelzeile: nur der Name, auf gleicher Höhe wie Ton und Bedienung.
      Eyebrow, Trennlinie und Vorspann entfallen — auf dem Handy kostete das
@@ -803,4 +878,10 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   }
   .paas-panel .pp-head { padding: 0 6vw 20vh !important; }
   .paas-panel .pp-spacer { height: 18vh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-track,
+  .tl-panel-nav,
+  .schild-marker .sm-card { transition-duration: .01ms !important; }
 }

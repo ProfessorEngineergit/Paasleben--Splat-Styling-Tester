@@ -36,7 +36,6 @@ const MOVE_RUBBER_SOFTNESS = 0.9;
 const MOVE_EDGE_SOFT_ZONE = 0.9;
 const MOVE_EDGE_MIN_FACTOR = 0.12;
 const MOVE_BOUNDS_REBOUND_INSET = 0.035;
-const DRAG_CAMERA_FOV_ZOOM = 0.9;
 const DRAG_PAN_RIGHT_SPEED = 0.0125;
 const DRAG_PAN_FORWARD_SPEED = 0.015;
 const DRAG_INERTIA_MULTIPLIER = 3.75;
@@ -352,8 +351,8 @@ const boot = async () => {
     // Start: deutlich weiter draußen und höher — der Blick beginnt über dem
     // Areal und senkt sich hinein. Nicht weiter, weil der Splat nach außen hin
     // unscharf wird und der Flug sonst zu lange durch Matsch führt.
-    const start = target.clone().add(dir.clone().multiplyScalar(dist * 2.6));
-    start.y += dist * 1.15;
+    const start = target.clone().add(dir.clone().multiplyScalar(dist * 1.58));
+    start.y += dist * 0.52;
 
     orbit.enabled = false;
     introFlying = true;
@@ -366,7 +365,7 @@ const boot = async () => {
     renderSceneNow();
     const fly = { t: 0 };
     const pos = new THREE.Vector3();
-    const DUR = 3.4;
+    const DUR = 2.8;
 
     // Genau einmal aufräumen, egal ob der Flug durchlief oder abgebrochen
     // wurde. gsap hängt an requestAnimationFrame: in einem Hintergrund-Tab
@@ -406,6 +405,12 @@ const boot = async () => {
     });
     reissleine = setTimeout(() => abschliessen(tween), DUR * 1000 + 1500);
   });
+
+  let introPromise = null;
+  loader.onReveal = () => {
+    if (DEEP_LINK_ORT || EDIT_MODE || introPromise) return;
+    introPromise = playIntroFlight();
+  };
 
   // Zieht die Rahmung nach, solange der Nutzer die Ansicht noch nicht selbst
   // bewegt hat. Nötig, weil der Viewport beim ersten resize() noch 0×0 sein
@@ -463,14 +468,13 @@ const boot = async () => {
   let activePointerId = null;
   let interactionLocked = true; // unlocked when loader done
   let debugMovementUnlocked = false;
-  let dragCameraBaseFov = null;
   const dragVelocity = new THREE.Vector3();
   const moveBounds = { ...DEFAULT_MOVE_BOUNDS };
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
-  const up = new THREE.Vector3(0, 1, 0);
 
   const rubberClamp = (v, min, max) => {
+    if (COARSE_POINTER) return clamp(v, min, max);
     const limit = COARSE_POINTER ? 0.14 : MOVE_RUBBER_LIMIT;
     const softness = COARSE_POINTER ? 0.28 : MOVE_RUBBER_SOFTNESS;
     if (v < min) {
@@ -497,46 +501,6 @@ const boot = async () => {
     return rubberClamp(value + delta * factor, min, max);
   };
 
-  const updateCameraFov = () => {
-    camera.updateProjectionMatrix();
-    invalidate();
-  };
-
-  const startDragCameraZoom = () => {
-    if (dragCameraBaseFov === null) dragCameraBaseFov = camera.fov;
-    gsap.killTweensOf(camera, 'fov');
-    gsap.to(camera, {
-      fov: Math.max(35, dragCameraBaseFov - DRAG_CAMERA_FOV_ZOOM),
-      duration: REDUCED_MOTION ? 0.001 : 0.34,
-      ease: 'power3.out',
-      onUpdate: updateCameraFov,
-    });
-  };
-
-  const releaseDragCameraZoom = (fast = false) => {
-    if (dragCameraBaseFov === null) return;
-    const fov = dragCameraBaseFov;
-    gsap.killTweensOf(camera, 'fov');
-    gsap.to(camera, {
-      fov,
-      duration: REDUCED_MOTION ? 0.001 : (fast ? 0.18 : 0.78),
-      ease: 'power4.out',
-      onUpdate: updateCameraFov,
-      onComplete: () => {
-        camera.fov = fov;
-        camera.updateProjectionMatrix();
-        dragCameraBaseFov = null;
-      },
-    });
-  };
-
-  const isOutsideMovementBounds = () => (
-    orbit.target.x < moveBounds.minX ||
-    orbit.target.x > moveBounds.maxX ||
-    orbit.target.z < moveBounds.minZ ||
-    orbit.target.z > moveBounds.maxZ
-  );
-
   const updateMovementBounds = () => {
     if (!standpoints.length) return;
     let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
@@ -546,11 +510,28 @@ const boot = async () => {
       minZ = Math.min(minZ, sp.world.z);
       maxZ = Math.max(maxZ, sp.world.z);
     }
-    const padding = COARSE_POINTER ? 0.24 : MOVE_BOUNDS_PADDING;
-    moveBounds.minX = minX - padding;
-    moveBounds.maxX = maxX + padding;
-    moveBounds.minZ = minZ - padding;
-    moveBounds.maxZ = maxZ + padding;
+    if (COARSE_POINTER) {
+      // Die freie Geste dient auf dem Handy zum feinen Nachführen, nicht zum
+      // Durchqueren des gesamten Geländes. Die Ausreißer (Zufahrt und äußerste
+      // Wiesenpunkte) bleiben über Timeline/Marker erreichbar, ziehen aber die
+      // Bewegungsfläche nicht mehr weit ins leere Papier.
+      const xs = standpoints.map((sp) => sp.world.x).sort((a, b) => a - b);
+      const zs = standpoints.map((sp) => sp.world.z).sort((a, b) => a - b);
+      const quantile = (values, q) => {
+        const at = (values.length - 1) * q;
+        const lo = Math.floor(at), hi = Math.ceil(at);
+        return THREE.MathUtils.lerp(values[lo], values[hi], at - lo);
+      };
+      moveBounds.minX = quantile(xs, 0.06) - 0.08;
+      moveBounds.maxX = quantile(xs, 0.88) + 0.10;
+      moveBounds.minZ = quantile(zs, 0.08) - 0.08;
+      moveBounds.maxZ = quantile(zs, 0.90) + 0.08;
+    } else {
+      moveBounds.minX = minX - MOVE_BOUNDS_PADDING;
+      moveBounds.maxX = maxX + MOVE_BOUNDS_PADDING;
+      moveBounds.minZ = minZ - MOVE_BOUNDS_PADDING;
+      moveBounds.maxZ = maxZ + MOVE_BOUNDS_PADDING;
+    }
   };
 
   const reboundToMovementBounds = () => {
@@ -659,7 +640,6 @@ const boot = async () => {
     isDragging = true;
     dragVelocity.set(0, 0, 0);
     previousPointer.set(e.clientX, e.clientY);
-    startDragCameraZoom();
     try { renderer.domElement.setPointerCapture(e.pointerId); } catch {}
   });
   renderer.domElement.addEventListener('pointermove', (e) => {
@@ -674,11 +654,15 @@ const boot = async () => {
     isDragging = false;
     activePointerId = null;
     try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
-    releaseDragCameraZoom(isOutsideMovementBounds());
     glideAfterDrag();
   };
   renderer.domElement.addEventListener('pointerup', stop);
   renderer.domElement.addEventListener('pointercancel', stop);
+  renderer.domElement.addEventListener('wheel', (e) => e.preventDefault(), { passive: false });
+  renderer.domElement.addEventListener('dblclick', (e) => e.preventDefault());
+  for (const type of ['gesturestart', 'gesturechange', 'gestureend']) {
+    renderer.domElement.addEventListener(type, (e) => e.preventDefault(), { passive: false });
+  }
 
   // ── Standpoints / Markers ──────────────
   const standpoints = []; // { id, marker, name, subtitle, body, world: Vector3 }
@@ -749,6 +733,8 @@ const boot = async () => {
         m.el.style.setProperty('--my', `${y.toFixed(1)}px`);
         m.lastX = x; m.lastY = y;
       }
+      m.screenX = x;
+      m.screenY = y;
       if (Math.abs(m.alpha - m.lastA) > 0.005) {
         m.el.style.opacity = m.alpha.toFixed(3);
         m.lastA = m.alpha;
@@ -758,6 +744,29 @@ const boot = async () => {
         m.el.style.pointerEvents = klickbar ? 'auto' : 'none';
         m.pe = klickbar;
       }
+    }
+
+    // Dichte Schilder lesen sich als räumliche Stapel statt als flache Wand.
+    // Tiefere Karten werden dezent kleiner und weicher; Hover/Fokus holt jede
+    // davon ohne Layoutsprung vollständig nach vorne.
+    const visible = markers
+      .filter((m) => m.alpha > 0.32 && Number.isFinite(m.screenX) && Number.isFinite(m.screenY))
+      .sort((a, b) => b.screenY - a.screenY);
+    for (let i = 0; i < visible.length; i++) {
+      const m = visible[i];
+      let depth = 0;
+      for (let j = 0; j < i; j++) {
+        const front = visible[j];
+        if (Math.abs(m.screenX - front.screenX) < 138
+            && Math.abs(m.screenY - front.screenY) < 64) depth += 1;
+      }
+      depth = Math.min(3, depth);
+      if (depth !== m.stackDepth) {
+        m.el.style.setProperty('--stack-depth', String(depth));
+        m.el.classList.toggle('is-stacked', depth > 0);
+        m.stackDepth = depth;
+      }
+      m.el.style.zIndex = String(1000 - i);
     }
   };
 
@@ -780,13 +789,17 @@ const boot = async () => {
   panel.close = () => {
     clearTimeout(pendingOpenTimer);
     pendingOpenCancelled = true;
-    document.body.classList.remove('pp-is-open');
+    document.body.classList.remove('pp-is-open', 'pp-nav-hidden');
     panelClose();
   };
   const panelOpen = panel.open.bind(panel);
-  panel.open = (data) => {
+  panel.open = (data, options) => {
     document.body.classList.add('pp-is-open');
-    panelOpen(data);
+    document.body.classList.remove('pp-nav-hidden');
+    panelOpen(data, options);
+  };
+  panel.onScroll = ({ y, height }) => {
+    document.body.classList.toggle('pp-nav-hidden', y > height * 0.62);
   };
 
   // Inject fold-line shape + close button INSIDE the head, directly above the title.
@@ -919,8 +932,9 @@ const boot = async () => {
     };
   };
 
-  const openStandpoint = (sp) => {
+  const openStandpoint = (sp, options = {}) => {
     const idx = standpoints.indexOf(sp);
+    const previousIndex = activeIndex;
     if (idx >= 0) activeIndex = idx;
     syncTimeline();
     // Bilder auflösen (statische URLs sofort, hochgeladene aus Firestore) —
@@ -939,7 +953,31 @@ const boot = async () => {
     };
     // 1) fly camera, 2) when tween is decelerating, slide panel up
     const dur = REDUCED_MOTION ? 0.001 : 1.2;
-    tweenCameraTo(sp.world, { duration: dur });
+    const replacing = panel.open_;
+    const direction = options.direction ?? (previousIndex < 0 || idx >= previousIndex ? 1 : -1);
+    tweenCameraTo(sp.world, { duration: replacing ? Math.min(dur, 0.72) : dur });
+    if (replacing) {
+      clearTimeout(pendingOpenTimer);
+      pendingOpenCancelled = false;
+      // Der Text wechselt sofort. Fotos dürfen nachladen, aber ein langsames
+      // Bild darf den Vor/Zurück-Knopf niemals wie einen toten Knopf wirken
+      // lassen.
+      panel.open({ ...data, images: [] }, { direction });
+      if (EDIT_MODE) setTimeout(() => {
+        if (activeIndex === idx && panel.open_) makePanelEditable(sp);
+      }, 180);
+      sp.imagesReady.then((images) => {
+        const apply = () => {
+          if (pendingOpenCancelled || activeIndex !== idx || !panel.open_) return;
+          panel.updateImages(images, data.title);
+        };
+        // Löst das Promise während der 150-ms-Papierbewegung auf, würden die
+        // Bilder sonst direkt danach vom Platzhalter überschrieben.
+        if (panel.el.classList.contains('pp-switching-out')) setTimeout(apply, 180);
+        else apply();
+      });
+      return;
+    }
     // open panel just as the tween enters its slow-down phase (~70% in)
     const delay = REDUCED_MOTION ? 0 : Math.max(0, dur * 700 - 50);
     // Das Öffnen ist um ~0,8 s verzögert. Wer in diesem Fenster schließt
@@ -950,7 +988,7 @@ const boot = async () => {
     pendingOpenTimer = setTimeout(() => {
       sp.imagesReady.then((images) => {
         if (pendingOpenCancelled) return;
-        panel.open({ ...data, images });
+        panel.open({ ...data, images }, { direction });
         if (EDIT_MODE) makePanelEditable(sp);
       });
     }, delay);
@@ -958,10 +996,10 @@ const boot = async () => {
 
   // panel.close stays as-is — camera remains at the standpoint after closing
 
-  const openByIndex = (idx) => {
-    if (interactionLocked) return;
+  const openByIndex = (idx, options = {}) => {
+    if (interactionLocked && !options.fromPanel) return;
     if (idx < 0 || idx >= standpoints.length) return;
-    openStandpoint(standpoints[idx]);
+    openStandpoint(standpoints[idx], options);
   };
 
   // ── Zeitleiste ─────────────────────────────────────────────────────
@@ -969,6 +1007,29 @@ const boot = async () => {
   // sich dort absichtlich kaum frei bewegen, und die Ortsschilder sind
   // ausgeblendet, weil sie sich gegenseitig überdeckten.
   const tlTrack = document.querySelector('#tl-track');
+  const tlPrev = document.querySelector('#tl-prev');
+  const tlNext = document.querySelector('#tl-next');
+  const tlPrevName = document.querySelector('#tl-prev-name');
+  const tlNextName = document.querySelector('#tl-next-name');
+
+  const syncPanelNavigation = () => {
+    if (!standpoints.length || activeIndex < 0) return;
+    const previousIndex = (activeIndex - 1 + standpoints.length) % standpoints.length;
+    const nextIndex = (activeIndex + 1) % standpoints.length;
+    tlPrevName.textContent = `${standpoints[previousIndex].display} · ${standpoints[previousIndex].name}`;
+    tlNextName.textContent = `${standpoints[nextIndex].display} · ${standpoints[nextIndex].name}`;
+    tlPrev?.setAttribute('aria-label', `Zurück zu ${standpoints[previousIndex].display} ${standpoints[previousIndex].name}`);
+    tlNext?.setAttribute('aria-label', `Weiter zu ${standpoints[nextIndex].display} ${standpoints[nextIndex].name}`);
+  };
+
+  tlPrev?.addEventListener('click', () => {
+    if (!standpoints.length || activeIndex < 0) return;
+    openByIndex((activeIndex - 1 + standpoints.length) % standpoints.length, { direction: -1, fromPanel: true });
+  });
+  tlNext?.addEventListener('click', () => {
+    if (!standpoints.length || activeIndex < 0) return;
+    openByIndex((activeIndex + 1) % standpoints.length, { direction: 1, fromPanel: true });
+  });
 
   const buildTimeline = () => {
     if (!tlTrack) return;
@@ -1002,11 +1063,13 @@ const boot = async () => {
         tlTrack.scrollTo({ left: Math.max(0, ziel), behavior: 'smooth' });
       }
     }
+    syncPanelNavigation();
   };
 
   // Wird weiter unten im Audio-Block mit der echten Umsetzung belegt. Die
   // Draufsicht braucht den Ton, steht aber vor dem Audio-Block.
-  let startAudio = () => {};
+  let startAudio = () => null;
+  let finishTopDownAudio = () => {};
 
   // ── Draufsicht ─────────────────────────────────────────────────────
   // Senkrecht über das Areal, mit vorbeiziehenden Vögeln und Ton.
@@ -1020,6 +1083,7 @@ const boot = async () => {
   const topDownBtn = document.querySelector('#topdown-button');
   let topDown = false;
   let poseBeforeTopDown = null;
+  let topDownAudioSession = null;
 
   // Höhe so wählen, dass das ganze Areal ins Bild passt — quer und längs,
   // abgeleitet aus den tatsächlichen Standpunkten statt fest verdrahtet.
@@ -1048,6 +1112,10 @@ const boot = async () => {
     const up = new THREE.Vector3(target.x - zufahrt.world.x, 0, target.z - zufahrt.world.z);
     if (up.lengthSq() < 1e-6) up.set(0, 0, -1);
     up.normalize();
+    // Auf breiten Bildschirmen die lange Geländeachse quer legen. So nutzt
+    // die Draufsicht die vorhandene Fläche, statt rechts breite Papierränder
+    // stehen zu lassen. Im Hochformat bleibt die Zufahrt bewusst unten.
+    if (camera.aspect > 1.25) up.set(-up.z, 0, up.x).normalize();
 
     // Ausdehnung in genau dieser gedrehten Achse messen, nicht entlang X und Z
     // — sonst passt die berechnete Höhe nicht zur tatsächlichen Bildlage.
@@ -1062,8 +1130,9 @@ const boot = async () => {
     const halbH = Math.atan(Math.tan(halbV) * camera.aspect);
     const nötigQuer = halbBreite / Math.tan(halbH);
     const nötigLängs = halbTiefe / Math.tan(halbV);
-    // Etwas Luft ringsum, und in vernünftigen Grenzen halten.
-    return { target, up, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.35, 6, 18) };
+    // Nahezu bildschirmfüllend: nur eine kleine Sicherheitskante bleibt, damit
+    // der Splat oben und seitlich an den Viewport heranreicht.
+    return { target, up, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.10, 5.2, 16) };
   };
 
   const driveCameraTo = (pos, target, dauer, upNach) => new Promise((done) => {
@@ -1127,7 +1196,10 @@ const boot = async () => {
       introFlying = true;          // hält orbit.update() aus der Schleife
       sky.show();
       panel.close();
-      startAudio(true);            // in dieser Ansicht spielt der Ton
+      // Merkt sich, ob nur die Draufsicht den Ton eingeschaltet hat. Diese
+      // Sitzung wird beim Verlassen nur dann zurückgenommen, wenn der Mensch
+      // den Ton zwischenzeitlich nicht selbst verändert hat.
+      topDownAudioSession = startAudio(true);
       await driveCameraTo(pos, target, 1.8, up);
     } else {
       sky.hide();
@@ -1136,6 +1208,8 @@ const boot = async () => {
       introFlying = false;
       orbit.enabled = true;
       orbit.update();
+      finishTopDownAudio(topDownAudioSession);
+      topDownAudioSession = null;
       invalidate();
     }
   };
@@ -1269,7 +1343,9 @@ const boot = async () => {
     ['pointerdown','touchstart','keydown','click'].forEach(t =>
       window.addEventListener(t, gestureUnlock, { capture: true, once: false }));
 
-    const setMuted = (muted) => {
+    let audioUserRevision = 0;
+    const setMuted = (muted, { user = false } = {}) => {
+      if (user) audioUserRevision += 1;
       audio.muted = muted;
       audioBtn.setAttribute('aria-pressed', String(!muted));
       audioBtn.setAttribute('aria-label', muted ? 'Ton einschalten' : 'Ton ausschalten');
@@ -1279,11 +1355,21 @@ const boot = async () => {
       if (!muted) tryPlay();
     };
     setMuted(true);
-    audioBtn.addEventListener('click', () => setMuted(!audio.muted));
+    audioBtn.addEventListener('click', () => setMuted(!audio.muted, { user: true }));
     // Von der Draufsicht aus: dort spielt der Ton automatisch. Der Klick auf
     // den Knopf ist die Nutzergeste, die Browser fuer Ton mit Lautstaerke
     // verlangen — deshalb funktioniert das Aufheben der Stummschaltung hier.
-    startAudio = (unmute) => { if (unmute) setMuted(false); else tryPlay(); };
+    startAudio = (unmute) => {
+      const session = { restoreMuted: Boolean(unmute && audio.muted), userRevision: audioUserRevision };
+      if (unmute) setMuted(false); else tryPlay();
+      return session;
+    };
+    finishTopDownAudio = (session) => {
+      if (!session?.restoreMuted) return;
+      // Jede bewusste Änderung im Draufsicht-Modus hat Vorrang. Nur der rein
+      // temporäre Auto-Start wird beim Zurückkehren wieder stumm geschaltet.
+      if (audioUserRevision === session.userRevision && !audio.muted) setMuted(true);
+    };
   }
 
   let splatAlignmentReady = false;
@@ -1718,7 +1804,10 @@ const boot = async () => {
   // Einflug vor der Freigabe: währenddessen soll niemand die Kamera greifen.
   // Bei Deep-Link oder Editor-Vorschau entfällt er — dort will man sofort am
   // Ziel sein, nicht erst eine Anflugschleife sehen.
-  if (!DEEP_LINK_ORT && !EDIT_MODE) await playIntroFlight();
+  if (!DEEP_LINK_ORT && !EDIT_MODE) {
+    introPromise = introPromise || playIntroFlight();
+    await introPromise;
+  }
   interactionLocked = false;
 
   if (DEEP_LINK_ORT) {
