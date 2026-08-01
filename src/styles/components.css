@@ -140,12 +140,13 @@
 .paas-panel.pp-open { pointer-events: auto; }
 .paas-panel .pp-glass {
   position: absolute; inset: 0;
-  /* Statische Maske + statischer Blur: beim Scrollen ändert sich nur noch
-     Opacity. Das verhindert das sichtbare Zerreißen auf Mobile-Safari. */
-  background: rgba(244, 236, 216, 0.48);
-  backdrop-filter: blur(4px) saturate(1.06);
-  -webkit-backdrop-filter: blur(4px) saturate(1.06);
-  transition: opacity .7s var(--ease-out-soft);
+  /* Eine leichte Papierlasur schafft Hierarchie ohne die frühere große
+     Blur-Fläche. So bleibt das Areal räumlich lesbar und der WebGL-Layer muss
+     beim Scrollen nicht permanent neu gefiltert werden. */
+  background: rgba(244, 236, 216, 0.34);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: opacity .54s cubic-bezier(.2,.82,.24,1);
   opacity: 0;
   -webkit-mask-image: linear-gradient(
     to bottom,
@@ -162,11 +163,16 @@
   position: absolute; inset: 0;
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   transform: translateY(100%);
-  transition: transform .8s cubic-bezier(.22,1,.36,1);
+  transition: transform .58s cubic-bezier(.2,.82,.24,1);
   scrollbar-width: thin;
   scrollbar-color: var(--rule-soft) transparent;
+  will-change: transform;
+  contain: layout paint;
 }
+.paas-panel .pp-scroll:focus { outline: none; }
 .paas-panel.pp-open .pp-scroll { transform: translateY(0%); }
 .paas-panel .pp-spacer { height: 25vh; pointer-events: none; }
 /* Fold-line: extends to scroll-content edges (no scrollbar offset). */
@@ -223,7 +229,7 @@
    wechselt mit einer kurzen, gerichteten Papierbewegung. */
 .paas-panel .pp-head,
 .paas-panel .pp-article {
-  transition: opacity .15s ease, transform .15s var(--ease-out-soft);
+  transition: opacity .12s ease, transform .12s var(--ease-out-soft);
 }
 .paas-panel.pp-switching-out .pp-head,
 .paas-panel.pp-switching-out .pp-article { opacity: 0; }
@@ -232,7 +238,7 @@
 .paas-panel[data-switch-direction="back"].pp-switching-out .pp-head,
 .paas-panel[data-switch-direction="back"].pp-switching-out .pp-article { transform: translateX(14px); }
 .paas-panel.pp-switching-in .pp-head,
-.paas-panel.pp-switching-in .pp-article { animation: pp-content-in .28s var(--ease-out-soft) both; }
+.paas-panel.pp-switching-in .pp-article { animation: pp-content-in .24s var(--ease-out-soft) both; }
 .paas-panel[data-switch-direction="back"].pp-switching-in .pp-head,
 .paas-panel[data-switch-direction="back"].pp-switching-in .pp-article { animation-name: pp-content-in-back; }
 @keyframes pp-content-in { from { opacity: 0; transform: translateX(14px); } }
@@ -296,8 +302,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 48px;
   min-height: 80vh;
-  opacity: var(--reveal);
-  transition: opacity .2s linear;
+  opacity: 1;
   position: relative;
 }
 /* Soft cream fade extending up into the head — no hard seam. */
@@ -344,6 +349,8 @@
   aspect-ratio: 4/5;
   min-height: 0;
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: 420px 320px;
 }
 .paas-panel .pp-gallery-item img {
   width: 100%; height: 100%;
@@ -428,8 +435,33 @@
   /* Liegt bewusst über Markern und Vögeln: Beim Scroll-Reveal darf kein
      Standortpunkt durch den hellen Papierverlauf wieder sichtbar werden. */
   z-index: 12;
-  background: var(--paper);
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(244, 236, 216, 0.08) 24%,
+    rgba(244, 236, 216, 0.72) 62%,
+    var(--paper) 100%
+  );
   opacity: 0;
   pointer-events: none;
   will-change: opacity;
+}
+
+@media (pointer: coarse), (max-width: 640px) {
+  .paas-panel .pp-glass {
+    /* Backdrop-Blur über einem scrollenden WebGL-Canvas ist der größte
+       Framerate-Killer auf Mobilgeräten. Der gleiche Tiefeneindruck entsteht
+       günstiger über einen warmen, gestuften Papierverlauf. */
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      rgba(244, 236, 216, 0.10) 20%,
+      rgba(244, 236, 216, 0.50) 55%,
+      rgba(244, 236, 216, 0.90) 100%
+    );
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
 }

@@ -339,6 +339,7 @@ const boot = async () => {
   // Startpunkt sonst von 16,5 auf maxDistance 14 zurück — der Flug begann
   // dadurch zu dicht und zu flach.
   let introFlying = false;
+  let cancelIntroFlight = () => false;
 
   const playIntroFlight = () => new Promise((done) => {
     const home = cameraHome.position.clone();
@@ -373,21 +374,32 @@ const boot = async () => {
     // unten bliebe boot() für immer stehen und die Seite nie bedienbar.
     let fertig = false;
     let reissleine;
-    const abschliessen = (tween) => {
+    let tween = null;
+    const abschliessen = ({ snapHome = true } = {}) => {
       if (fertig) return;
       fertig = true;
       clearTimeout(reissleine);
       tween?.kill();
       introFlying = false;
-      camera.position.copy(home);
       orbit.target.copy(target);
       orbit.enabled = true;
-      orbit.update();
+      if (snapHome) {
+        camera.position.copy(home);
+        orbit.update();
+      } else {
+        // Eine bewusste Navigation darf den Einflug jederzeit übernehmen.
+        // Die aktuelle Kamera bleibt dabei exakt stehen; der anschließende
+        // Ziel-Tween startet dadurch ohne Rücksprung auf die Heimansicht.
+        camera.lookAt(target);
+      }
       invalidate();
+      cancelIntroFlight = () => false;
       done();
+      return true;
     };
+    cancelIntroFlight = (options = {}) => abschliessen(options);
 
-    const tween = gsap.to(fly, {
+    tween = gsap.to(fly, {
       t: 1,
       duration: DUR,
       ease: 'power2.inOut',
@@ -401,9 +413,9 @@ const boot = async () => {
         invalidate();
         renderSceneNow();
       },
-      onComplete: () => abschliessen(tween),
+      onComplete: () => abschliessen({ snapHome: true }),
     });
-    reissleine = setTimeout(() => abschliessen(tween), DUR * 1000 + 1500);
+    reissleine = setTimeout(() => abschliessen({ snapHome: true }), DUR * 1000 + 1500);
   });
 
   let introPromise = null;
@@ -474,9 +486,12 @@ const boot = async () => {
   const right = new THREE.Vector3();
 
   const rubberClamp = (v, min, max) => {
-    if (COARSE_POINTER) return clamp(v, min, max);
-    const limit = COARSE_POINTER ? 0.14 : MOVE_RUBBER_LIMIT;
-    const softness = COARSE_POINTER ? 0.28 : MOVE_RUBBER_SOFTNESS;
+    // Auch auf Touch keine unsichtbare Betonwand: ein kurzer elastischer Weg
+    // zeigt die Grenze an, bevor die Kamera weich in den gültigen Bereich
+    // zurückkehrt. Die Strecke bleibt klein genug, um nie wieder ins endlose
+    // leere Papier zu geraten.
+    const limit = COARSE_POINTER ? 0.22 : MOVE_RUBBER_LIMIT;
+    const softness = COARSE_POINTER ? 0.18 : MOVE_RUBBER_SOFTNESS;
     if (v < min) {
       const over = min - v;
       return min - limit * (1 - Math.exp(-over / softness));
@@ -526,6 +541,17 @@ const boot = async () => {
       moveBounds.maxX = quantile(xs, 0.88) + 0.10;
       moveBounds.minZ = quantile(zs, 0.08) - 0.08;
       moveBounds.maxZ = quantile(zs, 0.90) + 0.08;
+
+      // Willkommen liegt bewusst am Rand des Areals. Der Punkt muss per
+      // Geste erreichbar bleiben, ohne dass ein einzelner ferner Ausreißer
+      // die gesamte mobile Bewegungsfläche wieder aufspannt.
+      const welcome = standpoints.find((sp) => sp.display === '01');
+      if (welcome) {
+        moveBounds.minX = Math.min(moveBounds.minX, welcome.world.x - 0.12);
+        moveBounds.maxX = Math.max(moveBounds.maxX, welcome.world.x + 0.12);
+        moveBounds.minZ = Math.min(moveBounds.minZ, welcome.world.z - 0.12);
+        moveBounds.maxZ = Math.max(moveBounds.maxZ, welcome.world.z + 0.12);
+      }
     } else {
       moveBounds.minX = minX - MOVE_BOUNDS_PADDING;
       moveBounds.maxX = maxX + MOVE_BOUNDS_PADDING;
@@ -537,15 +563,16 @@ const boot = async () => {
   const reboundToMovementBounds = () => {
     if (debugMovementUnlocked) return;
     const nextTarget = orbit.target.clone();
+    const inset = COARSE_POINTER ? 0.015 : MOVE_BOUNDS_REBOUND_INSET;
     nextTarget.x = clamp(
       nextTarget.x,
-      moveBounds.minX + MOVE_BOUNDS_REBOUND_INSET,
-      moveBounds.maxX - MOVE_BOUNDS_REBOUND_INSET,
+      moveBounds.minX + inset,
+      moveBounds.maxX - inset,
     );
     nextTarget.z = clamp(
       nextTarget.z,
-      moveBounds.minZ + MOVE_BOUNDS_REBOUND_INSET,
-      moveBounds.maxZ - MOVE_BOUNDS_REBOUND_INSET,
+      moveBounds.minZ + inset,
+      moveBounds.maxZ - inset,
     );
     const delta = nextTarget.clone().sub(orbit.target);
     if (delta.lengthSq() < 1e-8) return;
@@ -556,14 +583,14 @@ const boot = async () => {
     gsap.to(orbit.target, {
       x: nextTarget.x,
       z: nextTarget.z,
-      duration: REDUCED_MOTION ? 0.001 : 0.82,
+      duration: REDUCED_MOTION ? 0.001 : (COARSE_POINTER ? 0.48 : 0.72),
       ease: 'power4.out',
       onUpdate: invalidate,
     });
     gsap.to(camera.position, {
       x: nextCamera.x,
       z: nextCamera.z,
-      duration: REDUCED_MOTION ? 0.001 : 0.82,
+      duration: REDUCED_MOTION ? 0.001 : (COARSE_POINTER ? 0.48 : 0.72),
       ease: 'power4.out',
       onUpdate: invalidate,
     });
@@ -713,7 +740,10 @@ const boot = async () => {
     const now = performance.now();
     const dt = Math.min(100, now - markerLast);
     markerLast = now;
-    const k = 1 - Math.exp(-dt / 90);
+    // Beim Einflug erscheinen die Punkte etwas schneller. Dadurch sind sie
+    // schon während der Kamerafahrt als echte Navigationsziele lesbar und
+    // nicht erst, wenn die Animation vollständig beendet ist.
+    const k = 1 - Math.exp(-dt / (introFlying ? 46 : 82));
     const w = renderer.domElement.clientWidth;
     const h = renderer.domElement.clientHeight;
 
@@ -739,7 +769,7 @@ const boot = async () => {
         m.el.style.opacity = m.alpha.toFixed(3);
         m.lastA = m.alpha;
       }
-      const klickbar = m.alpha > 0.5;
+      const klickbar = m.alpha > (introFlying ? 0.18 : 0.42);
       if (klickbar !== m.pe) {
         m.el.style.pointerEvents = klickbar ? 'auto' : 'none';
         m.pe = klickbar;
@@ -789,17 +819,23 @@ const boot = async () => {
   panel.close = () => {
     clearTimeout(pendingOpenTimer);
     pendingOpenCancelled = true;
-    document.body.classList.remove('pp-is-open', 'pp-nav-hidden');
+    document.body.classList.remove('pp-is-open', 'pp-nav-hidden', 'pp-ui-hidden', 'pp-is-reading');
     panelClose();
   };
   const panelOpen = panel.open.bind(panel);
   panel.open = (data, options) => {
     document.body.classList.add('pp-is-open');
-    document.body.classList.remove('pp-nav-hidden');
+    document.body.classList.remove('pp-nav-hidden', 'pp-ui-hidden', 'pp-is-reading');
     panelOpen(data, options);
   };
-  panel.onScroll = ({ y, height }) => {
-    document.body.classList.toggle('pp-nav-hidden', y > height * 0.62);
+  panel.onScroll = ({ y }) => {
+    // Navigation und Topbar reagieren auf die Leseabsicht, nicht erst wenn
+    // die Bilder erreicht sind. 6 px filtern lediglich das übliche
+    // Subpixel-Ruckeln des mobilen Scrollcontainers heraus.
+    const reading = y > 6;
+    document.body.classList.toggle('pp-nav-hidden', reading);
+    document.body.classList.toggle('pp-ui-hidden', reading);
+    document.body.classList.toggle('pp-is-reading', reading);
   };
 
   // Inject fold-line shape + close button INSIDE the head, directly above the title.
@@ -933,6 +969,9 @@ const boot = async () => {
   };
 
   const openStandpoint = (sp, options = {}) => {
+    // Marker und mobile Leiste bleiben während des Introflugs bedienbar.
+    // Ihre Wahl übernimmt die vorhandene Kameraposition ohne Zwischenstopp.
+    if (introFlying && !topDown) cancelIntroFlight({ snapHome: false });
     const idx = standpoints.indexOf(sp);
     const previousIndex = activeIndex;
     if (idx >= 0) activeIndex = idx;
@@ -952,7 +991,7 @@ const boot = async () => {
       images: [],
     };
     // 1) fly camera, 2) when tween is decelerating, slide panel up
-    const dur = REDUCED_MOTION ? 0.001 : 1.2;
+    const dur = REDUCED_MOTION ? 0.001 : 0.94;
     const replacing = panel.open_;
     const direction = options.direction ?? (previousIndex < 0 || idx >= previousIndex ? 1 : -1);
     tweenCameraTo(sp.world, { duration: replacing ? Math.min(dur, 0.72) : dur });
@@ -979,7 +1018,7 @@ const boot = async () => {
       return;
     }
     // open panel just as the tween enters its slow-down phase (~70% in)
-    const delay = REDUCED_MOTION ? 0 : Math.max(0, dur * 700 - 50);
+    const delay = REDUCED_MOTION ? 0 : Math.max(0, dur * 520 - 30);
     // Das Öffnen ist um ~0,8 s verzögert. Wer in diesem Fenster schließt
     // (oder ein anderes Schild antippt), darf nicht danach wieder vom
     // wartenden Timer überrascht werden — deshalb merkbar und abbrechbar.
@@ -997,7 +1036,7 @@ const boot = async () => {
   // panel.close stays as-is — camera remains at the standpoint after closing
 
   const openByIndex = (idx, options = {}) => {
-    if (interactionLocked && !options.fromPanel) return;
+    if (interactionLocked && !introFlying && !options.fromPanel) return;
     if (idx < 0 || idx >= standpoints.length) return;
     openStandpoint(standpoints[idx], options);
   };
@@ -1006,6 +1045,12 @@ const boot = async () => {
   // Auf Touch-Geräten der eigentliche Weg zwischen den Orten: die Kamera lässt
   // sich dort absichtlich kaum frei bewegen, und die Ortsschilder sind
   // ausgeblendet, weil sie sich gegenseitig überdeckten.
+  const timeline = document.querySelector('#timeline');
+  // #app ist als fixed Element ein eigener Stacking-Context. Solange die
+  // mobile Pfeilleiste darin lag, konnte auch z-index:910 das außerhalb
+  // angehängte Panel (z:800) nicht überholen. Als direkte Body-Ebene bleibt
+  // die Leiste sichtbar und wirklich klickbar.
+  if (timeline?.parentElement !== document.body) document.body.appendChild(timeline);
   const tlTrack = document.querySelector('#tl-track');
   const tlPrev = document.querySelector('#tl-prev');
   const tlNext = document.querySelector('#tl-next');
@@ -1135,7 +1180,11 @@ const boot = async () => {
     return { target, up, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.10, 5.2, 16) };
   };
 
+  let cancelCameraDrive = () => false;
   const driveCameraTo = (pos, target, dauer, upNach) => new Promise((done) => {
+    // Schnelles Doppeltippen übernimmt die laufende Fahrt ab ihrem aktuellen
+    // Frame, statt zwei Kamera-Tweens gegeneinander laufen zu lassen.
+    cancelCameraDrive({ snap: false });
     const vonPos = camera.position.clone();
     const vonZiel = orbit.target.clone();
     // Der Up-Vektor dreht die Ansicht um die Blickachse. Weich überblenden,
@@ -1146,19 +1195,25 @@ const boot = async () => {
     const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3(), tmpU = new THREE.Vector3();
     let fertig = false;
     let notaus;
-    const abschluss = (tw) => {
+    let tw = null;
+    const abschluss = ({ snap = true } = {}) => {
       if (fertig) return;
       fertig = true;
       clearTimeout(notaus);
       tw?.kill();
-      if (zielUp) camera.up.copy(zielUp);
-      camera.position.copy(pos);
-      orbit.target.copy(target);
-      camera.lookAt(target);
+      if (snap) {
+        if (zielUp) camera.up.copy(zielUp);
+        camera.position.copy(pos);
+        orbit.target.copy(target);
+        camera.lookAt(target);
+      }
       invalidate();
+      cancelCameraDrive = () => false;
       done();
+      return true;
     };
-    const tw = gsap.to(t, {
+    cancelCameraDrive = (options = {}) => abschluss(options);
+    tw = gsap.to(t, {
       v: 1,
       duration: REDUCED_MOTION ? 0.001 : dauer,
       ease: 'power2.inOut',
@@ -1169,21 +1224,24 @@ const boot = async () => {
         camera.lookAt(orbit.target);
         invalidate();
       },
-      onComplete: () => abschluss(tw),
+      onComplete: () => abschluss({ snap: true }),
     });
     // Gleiche Reissleine wie beim Einflug: ohne laufendes requestAnimationFrame
     // käme onComplete nie und die Ansicht bliebe für immer gesperrt.
-    notaus = setTimeout(() => abschluss(tw), (REDUCED_MOTION ? 0 : dauer * 1000) + 1500);
+    notaus = setTimeout(() => abschluss({ snap: true }), (REDUCED_MOTION ? 0 : dauer * 1000) + 1500);
   });
 
+  let topDownRevision = 0;
   const setTopDown = async (an) => {
     if (an === topDown) return;
+    const revision = ++topDownRevision;
+    if (an && introFlying && !topDown) cancelIntroFlight({ snapHome: false });
     topDown = an;
     topDownBtn?.setAttribute('aria-pressed', String(an));
     document.body.classList.toggle('is-topdown', an);
 
     if (an) {
-      poseBeforeTopDown = {
+      poseBeforeTopDown ||= {
         position: camera.position.clone(),
         target: orbit.target.clone(),
       };
@@ -1200,16 +1258,23 @@ const boot = async () => {
       // Sitzung wird beim Verlassen nur dann zurückgenommen, wenn der Mensch
       // den Ton zwischenzeitlich nicht selbst verändert hat.
       topDownAudioSession = startAudio(true);
-      await driveCameraTo(pos, target, 1.8, up);
+      await driveCameraTo(pos, target, 1.35, up);
+      if (revision !== topDownRevision) return;
     } else {
       sky.hide();
+      // Der Ton gehört semantisch zur Draufsicht, nicht zu deren Rückflug.
+      // Deshalb wird eine automatisch gestartete Sitzung schon beim Klick
+      // beendet. Manuell eingeschalteter oder dort veränderter Ton bleibt
+      // dank der Session-Logik unverändert.
+      finishTopDownAudio(topDownAudioSession);
+      topDownAudioSession = null;
       const zurück = poseBeforeTopDown;
-      if (zurück) await driveCameraTo(zurück.position, zurück.target, 1.5, new THREE.Vector3(0, 1, 0));
+      if (zurück) await driveCameraTo(zurück.position, zurück.target, 1.12, new THREE.Vector3(0, 1, 0));
+      if (revision !== topDownRevision) return;
       introFlying = false;
       orbit.enabled = true;
       orbit.update();
-      finishTopDownAudio(topDownAudioSession);
-      topDownAudioSession = null;
+      poseBeforeTopDown = null;
       invalidate();
     }
   };

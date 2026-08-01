@@ -93,7 +93,7 @@ export class PaasPanel {
         this.el.classList.add('pp-switching-in');
         requestAnimationFrame(() => this.el.classList.remove('pp-switching-in'));
         this._onScroll();
-      }, 150);
+      }, 120);
       return;
     }
     this.open_ = true;
@@ -109,7 +109,7 @@ export class PaasPanel {
       // Escape/Schliessen greifen nicht mehr.
       if (!this.open_) return;
       this.el.classList.add('pp-open');
-      setTimeout(() => this.el.classList.remove('pp-opening'), 800);
+      setTimeout(() => this.el.classList.remove('pp-opening'), 620);
     });
     this._onScroll();
   }
@@ -130,7 +130,7 @@ export class PaasPanel {
     // hart zuruecksetzen statt smooth — das Panel faehrt ohnehin herunter
     this.$scroll.scrollTop = 0;
     clearTimeout(this._closeTimer);
-    this._closeTimer = setTimeout(() => { this._closing = false; }, 700);
+    this._closeTimer = setTimeout(() => { this._closing = false; }, 560);
   }
   _onScroll() {
     if (this._closing) return;
@@ -141,9 +141,10 @@ export class PaasPanel {
       const y = this.$scroll.scrollTop;
       const h = this.$scroll.clientHeight;
       if (!h) return;
-      // Der Inhalt erreicht die Bilder nun deutlich früher. Nur GPU-günstige
-      // Opacity-Werte ändern; Blur und Masken bleiben währenddessen stabil.
-      const t = Math.min(1, Math.max(0, (y - h * 0.12) / (h * 0.30)));
+      // Der Papierverlauf folgt ab dem ersten bewussten Scrollimpuls, bleibt
+      // im oberen Bildschirmteil aber transparent. Das verhindert den alten
+      // harten Weißsprung, ohne Marker hinter dem Lesepapier freizulegen.
+      const t = Math.min(1, Math.max(0, (y - h * 0.015) / (h * 0.34)));
       this.el.style.setProperty('--reveal', t);
       if (this.sceneVeil) this.sceneVeil.style.opacity = String(t);
       this.onScroll?.({ y, height: h, reveal: t });

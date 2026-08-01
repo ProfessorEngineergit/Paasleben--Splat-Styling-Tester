@@ -390,11 +390,16 @@ html, body {
 
 .preview-overlay {
   position: fixed;
-  inset: 0;
+  left: var(--preview-left, 0);
+  top: var(--preview-top, 0);
+  width: var(--preview-width, 100vw);
+  height: var(--preview-height, 100vh);
   z-index: 50;
   display: flex;
   flex-direction: column;
   background: var(--paas-bg);
+  border-right: 1px solid var(--paas-line);
+  box-shadow: 8px 0 24px rgb(30 26 20 / 10%);
 }
 .preview-topbar {
   display: flex;
@@ -440,6 +445,18 @@ html, body {
   width: min(430px, calc(100% - 24px));
   border-radius: 18px;
   box-shadow: 0 12px 34px rgba(20, 18, 14, .24);
+}
+
+@media (max-width: 900px) {
+  .preview-overlay {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    border-right: 0;
+    box-shadow: none;
+  }
+  .preview-topbar { flex-wrap: wrap; gap: .45rem; }
+  .preview-hint { flex-basis: 100%; order: 3; }
 }
 
 .library-head .list-search { width: 16rem; margin: 0; }
