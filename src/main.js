@@ -88,15 +88,9 @@ const VIEW_PORTRAIT_POLAR_DEG = 40;
 const ORBIT_MIN_POLAR = Math.PI * 0.28;
 
 // ── Bewegungsspielraum auf Touch-Geräten ───────────────────────────────
-// Auf dem Handy wird nicht frei durch die Szene gefahren. Freies Panning führt
-// dort schnell an die unscharfen Ränder des Splats und man verliert die
-// Orientierung; navigiert wird stattdessen über die Zeitleiste. Was bleibt, ist
-// ein kleiner Blickspielraum um den aktuellen Standpunkt — gerade so viel, dass
-// sich die Ansicht lebendig anfühlt.
-const LOOK_YAW_LIMIT_DEG = 6;    // ±6° ⇒ 12° Gesamtschwenk
-const LOOK_PITCH_LIMIT_DEG = 4;
-const LOOK_YAW_SPEED = 0.0042;   // Radiant pro Pixel Zeigerbewegung
-const LOOK_PITCH_SPEED = 0.0032;
+// Die Kamera wird auf allen Geräten parallel über das Areal verschoben. Weiche
+// Grenzen und Rückfedern halten sie dabei in der brauchbaren Splat-Fläche; auf
+// schmalen Displays bietet die Zeitleiste zusätzlich die direkte Navigation.
 
 // Standpunkt-Daten (Namen, Nummern, Texte, Bilder, Positionen) kommen aus
 // Firestore (`paas_locations`), gepflegt über den Editor unter /admin.html.
@@ -380,7 +374,6 @@ const boot = async () => {
       orbit.target.copy(target);
       orbit.enabled = true;
       orbit.update();
-      captureLookAnchor();
       invalidate();
       done();
     };
@@ -634,40 +627,6 @@ const boot = async () => {
     moveByWorldDelta(move);
   };
 
-  // ── Begrenzter Blickspielraum (Touch) ──────────────────────────────
-  // Der Anker ist die Blickrichtung, mit der die Kamera am aktuellen Ort
-  // angekommen ist; der Nutzer darf sich davon nur um LOOK_*_LIMIT entfernen.
-  // Der Versatz wird selbst mitgeführt statt aus der Kamera zurückgelesen —
-  // Rücklesen über Spherical.theta bricht am Übergang bei ±π.
-  const RESTRICTED_LOOK = COARSE_POINTER;
-  let lookAnchor = null;
-  const lookOffset = { yaw: 0, pitch: 0 };
-  const lookSph = new THREE.Spherical();
-  const lookVec = new THREE.Vector3();
-
-  const captureLookAnchor = () => {
-    lookSph.setFromVector3(lookVec.copy(camera.position).sub(orbit.target));
-    lookAnchor = { radius: lookSph.radius, phi: lookSph.phi, theta: lookSph.theta };
-    lookOffset.yaw = 0;
-    lookOffset.pitch = 0;
-  };
-
-  const applyLimitedLook = (dx, dy) => {
-    if (!lookAnchor) captureLookAnchor();
-    const yawMax = THREE.MathUtils.degToRad(LOOK_YAW_LIMIT_DEG);
-    const pitchMax = THREE.MathUtils.degToRad(LOOK_PITCH_LIMIT_DEG);
-    lookOffset.yaw = clamp(lookOffset.yaw - dx * LOOK_YAW_SPEED, -yawMax, yawMax);
-    lookOffset.pitch = clamp(lookOffset.pitch - dy * LOOK_PITCH_SPEED, -pitchMax, pitchMax);
-    lookSph.set(
-      lookAnchor.radius,
-      clamp(lookAnchor.phi + lookOffset.pitch, orbit.minPolarAngle, orbit.maxPolarAngle),
-      lookAnchor.theta + lookOffset.yaw,
-    );
-    camera.position.copy(orbit.target).add(lookVec.setFromSpherical(lookSph));
-    camera.lookAt(orbit.target);
-    invalidate();
-  };
-
   renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
   renderer.domElement.addEventListener('pointerdown', (e) => {
     if (interactionLocked) return;
@@ -683,17 +642,14 @@ const boot = async () => {
     const dx = e.clientX - previousPointer.x;
     const dy = e.clientY - previousPointer.y;
     previousPointer.set(e.clientX, e.clientY);
-    if (RESTRICTED_LOOK) applyLimitedLook(dx, dy);
-    else applyPan(dx, dy);
+    applyPan(dx, dy);
   });
   const stop = (e) => {
     if (!isDragging) return;
     isDragging = false;
     try { renderer.domElement.releasePointerCapture(e.pointerId); } catch {}
-    releaseDragCameraZoom(RESTRICTED_LOOK ? false : isOutsideMovementBounds());
-    // Nachgleiten und Rueckfedern gehoeren zum freien Fahren; im begrenzten
-    // Blickspielraum gibt es keine Grenze, an die man stossen koennte.
-    if (!RESTRICTED_LOOK) glideAfterDrag();
+    releaseDragCameraZoom(isOutsideMovementBounds());
+    glideAfterDrag();
   };
   renderer.domElement.addEventListener('pointerup', stop);
   renderer.domElement.addEventListener('pointercancel', stop);
@@ -877,9 +833,6 @@ const boot = async () => {
       x: worldPos.x, y: worldPos.y, z: worldPos.z,
       duration: dur, ease: 'power3.inOut',
       onUpdate: invalidate,
-      // Am Ziel gilt die neue Blickrichtung als Anker fuer den begrenzten
-      // Spielraum — sonst zaehlt weiter der Winkel vom vorherigen Ort.
-      onComplete: captureLookAnchor,
     });
   };
 
@@ -894,7 +847,6 @@ const boot = async () => {
     gsap.to(orbit.target, {
       x: cameraHome.target.x, y: cameraHome.target.y, z: cameraHome.target.z,
       duration: dur, ease: 'power3.inOut', onUpdate: invalidate,
-      onComplete: captureLookAnchor,
     });
   };
 
@@ -1031,7 +983,7 @@ const boot = async () => {
   let startAudio = () => {};
 
   // ── Draufsicht ─────────────────────────────────────────────────────
-  // Senkrecht über das Areal, mit Wolken- und Nebelschicht darüber und Ton.
+  // Senkrecht über das Areal, mit vorbeiziehenden Vögeln und Ton.
   // Die Kamera wird dabei wie beim Einflug direkt gefahren: orbit.update()
   // würde die Neigung sofort auf minPolarAngle (50°) zurückziehen, senkrecht
   // nach unten ist damit über die Steuerung nicht erreichbar.
@@ -1050,24 +1002,50 @@ const boot = async () => {
       sumY += sp.world.y;
     }
     if (!standpoints.length) {
-      return { target: cameraHome.target.clone(), height: 9 };
+      return {
+        target: cameraHome.target.clone(),
+        up: new THREE.Vector3(0, 0, -1),
+        height: 9,
+      };
     }
     const target = new THREE.Vector3(
       (minX + maxX) / 2, sumY / standpoints.length, (minZ + maxZ) / 2,
     );
+    // Bildschirm-Norden: vom Zufahrtspunkt („Willkommen", Nr. 01) zur Mitte
+    // des Areals. Dadurch liegt die Straße unten im Bild und das Gelände
+    // erstreckt sich nach oben — statt schräg über die Diagonale zu laufen,
+    // wie es ohne gesetzten Up-Vektor der Fall ist.
+    const zufahrt = standpoints.find((sp) => sp.display === '01') || standpoints[0];
+    const up = new THREE.Vector3(target.x - zufahrt.world.x, 0, target.z - zufahrt.world.z);
+    if (up.lengthSq() < 1e-6) up.set(0, 0, -1);
+    up.normalize();
+
+    // Ausdehnung in genau dieser gedrehten Achse messen, nicht entlang X und Z
+    // — sonst passt die berechnete Höhe nicht zur tatsächlichen Bildlage.
+    const rechts = new THREE.Vector3(-up.z, 0, up.x);
+    let halbBreite = 0, halbTiefe = 0;
+    for (const sp of standpoints) {
+      const dx = sp.world.x - target.x, dz = sp.world.z - target.z;
+      halbBreite = Math.max(halbBreite, Math.abs(dx * rechts.x + dz * rechts.z));
+      halbTiefe = Math.max(halbTiefe, Math.abs(dx * up.x + dz * up.z));
+    }
     const halbV = THREE.MathUtils.degToRad(camera.fov / 2);
     const halbH = Math.atan(Math.tan(halbV) * camera.aspect);
-    const nötigQuer = ((maxX - minX) / 2) / Math.tan(halbH);
-    const nötigLängs = ((maxZ - minZ) / 2) / Math.tan(halbV);
+    const nötigQuer = halbBreite / Math.tan(halbH);
+    const nötigLängs = halbTiefe / Math.tan(halbV);
     // Etwas Luft ringsum, und in vernünftigen Grenzen halten.
-    return { target, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.35, 6, 18) };
+    return { target, up, height: clamp(Math.max(nötigQuer, nötigLängs) * 1.35, 6, 18) };
   };
 
-  const driveCameraTo = (pos, target, dauer) => new Promise((done) => {
+  const driveCameraTo = (pos, target, dauer, upNach) => new Promise((done) => {
     const vonPos = camera.position.clone();
     const vonZiel = orbit.target.clone();
+    // Der Up-Vektor dreht die Ansicht um die Blickachse. Weich überblenden,
+    // sonst kippt das Bild beim Umschalten schlagartig zur Seite.
+    const vonUp = camera.up.clone();
+    const zielUp = upNach ? upNach.clone().normalize() : null;
     const t = { v: 0 };
-    const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3();
+    const tmpP = new THREE.Vector3(), tmpT = new THREE.Vector3(), tmpU = new THREE.Vector3();
     let fertig = false;
     let notaus;
     const abschluss = (tw) => {
@@ -1075,6 +1053,7 @@ const boot = async () => {
       fertig = true;
       clearTimeout(notaus);
       tw?.kill();
+      if (zielUp) camera.up.copy(zielUp);
       camera.position.copy(pos);
       orbit.target.copy(target);
       camera.lookAt(target);
@@ -1088,6 +1067,7 @@ const boot = async () => {
       onUpdate: () => {
         camera.position.copy(tmpP.lerpVectors(vonPos, pos, t.v));
         orbit.target.copy(tmpT.lerpVectors(vonZiel, target, t.v));
+        if (zielUp) camera.up.copy(tmpU.lerpVectors(vonUp, zielUp, t.v).normalize());
         camera.lookAt(orbit.target);
         invalidate();
       },
@@ -1109,25 +1089,24 @@ const boot = async () => {
         position: camera.position.clone(),
         target: orbit.target.clone(),
       };
-      const { target, height } = topDownPose();
-      // Winziger Versatz in Z: genau senkrecht ist die Blickrichtung parallel
-      // zum Up-Vektor, dann ist die Ausrichtung nicht definiert und das Bild
-      // kann umklappen.
-      const pos = new THREE.Vector3(target.x, target.y + height, target.z + 0.001);
+      const { target, up, height } = topDownPose();
+      // Senkrecht von oben. Die Ausrichtung im Bild bestimmt jetzt der
+      // Up-Vektor, deshalb ist kein Versatz mehr nötig — ohne gesetztes Up
+      // wäre die Blickrichtung parallel zum Welt-Oben und die Lage undefiniert.
+      const pos = new THREE.Vector3(target.x, target.y + height, target.z);
       orbit.enabled = false;
       introFlying = true;          // hält orbit.update() aus der Schleife
       sky.show();
       panel.close();
       startAudio(true);            // in dieser Ansicht spielt der Ton
-      await driveCameraTo(pos, target, 1.8);
+      await driveCameraTo(pos, target, 1.8, up);
     } else {
       sky.hide();
       const zurück = poseBeforeTopDown;
-      if (zurück) await driveCameraTo(zurück.position, zurück.target, 1.5);
+      if (zurück) await driveCameraTo(zurück.position, zurück.target, 1.5, new THREE.Vector3(0, 1, 0));
       introFlying = false;
       orbit.enabled = true;
       orbit.update();
-      captureLookAnchor();
       invalidate();
     }
   };
@@ -1776,7 +1755,7 @@ const boot = async () => {
     window.__paas = {
       camera, orbit, markers, renderer, THREE, updateMarkers,
       cameraHome, playIntroFlight,
-      captureLookAnchor, applyLimitedLook, buildTimeline, syncTimeline,
+      buildTimeline, syncTimeline,
     };
   }
 };

@@ -3,16 +3,17 @@
 */
 export class PaasLoader {
   constructor({ text = "Ein Ort zum Atmen. Ein Ort für Skulpturen.", manager = null, root = document.body, onDone,
-    // Nach dieser Zeit geht es von selbst weiter, auch wenn der Splat noch
-    // lädt — er wird ohnehin nachgeladen und erscheint dann in der Szene.
-    // Vorher wartete der Loader auf 100 % und stand bei langsamer Leitung
-    // unnötig lange.
-    autoAfterMs = 4200 } = {}) {
+    // Nach dieser Zeit wird nur die Schreibanimation abgekürzt. Ausgeblendet
+    // wird erst, sobald die Szene wirklich bereit ist.
+    autoAfterMs = 4200,
+    // Notausgang, falls das Laden gar nicht fertig wird.
+    hardCapMs = 22000 } = {}) {
     this.text = text;
     this.manager = manager;
     this.root = root;
     this.onDone = onDone;
     this.autoAfterMs = autoAfterMs;
+    this.hardCapMs = hardCapMs;
     this.progress = 0;
     this.typed = "";
     this.skipped = false;
@@ -49,11 +50,12 @@ export class PaasLoader {
     // Auf Touch-Geräten gibt es keine Esc-Taste — dort auf das Tippen hinweisen.
     const touch = matchMedia('(pointer: coarse)').matches;
     this.$skip.textContent = touch ? 'TIPPEN ZUM ÜBERSPRINGEN' : '[ESC] ÜBERSPRINGEN';
-    // Die ganze Fläche ist auslösbar, nicht nur der kleine Knopf: wer auf den
-    // Ladebildschirm tippt, will weiter.
-    el.addEventListener('pointerdown', () => this._finish(true));
+    // Die ganze Fläche ist auslösbar, nicht nur der kleine Knopf. Übersprungen
+    // wird die Schreibanimation, nicht das Laden der Szene — sonst stünde nach
+    // einem frühen Tippen nur eine leere Fläche im Bild.
+    el.addEventListener('pointerdown', () => this._skipTyping());
     this._keyHandler = (e) => {
-      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') this._finish(true);
+      if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') this._skipTyping();
     };
     window.addEventListener('keydown', this._keyHandler);
   }
@@ -65,9 +67,18 @@ export class PaasLoader {
     this._maybeFinish();
   }
   async start() {
-    // Reissleine: nach autoAfterMs geht es weiter, egal wie weit Tippen und
-    // Ladebalken sind.
-    this._autoTimer = setTimeout(() => this._finish(true), this.autoAfterMs);
+    // Nach autoAfterMs wird der Text abgekürzt — geschlossen wird der Loader
+    // aber erst, wenn die Szene wirklich geladen ist.
+    //
+    // Vorher schloss er hier hart. Dauerte der Splat länger als die 4,2 s,
+    // stand danach eine leere Fläche im Bild, bis das Laden fertig war und der
+    // Einflug begann. Genau das war der Fehler: der Ladebildschirm ging, aber
+    // es gab noch nichts zu sehen.
+    this._autoTimer = setTimeout(() => this._skipTyping(), this.autoAfterMs);
+
+    // Absolute Obergrenze. Wenn das Laden hängt, soll die Seite trotzdem
+    // irgendwann durchlassen, statt ewig auf dem Ladebildschirm zu stehen.
+    this._hardTimer = setTimeout(() => this._finish(true), this.hardCapMs);
     // Type the text with jitter
     for (let i = 0; i < this.text.length; i++) {
       if (this.skipped) break;
@@ -83,15 +94,26 @@ export class PaasLoader {
     this._maybeFinish();
     return new Promise(res => { this._resolve = res; });
   }
+  _skipTyping() {
+    if (this._finishing || this._typingDone) return;
+    this.typed = this.text;
+    this.$text.textContent = this.text;
+    this._typingDone = true;
+    this.skipped = true;   // bricht die Tippschleife ab
+    this.$skip.textContent = 'SZENE WIRD GELADEN';
+    this.$skip.disabled = true;
+    this._maybeFinish();
+  }
   _maybeFinish() {
     if (this._typingDone && this.progress >= 1 && !this._finishing) {
-      this._finish(false);
+      this._finish(this.skipped);
     }
   }
   async _finish(skipped) {
     if (this._finishing) return;
     this._finishing = true;
     clearTimeout(this._autoTimer);
+    clearTimeout(this._hardTimer);
     this.skipped = skipped;
     if (skipped) { this.$text.textContent = this.text; this._typingDone = true; }
     // hold beat

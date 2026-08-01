@@ -3,8 +3,8 @@
    Ortes, aus dem bestehenden Branding die klare, geschäftliche Ansprache, und
    führt beides in eine zeitgemäße, auf Coaching zugeschnittene Form.
 
-   Farbe: Kalkstein-Weiß statt Cream — dieselbe Wärme, aber weniger Vintage,
-   dadurch mehr Ruhe hinter der Karte. Das Tiefschwarz hat einen grünen
+   Farbe: warmes Cream wie am Ort, nur eine Spur weniger gelb und mit ruhigerem
+   Grundton — die Wärme bleibt, das Vintage-Hafte nimmt ab. Das Tiefschwarz hat einen grünen
    Unterton und verbindet so das Naturthema des Areals mit dem Dunkelgrün, das
    die bestehende Marke für Details nutzt. Der Akzent liegt bewusst genau
    zwischen den beiden Bestandsfarben — Rot #b8342f (heute) und Orange #e98517
@@ -17,10 +17,10 @@
    American Typewriter: die Schreibmaschinen-Anmutung war der stärkste Vintage-
    Marker des aktuellen Designs und passt nicht zur Coaching-Positionierung. */
 :root[data-theme='combined'] {
-  --paper:        #f7f4ee;
-  --paper-warm:   #efeae1;
-  --paper-pale:   #fdfbf7;
-  --paper-edge:   #e3ddd1;
+  --paper:        #f2ebd9;
+  --paper-warm:   #eae2cb;
+  --paper-pale:   #faf5e8;
+  --paper-edge:   #ddd3ba;
   --paper-shadow: rgba(31, 36, 32, 0.10);
 
   --ink:          #1f2420;
@@ -36,22 +36,22 @@
 
   /* Schilder als ruhige, leicht erhabene Plaketten: weniger Emaille-Glanz,
      mehr gebürsteter Kalkstein. */
-  --sign-top:     #fdfbf7;
-  --sign-mid:     #f4f0e8;
-  --sign-low:     #e8e2d6;
-  --sign-top-hi:  #ffffff;
-  --sign-mid-hi:  #f9f4ea;
-  --sign-low-hi:  #eee7da;
-  --sign-edge:    rgba(255, 255, 255, 0.92);
-  --rivet-hi:     #ffffff;
+  --sign-top:     #faf5e8;
+  --sign-mid:     #f0e8d5;
+  --sign-low:     #e2d9c2;
+  --sign-top-hi:  #fdf9ef;
+  --sign-mid-hi:  #f6eeda;
+  --sign-low-hi:  #e8dfc8;
+  --sign-edge:    rgba(255, 250, 235, 0.92);
+  --rivet-hi:     #fff8e3;
   --rivet-lo:     #7d8479;
   --link:         #b8562b;
   --link-hover:   #8f3f1c;
   --sign-border:     rgba(31, 36, 32, 0.22);
   --sign-border-low: rgba(31, 36, 32, 0.34);
-  --sign-ring:       rgba(247, 244, 238, 0.94);
-  --dot-ring:        rgba(247, 244, 238, 0.88);
-  --vignette:        rgba(247, 244, 238, 0.5);
+  --sign-ring:       rgba(242, 235, 217, 0.94);
+  --dot-ring:        rgba(242, 235, 217, 0.88);
+  --vignette:        rgba(242, 235, 217, 0.5);
 
   --display: "Inter", "Helvetica Neue", Arial, sans-serif;
   --serif:   "Inter", "Helvetica Neue", Arial, sans-serif;
@@ -75,7 +75,9 @@
   font-weight: 500;
   letter-spacing: 0.005em;
 }
-:root[data-theme='combined'] .brand-eyebrow,
+/* Nur die allgemeinen Kapitälchen weiter setzen. Der Markenzeile bewusst
+   keine feste Laufweite vorschreiben: die wird je nach Fensterbreite enger
+   gestellt, und eine Theme-Regel mit höherer Spezifität würde das aushebeln. */
 :root[data-theme='combined'] .t-caption {
   letter-spacing: 0.2em;
 }
