@@ -1,23 +1,23 @@
-# Paasleben Trailer — Storyboard
+# Paasleben Trailer — Reference Cut
 
-Format: 16:9, 60 fps, ohne Musik, ca. 17 Sekunden.
+Format: 16:9, 2560 × 1440, 60 fps, ohne Musik, 9,2 Sekunden.
 
 ## Dramaturgie
 
 | Zeit | Bild | Text |
 | --- | --- | --- |
-| 00:00–00:02.4 | Wortmarke baut sich Buchstabe für Buchstabe auf; rote Linie zeichnet sich. | `Paasleben` |
-| 00:01.8–00:04.2 | Zoom-out in die echte Desktop-Website im MacBook. | `Das Areal. Aus jeder Perspektive.` |
-| 00:04.0–00:06.7 | Draufsicht fällt als Button ein; die Kartenansicht wechselt. Klick-Ripple öffnet den Pferde-Stall. | `Orte öffnen. Geschichten entdecken.` |
-| 00:06.5–00:08.2 | Roter Swoosh führt von Desktop zu Mobil. Das iPhone kommt aus der Tiefe. | `Angepasstes Mobile UI` |
-| 00:08.0–00:11.8 | Mobile Karte, geöffneter Ort, Zurück-/Weiter-Navigation und Galerie. | `Mit einem Finger` · `Direkt wechseln` |
-| 00:12.0–00:17.0 | MacBook und iPhone fahren zusammen und landen in einer gemeinsamen Hero-Komposition. | `paasleben.com` |
+| 00:00–00:00.9 | Die Wortmarke schreibt sich auf und wird zur extremen UI-Nahaufnahme. | `Paasleben` |
+| 00:00.5–00:02.7 | Die Kamera fährt durch die echte Desktop-Oberfläche und zieht auf die vollständige Karte zurück. Controls und Orte setzen nacheinander auf. | – |
+| 00:02.4–00:03.4 | Kurze Textkarte im bewegten Pastelllicht. | `Das Areal. Aus jeder Perspektive.` |
+| 00:03.2–00:06.2 | Extreme Nahaufnahme der mobilen Navigation, schneller Zoom-out, Wechsel von Karte zu Ort und aufgefächerte Inhaltsansicht. | `Angepasstes Mobile UI` · `Direkt wechseln` |
+| 00:06.0–00:07.0 | Zweite kurze Textkarte. | `Ein Ort. Auf jedem Bildschirm.` |
+| 00:06.8–00:09.2 | Desktop und Mobil fahren als App-Flächen zusammen; Wortmarke und URL schließen den Film. | `paasleben.com` |
 
 ## Motion-Regeln
 
-- Bewegungen laufen auf 60 fps und verwenden weiche quintische Kurven.
-- Einfallende Bedienelemente bekommen nur eine kurze, gedämpfte Überfederung.
-- Übergänge folgen einer Richtung: Wortmarke → Desktop → roter Swoosh → Mobil → gemeinsames Finale.
-- Texte beschreiben ausschließlich sichtbare Funktionen; keine erfundenen Leistungsversprechen.
-- Echte Website-Aufnahmen bleiben unverändert in den Displays.
-- Gerätegehäuse sind freigestellte Produkt-Mockups; ihre Displays werden separat mit den echten Aufnahmen befüllt.
+- UI-Flächen und Kamera bewegen sich kontinuierlich; keine statische Gerätepräsentation.
+- Makro-Crops, Pull-backs und kurze Textkarten folgen der Rhythmik der gelieferten Referenz.
+- Controls fallen separat ein und landen mit kurzer, gedämpfter Überfederung.
+- Der Hintergrund bleibt hell und weich, bewegt aber Paaslebens Rot-, Grün- und Naturtöne als Pastelllicht.
+- Alle gezeigten Oberflächen stammen aus echten Desktop- und Mobil-Aufnahmen der Website.
+- Texte beschreiben nur sichtbare Funktionen und enthalten keine erfundenen Versprechen.
