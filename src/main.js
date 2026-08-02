@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import * as GaussianSplats3D from '@mkkellogg/gaussian-splats-3d';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap';
+import { Flip } from 'gsap/Flip';
 
 import { initTheme } from './lib/paas-theme.js';
 import { PaasLoader } from './lib/paas-loader.js';
@@ -15,6 +16,8 @@ import {
   buildSplatAlignment as buildSplatAlignmentShared,
   applyAlignmentToSplat, applySplatOffset,
 } from './lib/splat-alignment.js';
+
+gsap.registerPlugin(Flip);
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -340,6 +343,7 @@ const boot = async () => {
   // dadurch zu dicht und zu flach.
   let introFlying = false;
   let cancelIntroFlight = () => false;
+  let leaveTopDownForDetail = () => false;
 
   const playIntroFlight = () => new Promise((done) => {
     const home = cameraHome.position.clone();
@@ -750,7 +754,9 @@ const boot = async () => {
     for (const m of markers) {
       projTmp.copy(m.data.world).project(camera);
       const drin = projTmp.z > -1 && projTmp.z < (m.alpha > 0.5 ? 1.0 : 0.995);
-      const ziel = drin ? 1 : 0;
+      // In der Draufsicht sind alle Standorte gleichwertige Kartenpunkte.
+      // Keine Tiefen-/Einblend-Hierarchie darf einzelne davon blasser machen.
+      const ziel = topDown ? 1 : (drin ? 1 : 0);
 
       m.alpha += (ziel - m.alpha) * k;
       if (Math.abs(ziel - m.alpha) < 0.004) m.alpha = ziel;
@@ -806,6 +812,150 @@ const boot = async () => {
 
   // ── Panel + camera tween ───────────────
   const panel = new PaasPanel({ sceneVeil });
+  const brandBar = document.querySelector('.brand');
+  const widgetBar = document.querySelector('.ui-chips');
+  const timeline = document.querySelector('#timeline');
+  const tlTrack = document.querySelector('#tl-track');
+  const tlPanelNav = document.querySelector('#tl-panel-nav');
+  const panelNavButtons = [...document.querySelectorAll('.tl-nav-button')];
+  const mobileChrome = matchMedia('(pointer: coarse), (max-width: 640px)');
+  if (timeline?.parentElement !== document.body) document.body.appendChild(timeline);
+
+  let readingChromeHidden = false;
+  let topDownDetailReturn = false;
+  let suppressTopDownReturn = false;
+
+  const panelNavFit = () => {
+    if (!mobileChrome.matches || !tlPanelNav || !tlTrack) return null;
+    try {
+      return Flip.fit(tlPanelNav, tlTrack, { getVars: true, scale: true });
+    } catch {
+      return null;
+    }
+  };
+
+  // Die Ortsleiste verwandelt sich räumlich in die beiden Pfeil-Widgets.
+  // Flip liefert dafür die echte Ausgangsgeometrie; GSAP übernimmt eine
+  // unterbrechbare, transform-only Bewegung statt konkurrierender CSS-Tweens.
+  const animatePanelNavigation = (open, fit = null) => {
+    if (!mobileChrome.matches || !tlPanelNav || !tlTrack) return;
+    const targets = [tlTrack, tlPanelNav, ...panelNavButtons];
+    gsap.killTweensOf(targets);
+    if (REDUCED_MOTION) {
+      gsap.set(tlTrack, { autoAlpha: open ? 0 : 1, y: 0, scale: 1 });
+      gsap.set(tlPanelNav, { autoAlpha: open ? 1 : 0, x: 0, y: 0, scale: 1 });
+      return;
+    }
+    if (open) {
+      gsap.to(tlTrack, {
+        autoAlpha: 0, y: 12, scale: 0.975,
+        duration: 0.22, ease: 'power2.in', overwrite: true,
+      });
+      const start = fit || {};
+      gsap.fromTo(tlPanelNav, {
+        x: Number.isFinite(start.x) ? start.x : 0,
+        y: Number.isFinite(start.y) ? start.y : 20,
+        scaleX: Number.isFinite(start.scaleX) ? start.scaleX : 0.94,
+        scaleY: Number.isFinite(start.scaleY) ? start.scaleY : 0.94,
+        autoAlpha: 0,
+      }, {
+        x: 0, y: 0, scaleX: 1, scaleY: 1, autoAlpha: 1,
+        duration: 0.58, delay: 0.08,
+        ease: 'expo.out', overwrite: true,
+      });
+      panelNavButtons.forEach((button, index) => {
+        gsap.fromTo(button, {
+          x: index ? -18 : 18,
+          scale: 0.94,
+          autoAlpha: 0,
+        }, {
+          x: 0, scale: 1, autoAlpha: 1,
+          duration: 0.46, delay: 0.16 + index * 0.045,
+          ease: 'back.out(1.35)', overwrite: true,
+        });
+      });
+    } else {
+      gsap.to(tlPanelNav, {
+        autoAlpha: 0, y: 14, scale: 0.965,
+        duration: 0.20, ease: 'power3.in', overwrite: true,
+      });
+      gsap.fromTo(tlTrack, {
+        autoAlpha: 0, y: 10, scale: 0.985,
+      }, {
+        autoAlpha: 1, y: 0, scale: 1,
+        duration: 0.44, delay: 0.08, ease: 'expo.out', overwrite: true,
+      });
+    }
+  };
+
+  const setReadingChrome = (hidden, { force = false } = {}) => {
+    if (!force && hidden === readingChromeHidden) return;
+    readingChromeHidden = hidden;
+    document.body.classList.toggle('pp-nav-hidden', hidden);
+    document.body.classList.toggle('pp-ui-hidden', hidden);
+    document.body.classList.toggle('pp-is-reading', hidden);
+    const chromeTargets = [brandBar, widgetBar].filter(Boolean);
+    gsap.killTweensOf(chromeTargets);
+    if (REDUCED_MOTION) {
+      gsap.set(chromeTargets, { autoAlpha: hidden ? 0 : 1, y: hidden ? -10 : 0 });
+      gsap.set(tlPanelNav, { autoAlpha: hidden ? 0 : 1, y: hidden ? 14 : 0 });
+      return;
+    }
+    gsap.to(chromeTargets, {
+      autoAlpha: hidden ? 0 : 1,
+      y: hidden ? -16 : 0,
+      duration: hidden ? 0.24 : 0.48,
+      stagger: hidden ? 0.025 : 0.055,
+      ease: hidden ? 'power3.in' : 'expo.out',
+      overwrite: true,
+    });
+    if (mobileChrome.matches && tlPanelNav) {
+      gsap.to(tlPanelNav, {
+        autoAlpha: hidden ? 0 : 1,
+        y: hidden ? 16 : 0,
+        scale: hidden ? 0.97 : 1,
+        duration: hidden ? 0.22 : 0.46,
+        ease: hidden ? 'power3.in' : 'back.out(1.25)',
+        overwrite: true,
+      });
+    }
+  };
+
+  // Mikrobewegungen der drei Widgets bleiben in derselben Engine wie die
+  // Leistenanimation. Dadurch übernehmen Pointer-Down, Hover und State-Change
+  // exakt den aktuellen Transform, statt einander per CSS neu zu starten.
+  const canHoverWidgets = matchMedia('(hover: hover) and (pointer: fine)');
+  for (const chip of document.querySelectorAll('.ui-chip')) {
+    const glyph = chip.querySelector('svg, .audio-glyph');
+    if (canHoverWidgets.matches && !REDUCED_MOTION) {
+      chip.addEventListener('pointerenter', () => {
+        gsap.to(chip, { y: -2.5, scale: 1.035, duration: 0.30, ease: 'power3.out', overwrite: true });
+        if (glyph) gsap.to(glyph, { scale: 1.08, rotation: 2.5, duration: 0.34, ease: 'power3.out', overwrite: true });
+      });
+      chip.addEventListener('pointerleave', () => {
+        gsap.to(chip, { y: 0, scale: 1, duration: 0.36, ease: 'expo.out', overwrite: true });
+        if (glyph) gsap.to(glyph, { scale: 1, rotation: 0, duration: 0.40, ease: 'expo.out', overwrite: true });
+      });
+    }
+    chip.addEventListener('pointerdown', () => {
+      if (REDUCED_MOTION) return;
+      gsap.to(chip, { scale: 0.955, y: 0, duration: 0.10, ease: 'power2.out', overwrite: true });
+    });
+    chip.addEventListener('pointerup', () => {
+      if (REDUCED_MOTION) return;
+      gsap.to(chip, {
+        scale: canHoverWidgets.matches ? 1.035 : 1,
+        y: canHoverWidgets.matches ? -2.5 : 0,
+        duration: 0.38, ease: 'back.out(1.8)', overwrite: true,
+      });
+    });
+    chip.addEventListener('click', () => {
+      if (REDUCED_MOTION || !glyph) return;
+      gsap.fromTo(glyph, { scale: 0.78, rotation: -5 }, {
+        scale: 1, rotation: 0, duration: 0.48, ease: 'back.out(2)', overwrite: true,
+      });
+    });
+  }
 
   // Jeder Schließweg (Escape im Panel, Knopf, Tipp-Zone, Overscroll) bricht
   // ein noch wartendes, verzögertes Öffnen ab.
@@ -817,25 +967,32 @@ const boot = async () => {
   // — deshalb hier und nicht per CSS-Nachbarschaft.
   const panelClose = panel.close.bind(panel);
   panel.close = () => {
+    // Auch Escape in den wenigen Millisekunden zwischen Marker-Klick und
+    // Panel-Einflug muss den temporären Detailflug verlassen. `panel.open_`
+    // ist dann noch false, die Kamera aber bereits unterwegs.
+    const returnToBirdseye = topDownDetailReturn && !suppressTopDownReturn;
+    if (returnToBirdseye) topDownDetailReturn = false;
     clearTimeout(pendingOpenTimer);
     pendingOpenCancelled = true;
-    document.body.classList.remove('pp-is-open', 'pp-nav-hidden', 'pp-ui-hidden', 'pp-is-reading');
+    document.body.classList.remove('pp-is-open');
+    setReadingChrome(false, { force: true });
     panelClose();
+    animatePanelNavigation(false);
+    if (returnToBirdseye) requestAnimationFrame(() => setTopDown(true));
   };
   const panelOpen = panel.open.bind(panel);
   panel.open = (data, options) => {
+    const fit = panelNavFit();
     document.body.classList.add('pp-is-open');
-    document.body.classList.remove('pp-nav-hidden', 'pp-ui-hidden', 'pp-is-reading');
+    setReadingChrome(false, { force: true });
     panelOpen(data, options);
+    animatePanelNavigation(true, fit);
   };
   panel.onScroll = ({ y }) => {
-    // Navigation und Topbar reagieren auf die Leseabsicht, nicht erst wenn
-    // die Bilder erreicht sind. 6 px filtern lediglich das übliche
-    // Subpixel-Ruckeln des mobilen Scrollcontainers heraus.
-    const reading = y > 6;
-    document.body.classList.toggle('pp-nav-hidden', reading);
-    document.body.classList.toggle('pp-ui-hidden', reading);
-    document.body.classList.toggle('pp-is-reading', reading);
+    // Hysterese verhindert das hektische An/Aus-Flackern bei elastischem
+    // Mobile-Scrollen: aus ab 12 px, wieder ein erst praktisch ganz oben.
+    const reading = readingChromeHidden ? y > 2 : y > 12;
+    setReadingChrome(reading);
   };
 
   // Inject fold-line shape + close button INSIDE the head, directly above the title.
@@ -890,15 +1047,65 @@ const boot = async () => {
     if (scrollEl.scrollTop <= 12 && dy > 60) panel.close();
   }, { passive: true });
 
+  let cancelFocusFlight = () => false;
   const tweenCameraTo = (worldPos, opts = {}) => {
+    cancelFocusFlight({ snap: false });
     const dur = REDUCED_MOTION ? 0.001 : (opts.duration ?? 1.1);
-    const dir = new THREE.Vector3().subVectors(camera.position, orbit.target).normalize();
+    const dir = opts.direction?.clone?.()
+      || new THREE.Vector3().subVectors(camera.position, orbit.target).normalize();
     if (dir.lengthSq() < 1e-7) dir.set(0.1, 0.2, 1).normalize();
+    else dir.normalize();
     const dist = Math.max(orbit.minDistance + 1.2, 2.8);
     const next = worldPos.clone().add(dir.multiplyScalar(dist));
 
     gsap.killTweensOf(camera.position);
     gsap.killTweensOf(orbit.target);
+    if (opts.direct) {
+      const fromPosition = camera.position.clone();
+      const fromTarget = orbit.target.clone();
+      const fromUp = camera.up.clone();
+      const targetUp = (opts.up || new THREE.Vector3(0, 1, 0)).clone().normalize();
+      const pos = new THREE.Vector3(), target = new THREE.Vector3(), up = new THREE.Vector3();
+      const progress = { value: 0 };
+      let finished = false;
+      let tween = null;
+      orbit.enabled = false;
+      introFlying = true;
+      const finish = ({ snap = true } = {}) => {
+        if (finished) return false;
+        finished = true;
+        tween?.kill();
+        if (snap) {
+          camera.position.copy(next);
+          orbit.target.copy(worldPos);
+          camera.up.copy(targetUp);
+          camera.lookAt(worldPos);
+        }
+        introFlying = false;
+        orbit.enabled = true;
+        if (snap) orbit.update();
+        else camera.lookAt(orbit.target);
+        cancelFocusFlight = () => false;
+        invalidate();
+        opts.onComplete?.();
+        return true;
+      };
+      cancelFocusFlight = (options = {}) => finish(options);
+      tween = gsap.to(progress, {
+        value: 1,
+        duration: dur,
+        ease: 'power3.inOut',
+        onUpdate: () => {
+          camera.position.copy(pos.lerpVectors(fromPosition, next, progress.value));
+          orbit.target.copy(target.lerpVectors(fromTarget, worldPos, progress.value));
+          camera.up.copy(up.lerpVectors(fromUp, targetUp, progress.value).normalize());
+          camera.lookAt(orbit.target);
+          invalidate();
+        },
+        onComplete: () => finish({ snap: true }),
+      });
+      return;
+    }
     gsap.to(camera.position, {
       x: next.x, y: next.y, z: next.z,
       duration: dur, ease: 'power3.inOut',
@@ -969,9 +1176,10 @@ const boot = async () => {
   };
 
   const openStandpoint = (sp, options = {}) => {
+    const fromTopDown = topDown ? leaveTopDownForDetail() : false;
     // Marker und mobile Leiste bleiben während des Introflugs bedienbar.
     // Ihre Wahl übernimmt die vorhandene Kameraposition ohne Zwischenstopp.
-    if (introFlying && !topDown) cancelIntroFlight({ snapHome: false });
+    if (introFlying && !topDown && !fromTopDown) cancelIntroFlight({ snapHome: false });
     const idx = standpoints.indexOf(sp);
     const previousIndex = activeIndex;
     if (idx >= 0) activeIndex = idx;
@@ -994,7 +1202,15 @@ const boot = async () => {
     const dur = REDUCED_MOTION ? 0.001 : 0.94;
     const replacing = panel.open_;
     const direction = options.direction ?? (previousIndex < 0 || idx >= previousIndex ? 1 : -1);
-    tweenCameraTo(sp.world, { duration: replacing ? Math.min(dur, 0.72) : dur });
+    const focusDirection = fromTopDown && poseBeforeTopDown
+      ? poseBeforeTopDown.position.clone().sub(poseBeforeTopDown.target).normalize()
+      : null;
+    tweenCameraTo(sp.world, {
+      duration: replacing ? Math.min(dur, 0.72) : dur,
+      direct: fromTopDown,
+      direction: focusDirection,
+      up: fromTopDown ? new THREE.Vector3(0, 1, 0) : undefined,
+    });
     if (replacing) {
       clearTimeout(pendingOpenTimer);
       pendingOpenCancelled = false;
@@ -1017,9 +1233,10 @@ const boot = async () => {
       });
       return;
     }
-    // open panel just as the tween enters its slow-down phase (~70% in)
+    // Panel schon in der zweiten Hälfte des Kameraflugs öffnen: Die beiden
+    // Bewegungen wirken als ein Übergang und nicht wie zwei wartende Schritte.
     const delay = REDUCED_MOTION ? 0 : Math.max(0, dur * 520 - 30);
-    // Das Öffnen ist um ~0,8 s verzögert. Wer in diesem Fenster schließt
+    // Wer in diesem kurzen Fenster schließt
     // (oder ein anderes Schild antippt), darf nicht danach wieder vom
     // wartenden Timer überrascht werden — deshalb merkbar und abbrechbar.
     clearTimeout(pendingOpenTimer);
@@ -1045,13 +1262,6 @@ const boot = async () => {
   // Auf Touch-Geräten der eigentliche Weg zwischen den Orten: die Kamera lässt
   // sich dort absichtlich kaum frei bewegen, und die Ortsschilder sind
   // ausgeblendet, weil sie sich gegenseitig überdeckten.
-  const timeline = document.querySelector('#timeline');
-  // #app ist als fixed Element ein eigener Stacking-Context. Solange die
-  // mobile Pfeilleiste darin lag, konnte auch z-index:910 das außerhalb
-  // angehängte Panel (z:800) nicht überholen. Als direkte Body-Ebene bleibt
-  // die Leiste sichtbar und wirklich klickbar.
-  if (timeline?.parentElement !== document.body) document.body.appendChild(timeline);
-  const tlTrack = document.querySelector('#tl-track');
   const tlPrev = document.querySelector('#tl-prev');
   const tlNext = document.querySelector('#tl-next');
   const tlPrevName = document.querySelector('#tl-prev-name');
@@ -1125,6 +1335,11 @@ const boot = async () => {
     camera,
     getBounds: () => ({ ...moveBounds, y: orbit.target.y }),
   });
+  const prepareSky = () => sky.prepare().catch((error) => {
+    console.warn('Himmel konnte nicht vorab vorbereitet werden:', error);
+  });
+  if ('requestIdleCallback' in window) requestIdleCallback(prepareSky, { timeout: 1400 });
+  else setTimeout(prepareSky, 500);
   const topDownBtn = document.querySelector('#topdown-button');
   let topDown = false;
   let poseBeforeTopDown = null;
@@ -1235,6 +1450,8 @@ const boot = async () => {
   const setTopDown = async (an) => {
     if (an === topDown) return;
     const revision = ++topDownRevision;
+    if (an && topDownDetailReturn) topDownDetailReturn = false;
+    if (an) cancelFocusFlight({ snap: false });
     if (an && introFlying && !topDown) cancelIntroFlight({ snapHome: false });
     topDown = an;
     topDownBtn?.setAttribute('aria-pressed', String(an));
@@ -1253,7 +1470,9 @@ const boot = async () => {
       orbit.enabled = false;
       introFlying = true;          // hält orbit.update() aus der Schleife
       sky.show();
+      suppressTopDownReturn = true;
       panel.close();
+      suppressTopDownReturn = false;
       // Merkt sich, ob nur die Draufsicht den Ton eingeschaltet hat. Diese
       // Sitzung wird beim Verlassen nur dann zurückgenommen, wenn der Mensch
       // den Ton zwischenzeitlich nicht selbst verändert hat.
@@ -1277,6 +1496,25 @@ const boot = async () => {
       poseBeforeTopDown = null;
       invalidate();
     }
+  };
+
+  // Ein Ort aus der Draufsicht ist ein temporärer Detail-Abstecher: Störche
+  // und Auto-Audio verschwinden sofort, die Kamera fliegt direkt hinein. Beim
+  // Schließen des Panels fährt sie automatisch in die komplette Draufsicht
+  // zurück, statt am Gebäude hängen zu bleiben.
+  leaveTopDownForDetail = () => {
+    if (!topDown) return false;
+    topDownRevision += 1;
+    cancelCameraDrive({ snap: false });
+    topDown = false;
+    topDownBtn?.setAttribute('aria-pressed', 'false');
+    document.body.classList.remove('is-topdown');
+    sky.hide();
+    finishTopDownAudio(topDownAudioSession);
+    topDownAudioSession = null;
+    topDownDetailReturn = true;
+    invalidate();
+    return true;
   };
 
   topDownBtn?.addEventListener('click', () => setTopDown(!topDown));

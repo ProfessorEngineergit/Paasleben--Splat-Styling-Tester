@@ -45,7 +45,10 @@ export class PaasPanel {
     this.$close.addEventListener('click', () => this.close());
     el.querySelector('.pp-back').addEventListener('click', () => this.close());
     this.$scroll.addEventListener('scroll', () => this._onScroll(), { passive: true });
-    this._keyHandler = (e) => { if (e.key === 'Escape' && this.open_) this.close(); };
+    // Auch während des kurzen Kameraflugs vor dem sichtbaren Panel reagieren.
+    // Der vom Hauptmodul dekorierte close()-Pfad bricht dort den wartenden
+    // Einflug ab und kann z. B. in die Birdseye-Ansicht zurückkehren.
+    this._keyHandler = (e) => { if (e.key === 'Escape') this.close(); };
     window.addEventListener('keydown', this._keyHandler);
   }
   _populate(data) {
