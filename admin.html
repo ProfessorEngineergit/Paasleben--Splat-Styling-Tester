@@ -2,7 +2,7 @@
 <html lang="de">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <title>PAASLEBEN · Editor</title>
   </head>
@@ -30,6 +30,14 @@
             <span id="sync-status" class="sync-status" title="Verbindungsstatus">●</span>
           </div>
           <div class="topbar-actions">
+            <div class="history-controls" role="group" aria-label="Änderungsverlauf">
+              <button id="undo-button" class="btn history-button" type="button" disabled title="Rückgängig (⌘Z)">
+                <span aria-hidden="true">↶</span><span>Rückgängig</span>
+              </button>
+              <button id="redo-button" class="btn history-button" type="button" disabled title="Wiederholen (⇧⌘Z)">
+                <span aria-hidden="true">↷</span><span>Wiederholen</span>
+              </button>
+            </div>
             <button id="add-point-button" class="btn" type="button" aria-pressed="false">＋ Neuer Ort</button>
             <button id="top-view-button" class="btn" type="button" aria-pressed="false" title="Von oben auf die Karte schauen (nochmal drücken: zurück)">Draufsicht</button>
             <!-- Gilt für die ganze Website, nicht für einen einzelnen Ort —
@@ -49,7 +57,7 @@
           <div id="editor-viewport" class="editor-viewport">
             <div id="editor-markers" class="editor-markers" aria-hidden="false"></div>
             <div id="add-hint" class="add-hint" hidden>Klicke auf die Karte, um den neuen Ort zu platzieren — <b>Esc</b> bricht ab.</div>
-            <div class="viewport-help">Maus: drehen / Rad: zoomen / rechts: verschieben · <b>W A S D</b> fliegen, <b>Q/E</b> hoch/runter, <b>Shift</b> schnell · Ort ziehen oder Gizmo-Pfeile · Pfeiltasten: gewählten Ort schieben (Shift = grob)</div>
+            <div class="viewport-help"><b>Links/1 Finger:</b> verschieben · <b>Rechts/2 Finger:</b> drehen · <b>Rad/Trackpad/Pinch:</b> Map zoomen · <b>W A S D</b> fliegen, <b>Q/E</b> hoch/runter, <b>Shift</b> schnell · Ort ziehen oder Gizmo-Pfeile · Pfeiltasten: gewählten Ort schieben (Shift = grob)</div>
           </div>
           <aside id="sidebar" class="sidebar">
             <div id="sidebar-empty" class="sidebar-empty">

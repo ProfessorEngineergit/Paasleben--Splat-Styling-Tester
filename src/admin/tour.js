@@ -1,6 +1,6 @@
 // Geführte Kurzeinführung im Editor, erreichbar über den „?“-Knopf oben rechts.
 //
-// Gedacht für Maren und alle, die den Editor zum ersten Mal öffnen. Der
+// Gedacht für alle, die den Editor zum ersten Mal öffnen. Der
 // wichtigste Punkt, den die Tour erklärt, ist das automatische Speichern: es
 // gibt bewusst keinen Speichern-Knopf, und genau das verunsichert Menschen, die
 // es anders gewohnt sind.

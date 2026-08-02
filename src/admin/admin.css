@@ -1,11 +1,17 @@
-/* Karten-Editor — nüchternes Werkzeug-UI in der Paasleben-Palette. */
+@import '../styles/tokens.css';
+@import '../styles/themes/current.css';
+@import '../styles/themes/legacy-brand.css';
+@import '../styles/themes/combined.css';
+
+/* Karten-Editor — Werkzeug-UI direkt auf denselben Design-Tokens wie die
+   Website. Dadurch ist ein Design-Wechsel hier ohne Reload sofort sichtbar. */
 :root {
-  --paas-bg: #f4ecd8;
-  --paas-ink: #1e1a14;
-  --paas-muted: #7a715f;
-  --paas-line: #d8cdb4;
-  --paas-card: #fffdf6;
-  --paas-accent: #8a2f1f;
+  --paas-bg: var(--paper);
+  --paas-ink: var(--ink);
+  --paas-muted: var(--ink-mute);
+  --paas-line: var(--rule-soft);
+  --paas-card: var(--paper-pale);
+  --paas-accent: var(--accent);
   --paas-ok: #3d7a3f;
 }
 
@@ -17,9 +23,11 @@
 html, body {
   margin: 0;
   height: 100%;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: var(--serif);
   background: var(--paas-bg);
   color: var(--paas-ink);
+  touch-action: manipulation;
+  transition: background-color .2s ease, color .2s ease;
 }
 
 #admin-app { height: 100%; }
@@ -45,7 +53,7 @@ html, body {
   color: var(--paas-muted);
   margin: 0 0 0.5rem;
 }
-.login-title { margin: 0 0 0.75rem; font-weight: 500; }
+.login-title { margin: 0 0 0.75rem; font-family: var(--title); font-weight: var(--title-weight); text-transform: var(--title-transform); letter-spacing: var(--title-spacing); }
 .login-text { color: var(--paas-muted); line-height: 1.5; }
 .login-status { margin-top: 1rem; color: var(--paas-accent); line-height: 1.4; font-size: 0.9rem; }
 
@@ -63,6 +71,7 @@ html, body {
   display: inline-block;
 }
 .btn:hover { border-color: var(--paas-muted); }
+.btn:disabled { opacity: .38; cursor: default; border-color: var(--paas-line); }
 .btn-primary { background: var(--paas-ink); color: var(--paas-bg); border-color: var(--paas-ink); }
 .btn-quiet { border-color: transparent; background: transparent; }
 .btn-danger { color: var(--paas-accent); border-color: var(--paas-accent); background: transparent; }
@@ -86,11 +95,21 @@ html, body {
   background: var(--paas-card);
 }
 .topbar-left { display: flex; align-items: center; gap: 0.6rem; }
-.topbar-brand { letter-spacing: 0.18em; font-size: 0.8rem; }
+.topbar-brand { font-family: var(--display); letter-spacing: 0.18em; font-size: 0.8rem; text-transform: uppercase; }
 .sync-status { color: var(--paas-accent); font-size: 0.8rem; }
 .sync-status.is-online { color: var(--paas-ok); }
 .topbar-actions { display: flex; align-items: center; gap: 0.5rem; }
 .user-chip { font-size: 0.8rem; color: var(--paas-muted); }
+.history-controls {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--paas-line);
+  border-radius: 6px;
+  background: var(--paas-bg);
+}
+.history-button { display: inline-flex; align-items: center; gap: .35rem; border: 0; }
+.history-button:not(:disabled):hover { background: var(--paas-bg); }
 
 /* Design-Umschalter — gilt für die ganze Website, deshalb in der Kopfzeile. */
 .theme-picker {
@@ -189,6 +208,8 @@ html, body {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  background: var(--paas-bg);
+  touch-action: none;
 }
 .editor-viewport canvas { display: block; width: 100%; height: 100%; }
 .editor-viewport.is-add-mode canvas { cursor: crosshair; }
@@ -199,7 +220,8 @@ html, body {
   bottom: 0.6rem;
   font-size: 0.72rem;
   color: var(--paas-muted);
-  background: rgb(255 253 246 / 75%);
+  background: var(--paas-card);
+  opacity: .88;
   padding: 0.25rem 0.5rem;
   border-radius: 3px;
   pointer-events: none;
@@ -278,7 +300,7 @@ html, body {
 .location-list-item:hover { background: var(--paas-bg); }
 
 .form-head { display: flex; justify-content: space-between; align-items: center; }
-.form-heading { font-size: 1rem; font-weight: 600; margin: 0.2rem 0 0.8rem; }
+.form-heading { font-family: var(--title); font-size: 1rem; font-weight: var(--title-weight); text-transform: var(--title-transform); letter-spacing: var(--title-spacing); margin: 0.2rem 0 0.8rem; }
 
 .field { display: block; margin-bottom: 0.8rem; }
 .field-label { display: block; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--paas-muted); margin-bottom: 0.25rem; }
@@ -289,7 +311,7 @@ html, body {
   padding: 0.4rem 0.5rem;
   border: 1px solid var(--paas-line);
   border-radius: 4px;
-  background: #fff;
+  background: var(--paas-card);
   color: var(--paas-ink);
 }
 .field textarea { resize: vertical; line-height: 1.45; }
@@ -311,7 +333,7 @@ html, body {
   border: 1px solid var(--paas-line);
   border-radius: 4px;
   padding: 0.4rem;
-  background: #fff;
+  background: var(--paas-card);
 }
 .image-thumb { width: 64px; height: 48px; object-fit: cover; border-radius: 3px; background: var(--paas-bg); flex-shrink: 0; }
 .image-meta { flex: 1; min-width: 0; }
@@ -360,7 +382,7 @@ html, body {
   border: 1px solid var(--paas-line);
   border-radius: 4px;
   padding: 0.35rem;
-  background: #fff;
+  background: var(--paas-card);
   cursor: pointer;
   text-align: left;
 }
@@ -369,6 +391,9 @@ html, body {
 .library-item span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (max-width: 900px) {
+  .topbar { align-items: flex-start; flex-wrap: wrap; }
+  .topbar-actions { flex-wrap: wrap; }
+  .history-button span:last-child { display: none; }
   .editor-main { flex-direction: column; }
   .sidebar { width: 100%; max-width: none; border-left: none; border-top: 1px solid var(--paas-line); max-height: 45vh; }
 }
@@ -382,7 +407,7 @@ html, body {
   border: 1px solid var(--paas-line);
   border-radius: 4px;
   margin-top: 0.8rem;
-  background: #fff;
+  background: var(--paas-card);
 }
 .location-list-item.is-active { background: var(--paas-bg); font-weight: 600; }
 
@@ -422,10 +447,10 @@ html, body {
   display: flex;
   justify-content: center;
   padding: 0;
-  background: #c9c5bd;
+  background: var(--paper-edge);
   overflow: hidden;
 }
-.preview-frame { width: 100%; height: 100%; border: 0; background: #f4ecd8; transition: width .25s ease, border-radius .25s ease, box-shadow .25s ease; }
+.preview-frame { width: 100%; height: 100%; border: 0; background: var(--paas-bg); transition: width .25s ease, border-radius .25s ease, box-shadow .25s ease; }
 .preview-device-label {
   position: absolute;
   z-index: 2;

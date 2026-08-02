@@ -24,9 +24,13 @@ npm run build    # Produktions-Build (Viewer + Editor) nach dist/
   als Dokument-ID in der Firestore-Collection `paas_admins` steht
   (Firebase-Konsole → Firestore → `paas_admins` → Dokument anlegen,
   ID = E-Mail in Kleinbuchstaben).
-- **Navigation:** frei und schnell — Maus (drehen/zoomen/verschieben),
+- **Navigation:** links ziehen bzw. 1 Finger = verschieben; rechts ziehen bzw.
+  2 Finger = drehen; Rad, Trackpad oder Pinch = Map zoomen;
   **W A S D** fliegen, **Q/E** hoch/runter, **Shift** = Turbo, Knopf
   „Draufsicht" für die Vogelperspektive.
+- **Historie:** „Rückgängig" / „Wiederholen" oben im Editor oder
+  **⌘/Ctrl+Z** und **⇧⌘/Ctrl+Z**. Erfasst Texte, Positionen, Sichtbarkeit,
+  Fotos, neue/gelöschte Orte und Designwechsel.
 - **Orte:** „＋ Neuer Ort" und auf die Karte klicken; verschieben per
   Ziehen des Schilds, per **Gizmo-Pfeilen** (X/Y/Z, wie in Shapr3D) oder
   Pfeiltasten (Shift = grob); Titel/Untertitel/Text/Schild-Nr./Sichtbarkeit
@@ -35,11 +39,12 @@ npm run build    # Produktions-Build (Viewer + Editor) nach dist/
   Ortes — Titel, Untertitel und Text sind dort direkt anklick- und
   editierbar (automatisch gespeichert). Bearbeiten geht wahlweise dort
   oder im Formular.
-- **Fotos:** eigene Uploads (werden clientseitig verkleinert und in Firestore
-  gespeichert — kein Firebase-Storage/Blaze-Tarif nötig) oder Fotos aus der
-  Bibliothek: **alle** Dateien unter `public/images/**` erscheinen
-  automatisch (neue Bilder einfach in den Ordner legen und committen).
-  Reihenfolge, Alt-Texte, Löschen im Editor.
+- **Fotos:** eigene Uploads werden clientseitig verkleinert, per SHA-256
+  dedupliziert und dauerhaft in der gemeinsamen Firestore-Bibliothek
+  gespeichert (kein Firebase-Storage/Blaze-Tarif nötig). Identische Dateien,
+  die bereits unter `public/images/**` liegen, werden direkt wiederverwendet.
+  Alle statischen und hochgeladenen Bibliotheksbilder können an mehreren Orten
+  eingesetzt werden. Reihenfolge und Alt-Texte bleiben je Ort separat.
 - Neue Orte starten **ausgeblendet** — erst „Sichtbar" anhaken, wenn fertig.
 - Deep-Link: `/?ort=08` öffnet die Website direkt an einem Standpunkt.
 

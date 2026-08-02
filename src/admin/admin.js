@@ -7,6 +7,9 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { app, db } from '../lib/firebase.js';
 import { startEditor } from './editor.js';
+import { lockPageZoom } from '../lib/page-zoom-lock.js';
+
+lockPageZoom();
 
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();

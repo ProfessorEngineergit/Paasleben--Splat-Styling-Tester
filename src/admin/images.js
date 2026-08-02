@@ -1,7 +1,9 @@
 // Foto-Verwaltung des Editors: Upload (verkleinert, als Base64-Dokument in
-// `paas_images`), Bibliothek der statischen Fotos (public/images/**),
-// Reihenfolge, Alt-Texte, Löschen.
-import { doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+// `paas_images`), gemeinsame Bibliothek aus statischen und hochgeladenen
+// Fotos, Reihenfolge, Alt-Texte und Entfernen aus einem Ort.
+import {
+  collection, doc, setDoc, getDoc, getDocs,
+} from 'firebase/firestore';
 import { db } from '../lib/firebase.js';
 // Automatisch generiert aus public/images/** (vite.config.ts) — neue Dateien
 // einfach in den Ordner legen, sie erscheinen beim nächsten Reload/Build.
@@ -13,6 +15,13 @@ const MAX_DATA_URL_CHARS = 900_000;
 const MAX_EDGE_PX = 1600;
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+const hashBytes = async (bytes) => {
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+};
+
+const hashDataUrl = (dataUrl) => hashBytes(new TextEncoder().encode(dataUrl));
 
 // Bild clientseitig verkleinern, bis die data-URL unter das Limit passt.
 const fileToDataUrl = async (file) => {
@@ -42,6 +51,43 @@ export const setupImagesUI = ({ onImagesChanged }) => {
   const baseUrl = import.meta.env.BASE_URL;
 
   let current = null; // ausgewählter Ort
+  let uploadedLibrary = [];
+  let uploadedLibraryPromise = null;
+
+  // Alte Uploads werden beim ersten Öffnen der Bibliothek automatisch um
+  // Hash/Library-Metadaten ergänzt. Neue identische Uploads verwenden danach
+  // dasselbe Dokument statt eine Kopie anzulegen.
+  const loadUploadedLibrary = () => {
+    if (uploadedLibraryPromise) return uploadedLibraryPromise;
+    uploadedLibraryPromise = (async () => {
+      const snapshot = await getDocs(collection(db, IMAGES));
+      const items = [];
+      for (const imageDoc of snapshot.docs) {
+        const data = imageDoc.data();
+        if (!data?.data) continue;
+        const sha256 = data.sha256 || await hashDataUrl(data.data);
+        const item = {
+          id: imageDoc.id,
+          data: data.data,
+          sha256,
+          sourceSha256: data.sourceSha256 || null,
+          fileName: data.fileName || `Upload ${imageDoc.id.slice(0, 8)}`,
+          createdAt: data.createdAt || '',
+        };
+        items.push(item);
+        if (!data.sha256 || data.library !== true) {
+          setDoc(doc(db, IMAGES, imageDoc.id), { sha256, library: true }, { merge: true }).catch(() => {});
+        }
+      }
+      uploadedLibrary = items.sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+      return uploadedLibrary;
+    })().catch((err) => {
+      uploadedLibraryPromise = null;
+      console.warn('Upload-Bibliothek konnte nicht geladen werden:', err);
+      return [];
+    });
+    return uploadedLibraryPromise;
+  };
 
   const setStatus = (msg) => {
     uploadStatus.hidden = !msg;
@@ -58,6 +104,8 @@ export const setupImagesUI = ({ onImagesChanged }) => {
   const thumbSrcFor = async (img) => {
     if (img.url) return `${baseUrl}${img.url}`;
     if (img.imageId) {
+      const cached = uploadedLibrary.find((item) => item.id === img.imageId);
+      if (cached) return cached.data;
       const snap = await getDoc(doc(db, IMAGES, img.imageId));
       return snap.exists() ? snap.data().data : null;
     }
@@ -99,11 +147,10 @@ export const setupImagesUI = ({ onImagesChanged }) => {
         [current.images[i + 1], current.images[i]] = [current.images[i], current.images[i + 1]];
         commit();
       });
-      li.querySelector('[data-act="remove"]').addEventListener('click', async () => {
+      li.querySelector('[data-act="remove"]').addEventListener('click', () => {
         current.images.splice(i, 1);
-        if (img.imageId) {
-          try { await deleteDoc(doc(db, IMAGES, img.imageId)); } catch (err) { console.warn(err); }
-        }
+        // Nur aus diesem Ort entfernen. Das Bild bleibt als wiederverwendbarer
+        // Eintrag in der gemeinsamen Bibliothek erhalten.
         commit();
       });
       listEl.appendChild(li);
@@ -112,19 +159,52 @@ export const setupImagesUI = ({ onImagesChanged }) => {
 
   const uploadFiles = async (files) => {
     if (!current || !files.length) return;
+    await loadUploadedLibrary();
     for (const [idx, file] of [...files].entries()) {
       if (!file.type.startsWith('image/')) continue;
       setStatus(`Lade hoch… (${idx + 1}/${files.length})`);
       try {
-        const dataUrl = await fileToDataUrl(file);
-        const imageId = uid();
-        await setDoc(doc(db, IMAGES, imageId), {
-          data: dataUrl,
-          locationId: current.id,
-          fileName: file.name,
-          createdAt: new Date().toISOString(),
-        });
-        current.images.push({ imageId, alt: '', order: current.images.length });
+        const sourceHash = await hashBytes(await file.arrayBuffer());
+        const staticDuplicate = imageLibrary.find((item) => item.sha256 === sourceHash);
+        if (staticDuplicate) {
+          if (!current.images.some((image) => image.url === staticDuplicate.path)) {
+            current.images.push({ url: staticDuplicate.path, alt: '', order: current.images.length });
+          }
+          continue;
+        }
+        let libraryImage = uploadedLibrary.find((item) => item.sourceSha256 === sourceHash);
+        let dataUrl = null;
+        let sha256 = null;
+        if (!libraryImage) {
+          dataUrl = await fileToDataUrl(file);
+          sha256 = await hashDataUrl(dataUrl);
+          libraryImage = uploadedLibrary.find((item) => item.sha256 === sha256);
+        }
+        if (!libraryImage) {
+          const imageId = uid();
+          const createdAt = new Date().toISOString();
+          await setDoc(doc(db, IMAGES, imageId), {
+            data: dataUrl,
+            sha256,
+            sourceSha256: sourceHash,
+            library: true,
+            sourceLocationId: current.id,
+            fileName: file.name,
+            createdAt,
+          });
+          libraryImage = {
+            id: imageId,
+            data: dataUrl,
+            sha256,
+            sourceSha256: sourceHash,
+            fileName: file.name,
+            createdAt,
+          };
+          uploadedLibrary.unshift(libraryImage);
+        }
+        if (!current.images.some((image) => image.imageId === libraryImage.id)) {
+          current.images.push({ imageId: libraryImage.id, alt: '', order: current.images.length });
+        }
       } catch (err) {
         console.error('Upload fehlgeschlagen:', err);
         setStatus(`„${file.name}" konnte nicht hochgeladen werden: ${err.message}`);
@@ -150,26 +230,59 @@ export const setupImagesUI = ({ onImagesChanged }) => {
     uploadFiles(e.dataTransfer.files);
   });
 
-  // ── Bibliothek (alle Fotos aus public/images/**) ───────────────────
+  // ── Bibliothek (public/images/** + dauerhafte Uploads) ─────────────
   const librarySearch = document.querySelector('#library-search');
-  const buildLibrary = () => {
+  let libraryBuild = 0;
+  const buildLibrary = async () => {
+    const build = ++libraryBuild;
     const q = librarySearch.value.trim().toLowerCase();
     libraryGrid.innerHTML = '';
-    for (const path of imageLibrary) {
-      if (q && !path.toLowerCase().includes(q)) continue;
+    const addItem = ({ src, label, descriptor, used }) => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'library-item';
-      const used = current?.images.some((img) => img.url === path);
       if (used) btn.classList.add('is-used');
-      btn.innerHTML = `<img src="${baseUrl}${path}" alt="" loading="lazy" /><span>${used ? '✓ ' : ''}${path.replace('images/', '')}</span>`;
+      const image = document.createElement('img');
+      image.src = src;
+      image.alt = '';
+      image.loading = 'lazy';
+      const caption = document.createElement('span');
+      caption.textContent = `${used ? '✓ ' : ''}${label}`;
+      btn.append(image, caption);
       btn.addEventListener('click', () => {
-        if (!current) return;
-        current.images.push({ url: path, alt: '', order: current.images.length });
+        if (!current || current.images.some((item) => (
+          descriptor.url ? item.url === descriptor.url : item.imageId === descriptor.imageId
+        ))) return;
+        current.images.push({ ...descriptor, alt: '', order: current.images.length });
         commit();
         buildLibrary();
       });
       libraryGrid.appendChild(btn);
+    };
+
+    for (const libraryImage of imageLibrary) {
+      const path = libraryImage.path;
+      if (q && !path.toLowerCase().includes(q)) continue;
+      const used = current?.images.some((img) => img.url === path);
+      addItem({
+        src: `${baseUrl}${path}`,
+        label: path.replace('images/', ''),
+        descriptor: { url: path },
+        used,
+      });
+    }
+
+    const uploads = await loadUploadedLibrary();
+    if (build !== libraryBuild) return;
+    for (const item of uploads) {
+      if (q && !item.fileName.toLowerCase().includes(q)) continue;
+      const used = current?.images.some((img) => img.imageId === item.id);
+      addItem({
+        src: item.data,
+        label: `Upload · ${item.fileName}`,
+        descriptor: { imageId: item.id },
+        used,
+      });
     }
   };
   librarySearch.addEventListener('input', buildLibrary);
@@ -185,13 +298,6 @@ export const setupImagesUI = ({ onImagesChanged }) => {
       setStatus('');
       render();
     },
-    // Beim Löschen eines Ortes auch dessen hochgeladene Fotos entfernen.
-    async deleteUploadedImagesOf(loc) {
-      for (const img of loc.images) {
-        if (img.imageId) {
-          try { await deleteDoc(doc(db, IMAGES, img.imageId)); } catch (err) { console.warn(err); }
-        }
-      }
-    },
+    refreshLibrary: buildLibrary,
   };
 };

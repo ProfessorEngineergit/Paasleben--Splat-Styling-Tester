@@ -11,6 +11,7 @@ export const setupPreview = ({ onEdit }) => {
   const deviceButtons = [...document.querySelectorAll('[data-preview-device]')];
   let currentId = null;
   let currentDisplay = null;
+  let currentTheme = document.documentElement.dataset.theme || 'current';
 
   const buildSrc = () =>
     `${import.meta.env.BASE_URL}?ort=${encodeURIComponent(currentDisplay)}&edit=1&_=${Date.now()}`;
@@ -48,6 +49,18 @@ export const setupPreview = ({ onEdit }) => {
     if (currentId && !overlay.hidden) frame.src = buildSrc();
   };
 
+  const sendTheme = () => {
+    if (!currentId || overlay.hidden || !frame.contentWindow) return;
+    frame.contentWindow.postMessage({ type: 'paas-theme', theme: currentTheme }, location.origin);
+  };
+
+  // Kein Reload und kein weißer Zwischenframe: die offene End-Ansicht erhält
+  // den Theme-Wechsel direkt per postMessage.
+  const setTheme = (theme) => {
+    currentTheme = theme;
+    sendTheme();
+  };
+
   const setDevice = (device) => {
     const value = device === 'mobile' ? 'mobile' : 'desktop';
     stage.dataset.device = value;
@@ -63,6 +76,7 @@ export const setupPreview = ({ onEdit }) => {
 
   document.querySelector('#preview-close').addEventListener('click', close);
   document.querySelector('#preview-reload').addEventListener('click', reload);
+  frame.addEventListener('load', sendTheme);
   deviceButtons.forEach((button) => button.addEventListener('click', () => setDevice(button.dataset.previewDevice)));
   window.addEventListener('resize', placeOverViewport, { passive: true });
   window.addEventListener('keydown', (e) => {
@@ -77,5 +91,5 @@ export const setupPreview = ({ onEdit }) => {
     onEdit(msg.id, { [msg.field]: String(msg.value ?? '') });
   });
 
-  return { open, close, reload, setDevice };
+  return { open, close, reload, setDevice, setTheme };
 };

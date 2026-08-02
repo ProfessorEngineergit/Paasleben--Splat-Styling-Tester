@@ -5,7 +5,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import gsap from 'gsap';
 import { Flip } from 'gsap/Flip';
 
-import { initTheme } from './lib/paas-theme.js';
+import { applyTheme, initTheme, isTheme } from './lib/paas-theme.js';
+import { lockPageZoom } from './lib/page-zoom-lock.js';
 import { PaasLoader } from './lib/paas-loader.js';
 import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
@@ -18,6 +19,7 @@ import {
 } from './lib/splat-alignment.js';
 
 gsap.registerPlugin(Flip);
+lockPageZoom();
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -47,7 +49,7 @@ const DRAG_INERTIA_MAX = 0.42;
 // ── Hochformat-Rahmung ─────────────────────────────────────────────────
 // Die Kameraführung ist für breite Fenster austariert (Referenz 16:9). Weil
 // THREE die FOV *vertikal* definiert, schrumpft das horizontale Blickfeld auf
-// hohen, schmalen Displays drastisch: 16:9 ergibt 91°, ein iPhone im
+// hohen, schmalen Displays drastisch: 16:9 ergibt 91°, ein Mobilgerät im
 // Hochformat nur noch 30°. Vom Areal blieb dadurch gut ein Viertel der Breite
 // sichtbar — die Gebäude als schmaler Streifen oben, darunter leere Wiese.
 // Das war der „schief/nach hinten verbogen"-Eindruck auf dem Handy.
@@ -172,6 +174,29 @@ initTheme();
 const URL_PARAMS = new URLSearchParams(location.search);
 const DEEP_LINK_ORT = URL_PARAMS.get('ort');
 const EDIT_MODE = URL_PARAMS.get('edit') === '1';
+
+// Die interne Editor-Vorschau übernimmt Theme-Wechsel ohne Reload. `?edit=1`
+// ist keine eigene öffentliche Edit-Seite, sondern nur der eingebettete,
+// direkt bearbeitbare Website-Modus innerhalb von /admin.html.
+if (EDIT_MODE) {
+  let editorThemeOverride = null;
+  window.addEventListener('message', (event) => {
+    if (event.origin !== location.origin || event.source !== window.parent) return;
+    const message = event.data;
+    if (message?.type === 'paas-theme' && isTheme(message.theme)) {
+      editorThemeOverride = message.theme;
+      applyTheme(message.theme);
+    }
+  });
+  // Falls der parallel laufende Firestore-Initialabruf noch den vorherigen
+  // Wert liefert, behält die Vorschau trotzdem den soeben im Editor gewählten
+  // Zustand. Der nächste normale Seitenaufruf liest bereits den neuen Wert.
+  window.addEventListener('paas:themechange', (event) => {
+    if (editorThemeOverride && event.detail?.theme !== editorThemeOverride) {
+      setTimeout(() => applyTheme(editorThemeOverride), 0);
+    }
+  });
+}
 
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const COARSE_POINTER = matchMedia('(pointer: coarse)').matches;
@@ -1659,6 +1684,16 @@ const boot = async () => {
     };
     setMuted(true);
     audioBtn.addEventListener('click', () => setMuted(!audio.muted, { user: true }));
+
+    // Sobald die Seite nicht mehr sichtbar ist oder wirklich verlassen wird,
+    // darf die Musik nicht in einem anderen Tab weiterlaufen. Beim Zurückkehren
+    // bleibt sie bewusst stumm, bis der Mensch sie erneut einschaltet.
+    const muteOnLeave = () => setMuted(true);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) muteOnLeave();
+    });
+    window.addEventListener('pagehide', muteOnLeave);
+
     // Von der Draufsicht aus: dort spielt der Ton automatisch. Der Klick auf
     // den Knopf ist die Nutzergeste, die Browser fuer Ton mit Lautstaerke
     // verlangen — deshalb funktioniert das Aufheben der Stummschaltung hier.

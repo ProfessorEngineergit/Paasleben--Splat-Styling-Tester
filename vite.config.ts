@@ -1,5 +1,6 @@
-import { readdirSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 import { defineConfig, type Plugin, type ViteDevServer } from 'vite'
 
 // Virtuelles Modul `virtual:paas-image-library`: listet alle Bilder unter
@@ -11,19 +12,22 @@ const imageLibraryPlugin = (): Plugin => {
   const publicDir = resolve(__dirname, 'public')
   const imagesDir = join(publicDir, 'images')
 
-  const collect = (): string[] => {
-    const files: string[] = []
+  const collect = (): Array<{ path: string; sha256: string }> => {
+    const files: Array<{ path: string; sha256: string }> = []
     const walk = (dir: string) => {
       for (const name of readdirSync(dir)) {
         const full = join(dir, name)
         if (statSync(full).isDirectory()) walk(full)
         else if (/\.(jpe?g|png|webp|avif)$/i.test(name)) {
-          files.push(relative(publicDir, full).replaceAll('\\', '/'))
+          files.push({
+            path: relative(publicDir, full).replaceAll('\\', '/'),
+            sha256: createHash('sha256').update(readFileSync(full)).digest('hex'),
+          })
         }
       }
     }
     try { walk(imagesDir) } catch { /* Ordner fehlt → leere Liste */ }
-    return files.sort()
+    return files.sort((a, b) => a.path.localeCompare(b.path))
   }
 
   return {

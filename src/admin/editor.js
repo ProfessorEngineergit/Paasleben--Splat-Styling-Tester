@@ -28,6 +28,8 @@ export const startEditor = () => {
   const viewport = document.querySelector('#editor-viewport');
   const markerLayer = document.querySelector('#editor-markers');
   const addButton = document.querySelector('#add-point-button');
+  const undoButton = document.querySelector('#undo-button');
+  const redoButton = document.querySelector('#redo-button');
   const addHint = document.querySelector('#add-hint');
   const syncStatus = document.querySelector('#sync-status');
   const saveStatus = document.querySelector('#save-status');
@@ -75,6 +77,17 @@ export const startEditor = () => {
   orbit.minDistance = 0.05;
   orbit.maxDistance = 120;
   orbit.maxPolarAngle = Math.PI * 0.999;
+  orbit.mouseButtons = {
+    LEFT: THREE.MOUSE.PAN,
+    MIDDLE: THREE.MOUSE.DOLLY,
+    RIGHT: THREE.MOUSE.ROTATE,
+  };
+  orbit.touches = {
+    ONE: THREE.TOUCH.PAN,
+    TWO: THREE.TOUCH.DOLLY_ROTATE,
+  };
+  renderer.domElement.style.touchAction = 'none';
+  renderer.domElement.addEventListener('contextmenu', (event) => event.preventDefault());
   orbit.update();
 
   const resize = () => {
@@ -122,6 +135,66 @@ export const startEditor = () => {
   let locations = [];
   let selectedId = null;
   let dirtyWhileTyping = false; // Snapshot-Updates nicht in offene Eingaben schreiben
+  const clone = (value) => {
+    if (value === undefined) return undefined;
+    return typeof structuredClone === 'function'
+      ? structuredClone(value)
+      : JSON.parse(JSON.stringify(value));
+  };
+
+  // Optimistischer, vom DOM entkoppelter Stand. Besonders Positionen und
+  // Bildlisten werden vor dem Speichern lokal mutiert; diese Kopie bewahrt
+  // den echten Vorher-Zustand für Rückgängig.
+  const shadowLocations = new Map();
+  const pendingWrites = new Map();
+  const undoStack = [];
+  const redoStack = [];
+  const HISTORY_LIMIT = 80;
+  let historyBusy = false;
+  let persistTheme = async () => false;
+
+  const historyLabelFor = (fields) => {
+    const keys = Object.keys(fields);
+    if (keys.includes('position')) return 'Position verschieben';
+    if (keys.includes('images')) return 'Fotos ändern';
+    if (keys.includes('visible')) return 'Sichtbarkeit ändern';
+    if (keys.includes('title')) return 'Titel ändern';
+    if (keys.includes('subtitle')) return 'Untertitel ändern';
+    if (keys.includes('body')) return 'Text ändern';
+    if (keys.includes('displayNumber')) return 'Schildnummer ändern';
+    if (keys.includes('order')) return 'Reihenfolge ändern';
+    return 'Ort ändern';
+  };
+
+  const updateHistoryButtons = () => {
+    const undoAction = undoStack.at(-1);
+    const redoAction = redoStack.at(-1);
+    undoButton.disabled = READ_ONLY || historyBusy || !undoAction;
+    redoButton.disabled = READ_ONLY || historyBusy || !redoAction;
+    undoButton.title = undoAction ? `Rückgängig: ${undoAction.label} (⌘Z)` : 'Nichts zum Rückgängigmachen (⌘Z)';
+    redoButton.title = redoAction ? `Wiederholen: ${redoAction.label} (⇧⌘Z)` : 'Nichts zum Wiederholen (⇧⌘Z)';
+  };
+
+  const recordHistory = (action) => {
+    if (READ_ONLY || historyBusy) return;
+    undoStack.push(action);
+    if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+    redoStack.length = 0;
+    updateHistoryButtons();
+  };
+
+  const pendingStart = (id) => pendingWrites.set(id, (pendingWrites.get(id) || 0) + 1);
+  const pendingEnd = (id) => {
+    const count = (pendingWrites.get(id) || 1) - 1;
+    if (count > 0) pendingWrites.set(id, count);
+    else pendingWrites.delete(id);
+  };
+
+  const pickFields = (source, fields) => Object.fromEntries(
+    Object.keys(fields).map((key) => [key, clone(source?.[key])]),
+  );
+
+  const sameValue = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
   const flashSave = (msg = 'Gespeichert ✓') => {
     saveStatus.textContent = msg;
@@ -150,16 +223,42 @@ export const startEditor = () => {
     return `Speichern fehlgeschlagen: ${err?.code || err?.message || err}`;
   };
 
-  const save = async (id, fields) => {
+  const applyLocationFields = (id, fields) => {
+    const safeFields = clone(fields);
+    const loc = locations.find((item) => item.id === id);
+    if (loc) Object.assign(loc, safeFields);
+    const shadow = clone(shadowLocations.get(id) || loc || { id });
+    Object.assign(shadow, safeFields);
+    shadowLocations.set(id, shadow);
+    if (safeFields.position) pendingPositions.set(id, clone(safeFields.position));
+    syncMarkers();
+    syncGizmo();
+    renderList();
+    if (selectedId === id && loc && !dirtyWhileTyping) fillForm(loc);
+  };
+
+  const save = async (id, fields, { record = true, label = historyLabelFor(fields), before: explicitBefore } = {}) => {
+    const base = clone(shadowLocations.get(id) || locations.find((item) => item.id === id));
+    if (!base) return false;
+    const before = explicitBefore ? clone(explicitBefore) : pickFields(base, fields);
+    const after = clone(fields);
+    if (sameValue(before, after)) return true;
+    applyLocationFields(id, after);
+    pendingStart(id);
     try {
       await updateDoc(doc(db, LOCATIONS, id), { ...fields, updatedAt: new Date().toISOString() });
+      if (record) recordHistory({ type: 'update-location', id, before, after, label });
       flashSave();
       hideBanner();
+      return true;
     } catch (err) {
       console.error('Speichern fehlgeschlagen:', err);
+      applyLocationFields(id, before);
       flashSave('Speichern fehlgeschlagen ✕');
       showBanner(describeSaveError(err));
+      return false;
     } finally {
+      pendingEnd(id);
       // Egal ob Erfolg oder Fehler: ab jetzt gilt wieder der Server-Stand.
       if (fields.position) pendingPositions.delete(id);
     }
@@ -468,6 +567,100 @@ export const startEditor = () => {
     }
   };
 
+  const removeLocationLocally = (id) => {
+    locations = locations.filter((loc) => loc.id !== id);
+    shadowLocations.delete(id);
+    pendingPositions.delete(id);
+    if (selectedId === id) select(null);
+    syncMarkers();
+    syncGizmo();
+    renderList();
+  };
+
+  const restoreLocationLocally = (id, data) => {
+    const restored = { id, ...clone(data) };
+    const index = locations.findIndex((loc) => loc.id === id);
+    if (index >= 0) locations[index] = restored;
+    else locations.push(restored);
+    locations.sort((a, b) => (a.order || 0) - (b.order || 0));
+    shadowLocations.set(id, clone(restored));
+    syncMarkers();
+    syncGizmo();
+    renderList();
+  };
+
+  const applyHistoryAction = async (action, direction) => {
+    const undoing = direction === 'undo';
+    try {
+      if (action.type === 'update-location') {
+        return save(action.id, undoing ? action.before : action.after, {
+          record: false,
+          label: action.label,
+        });
+      }
+      if (action.type === 'create-location') {
+        if (undoing) {
+          await deleteDoc(doc(db, LOCATIONS, action.id));
+          removeLocationLocally(action.id);
+        } else {
+          await setDoc(doc(db, LOCATIONS, action.id), clone(action.data));
+          restoreLocationLocally(action.id, action.data);
+        }
+        return true;
+      }
+      if (action.type === 'delete-location') {
+        if (undoing) {
+          await setDoc(doc(db, LOCATIONS, action.id), clone(action.data));
+          restoreLocationLocally(action.id, action.data);
+          select(action.id);
+        } else {
+          await deleteDoc(doc(db, LOCATIONS, action.id));
+          removeLocationLocally(action.id);
+        }
+        return true;
+      }
+      if (action.type === 'theme') {
+        return persistTheme(undoing ? action.before : action.after, { record: false });
+      }
+      return false;
+    } catch (err) {
+      console.error('Historie konnte nicht angewendet werden:', err);
+      showBanner(describeSaveError(err));
+      return false;
+    }
+  };
+
+  const runHistory = async (direction) => {
+    if (historyBusy || READ_ONLY) return;
+    const source = direction === 'undo' ? undoStack : redoStack;
+    const target = direction === 'undo' ? redoStack : undoStack;
+    const action = source.at(-1);
+    if (!action) return;
+    historyBusy = true;
+    updateHistoryButtons();
+    const ok = await applyHistoryAction(action, direction);
+    if (ok) {
+      source.pop();
+      target.push(action);
+      flashSave(`${direction === 'undo' ? 'Rückgängig' : 'Wiederholt'}: ${action.label} ✓`);
+      hideBanner();
+    }
+    historyBusy = false;
+    updateHistoryButtons();
+  };
+
+  undoButton.addEventListener('click', () => runHistory('undo'));
+  redoButton.addEventListener('click', () => runHistory('redo'));
+  window.addEventListener('keydown', (event) => {
+    if (isTyping() || !(event.ctrlKey || event.metaKey)) return;
+    const key = event.key.toLowerCase();
+    const redo = (key === 'z' && event.shiftKey) || (key === 'y' && event.ctrlKey);
+    if (key !== 'z' && !redo) return;
+    event.preventDefault();
+    runHistory(redo ? 'redo' : 'undo');
+  });
+  updateHistoryButtons();
+
   // Feld-Änderungen speichern (bei blur/change — kein Tipp-Spam nach Firestore).
   const bindField = (input, toFields) => {
     input.addEventListener('focus', () => { dirtyWhileTyping = true; });
@@ -505,7 +698,7 @@ export const startEditor = () => {
     const loc = locations.find((l) => l.id === selectedId);
     if (!loc) return;
     const display = nextDisplayNumber();
-    const ref = await addDoc(collection(db, LOCATIONS), {
+    const data = {
       title: `${loc.title} (Kopie)`,
       subtitle: loc.subtitle,
       body: loc.body,
@@ -513,11 +706,13 @@ export const startEditor = () => {
       order: Number(display),
       visible: false,
       position: { x: loc.position.x + 0.15, y: loc.position.y, z: loc.position.z + 0.15 },
-      // Nur statische Bibliotheks-Bilder mitkopieren — Uploads gehören
-      // exklusiv ihrem Ort (werden bei dessen Löschung entfernt).
-      images: loc.images.filter((img) => img.url),
+      // Statische und hochgeladene Bibliotheksbilder sind wiederverwendbar.
+      images: clone(loc.images),
       updatedAt: new Date().toISOString(),
-    });
+    };
+    const ref = await addDoc(collection(db, LOCATIONS), data);
+    recordHistory({ type: 'create-location', id: ref.id, data, label: 'Ort duplizieren' });
+    restoreLocationLocally(ref.id, data);
     select(ref.id);
   });
 
@@ -530,9 +725,11 @@ export const startEditor = () => {
   document.querySelector('#delete-location').addEventListener('click', async () => {
     const loc = locations.find((l) => l.id === selectedId);
     if (!loc) return;
-    if (!window.confirm(`„${loc.title}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
-    await imagesUI.deleteUploadedImagesOf(loc);
+    if (!window.confirm(`„${loc.title}" wirklich löschen? Über „Rückgängig" kann der Ort wiederhergestellt werden.`)) return;
+    const data = clone(Object.fromEntries(Object.entries(loc).filter(([key]) => key !== 'id')));
     await deleteDoc(doc(db, LOCATIONS, loc.id));
+    recordHistory({ type: 'delete-location', id: loc.id, data, label: 'Ort löschen' });
+    removeLocationLocally(loc.id);
     select(null);
   });
 
@@ -572,7 +769,7 @@ export const startEditor = () => {
     if (!p) return;
     setAddMode(false);
     const display = nextDisplayNumber();
-    const ref = await addDoc(collection(db, LOCATIONS), {
+    const data = {
       title: 'Neuer Ort',
       subtitle: '',
       body: '',
@@ -582,7 +779,10 @@ export const startEditor = () => {
       position: { x: p.x, y: p.y, z: p.z },
       images: [],
       updatedAt: new Date().toISOString(),
-    });
+    };
+    const ref = await addDoc(collection(db, LOCATIONS), data);
+    recordHistory({ type: 'create-location', id: ref.id, data, label: 'Ort anlegen' });
+    restoreLocationLocally(ref.id, data);
     select(ref.id);
     fields.title.focus();
     fields.title.select();
@@ -613,30 +813,50 @@ export const startEditor = () => {
       select.appendChild(option);
     }
     const ref = doc(db, 'paas_config', 'site');
+    let currentTheme = cachedTheme();
     try {
       const snap = await getDoc(ref);
       const stored = snap.exists() ? snap.data()?.theme : null;
-      select.value = isTheme(stored) ? stored : cachedTheme();
+      currentTheme = isTheme(stored) ? stored : cachedTheme();
     } catch (err) {
       console.warn('Design-Einstellung konnte nicht geladen werden:', err);
-      select.value = cachedTheme();
+      currentTheme = cachedTheme();
     }
-    select.addEventListener('change', async () => {
-      const next = select.value;
-      // Im Editor sofort anwenden, damit die End-Ansicht das neue Design zeigt.
+    select.value = currentTheme;
+    applyTheme(currentTheme);
+    previewUI.setTheme(currentTheme);
+
+    persistTheme = async (theme, { record = true } = {}) => {
+      const next = isTheme(theme) ? theme : currentTheme;
+      const before = currentTheme;
+      if (next === before) return true;
+
+      // Editor und offene End-Ansicht wechseln im selben Frame. Firestore
+      // bestätigt danach nur noch den bereits sichtbaren Zustand.
+      currentTheme = next;
+      select.value = next;
       applyTheme(next);
-      previewUI?.reload?.();
+      previewUI.setTheme(next);
       try {
         // merge, damit das Dokument beim ersten Mal auch angelegt wird.
         await setDoc(ref, { theme: next, updatedAt: new Date().toISOString() }, { merge: true });
+        if (record) recordHistory({ type: 'theme', before, after: next, label: 'Design wechseln' });
         flashSave('Design gespeichert ✓');
         hideBanner();
+        return true;
       } catch (err) {
         console.error('Design speichern fehlgeschlagen:', err);
+        currentTheme = before;
+        select.value = before;
+        applyTheme(before);
+        previewUI.setTheme(before);
         flashSave('Speichern fehlgeschlagen ✕');
         showBanner(describeSaveError(err));
+        return false;
       }
-    });
+    };
+
+    select.addEventListener('change', () => persistTheme(select.value));
   };
   setupThemePicker();
 
@@ -648,9 +868,21 @@ export const startEditor = () => {
     (next) => {
       // Gerade gezogene / noch nicht bestätigte Positionen behalten Vorrang,
       // sonst springt ein Marker mitten im Ziehen auf den Server-Stand zurück.
-      locations = next.map((l) => (
-        pendingPositions.has(l.id) ? { ...l, position: pendingPositions.get(l.id) } : l
-      ));
+      locations = next.map((serverLocation) => {
+        if (!pendingWrites.has(serverLocation.id)) {
+          shadowLocations.set(serverLocation.id, clone(serverLocation));
+        }
+        const optimistic = pendingWrites.has(serverLocation.id)
+          ? clone(shadowLocations.get(serverLocation.id) || serverLocation)
+          : serverLocation;
+        return pendingPositions.has(serverLocation.id)
+          ? { ...optimistic, position: clone(pendingPositions.get(serverLocation.id)) }
+          : optimistic;
+      });
+      const liveIds = new Set(next.map((loc) => loc.id));
+      for (const id of shadowLocations.keys()) {
+        if (!liveIds.has(id) && !pendingWrites.has(id)) shadowLocations.delete(id);
+      }
       syncStatus.classList.add('is-online');
       syncMarkers();
       syncGizmo();
@@ -668,6 +900,11 @@ export const startEditor = () => {
       camera, orbit, heldKeys,
       isTyping: () => isTyping(),
       applyFly,
+      history: () => ({
+        undo: undoStack.map((action) => action.label),
+        redo: redoStack.map((action) => action.label),
+        busy: historyBusy,
+      }),
       // Bildschirm- → Weltkoordinaten auf einer Höhenebene (zum Ausmessen)
       screenToWorld: (clientX, clientY, planeY = averageY()) => {
         const p = raycastToPlane({ clientX, clientY }, planeY);
