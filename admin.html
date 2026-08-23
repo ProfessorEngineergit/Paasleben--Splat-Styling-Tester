@@ -18,6 +18,17 @@
             Änderungen sind sofort auf der Website sichtbar.
           </p>
           <button id="login-button" class="btn btn-primary" type="button">Mit Google anmelden</button>
+
+          <div class="login-divider"><span>oder</span></div>
+
+          <form id="email-login-form" class="email-login-form" autocomplete="on">
+            <input id="email-login-email" class="login-input" type="email" name="email"
+                   placeholder="E-Mail" autocomplete="username" required />
+            <input id="email-login-password" class="login-input" type="password" name="password"
+                   placeholder="Passwort" autocomplete="current-password" required />
+            <button id="email-login-button" class="btn" type="submit">Mit E-Mail anmelden</button>
+          </form>
+
           <p id="login-status" class="login-status" hidden></p>
         </div>
       </div>

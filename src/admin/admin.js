@@ -2,7 +2,8 @@
 // Admin-Gate über die Firestore-Collection `paas_admins`, dann Editor-Start.
 import './admin.css';
 import {
-  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged,
+  getAuth, GoogleAuthProvider, signInWithPopup, signInWithEmailAndPassword,
+  signOut, onAuthStateChanged,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { app, db } from '../lib/firebase.js';
@@ -17,6 +18,10 @@ const provider = new GoogleAuthProvider();
 const loginScreen = document.querySelector('#login-screen');
 const editorScreen = document.querySelector('#editor-screen');
 const loginButton = document.querySelector('#login-button');
+const emailLoginForm = document.querySelector('#email-login-form');
+const emailLoginEmail = document.querySelector('#email-login-email');
+const emailLoginPassword = document.querySelector('#email-login-password');
+const emailLoginButton = document.querySelector('#email-login-button');
 const loginStatus = document.querySelector('#login-status');
 const logoutButton = document.querySelector('#logout-button');
 const userChip = document.querySelector('#user-chip');
@@ -87,6 +92,31 @@ loginButton.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     showStatus(`Anmeldung fehlgeschlagen: ${err.code || err.message}`);
+  }
+});
+
+const EMAIL_LOGIN_ERRORS = {
+  'auth/invalid-email': 'Ungültige E-Mail-Adresse.',
+  'auth/invalid-credential': 'E-Mail oder Passwort falsch.',
+  'auth/wrong-password': 'E-Mail oder Passwort falsch.',
+  'auth/user-not-found': 'E-Mail oder Passwort falsch.',
+  'auth/too-many-requests': 'Zu viele Versuche — bitte kurz warten.',
+};
+
+emailLoginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = emailLoginEmail.value.trim();
+  const password = emailLoginPassword.value;
+  if (!email || !password) return;
+  emailLoginButton.disabled = true;
+  showStatus('Melde an…');
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+  } catch (err) {
+    console.error(err);
+    showStatus(EMAIL_LOGIN_ERRORS[err.code] || `Anmeldung fehlgeschlagen: ${err.code || err.message}`);
+  } finally {
+    emailLoginButton.disabled = false;
   }
 });
 

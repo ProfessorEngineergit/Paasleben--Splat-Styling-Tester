@@ -57,6 +57,40 @@ html, body {
 .login-text { color: var(--paas-muted); line-height: 1.5; }
 .login-status { margin-top: 1rem; color: var(--paas-accent); line-height: 1.4; font-size: 0.9rem; }
 
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.25rem 0;
+  color: var(--paas-muted);
+  font-size: 0.78rem;
+}
+.login-divider::before,
+.login-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--paas-line);
+}
+
+.email-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  text-align: left;
+}
+.login-input {
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--paas-line);
+  border-radius: 4px;
+  background: var(--paas-bg);
+  color: var(--paas-ink);
+}
+.login-input:focus-visible { outline: 2px solid var(--paas-accent); outline-offset: 1px; }
+.email-login-form .btn { width: 100%; }
+
 /* ── Buttons ── */
 .btn {
   font: inherit;
