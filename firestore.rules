@@ -25,9 +25,17 @@ service cloud.firestore {
 
     // Doc-IDs in paas_admins sind kleingeschrieben; die E-Mail aus dem Token
     // ebenfalls kleinschreiben, sonst scheitert das Schreiben trotz Login.
+    //
+    // E-Mail-Bestätigung: Google-Konten sind immer verifiziert, aber ein per
+    // Firebase-Konsole angelegtes E-Mail/Passwort-Konto ist es standardmäßig
+    // NICHT (dort gibt es keinen Bestätigungs-Link-Flow). Ohne Alternative
+    // würden händisch angelegte Editor-Konten trotz korrektem paas_admins-
+    // Eintrag jeden Schreibversuch verlieren. Deshalb reicht ersatzweise der
+    // Custom Claim `paasAdmin`, den nur ich per Firebase-Konsole/Admin-SDK auf
+    // ein Konto setzen kann, nachdem ich es selbst angelegt/geprüft habe.
     function isPaasAdmin() {
       return request.auth != null
-        && request.auth.token.email_verified == true
+        && (request.auth.token.email_verified == true || request.auth.token.paasAdmin == true)
         && exists(/databases/$(database)/documents/paas_admins/$(request.auth.token.email.lower()));
     }
 

@@ -43,6 +43,14 @@ const isAdmin = async (user) => {
 };
 
 let editorStarted = false;
+// Nur im lokalen Dev-Vorschau-Modus gesetzt (siehe unten) — dort meldet
+// Firebase konsequent 'kein Nutzer', der Editor soll aber trotzdem sichtbar
+// bleiben. Für einen echten Abmelde-Vorgang (signOut-Klick) darf das NICHT
+// gelten, sonst bleibt die Oberfläche nach dem Abmelden hängen: Firebase
+// loggt serverseitig ab, aber onAuthStateChanged wird durch die alte,
+// generelle Bedingung `editorStarted && !user` komplett übersprungen und der
+// Login-Screen erscheint nie wieder.
+let devPreviewBypass = false;
 
 // Dev-only: `?preview=1` startet den Editor ohne Login (nur lokaler
 // Vite-Dev-Server; im Build wirkungslos). Schreibzugriffe scheitern dann
@@ -53,6 +61,7 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has('preview')) 
   loginScreen.hidden = true;
   editorScreen.hidden = false;
   editorStarted = true;
+  devPreviewBypass = true;
   startEditor();
   const banner = document.querySelector('#editor-banner');
   banner.textContent = 'Vorschau ohne Anmeldung — Änderungen werden nicht gespeichert '
@@ -62,7 +71,7 @@ if (import.meta.env.DEV && new URLSearchParams(location.search).has('preview')) 
 }
 
 onAuthStateChanged(auth, async (user) => {
-  if (editorStarted && !user) return;
+  if (devPreviewBypass && !user) return;
   if (!user) {
     loginScreen.hidden = false;
     editorScreen.hidden = true;
