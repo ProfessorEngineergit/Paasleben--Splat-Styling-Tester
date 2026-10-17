@@ -21,7 +21,6 @@ export class PaasPanel {
           <h1 class="pp-title t-headline"></h1>
           <div class="pp-plus">+</div>
           <ul class="pp-meta"></ul>
-          <div class="pp-cue t-caption">↓ MEHR LESEN</div>
         </header>
         <article class="pp-article paper">
           <figure class="pp-figure"></figure>
@@ -29,6 +28,7 @@ export class PaasPanel {
           <footer class="pp-foot">
             <div class="hairline"></div>
             <div class="t-caption pp-back">← ZURÜCK ZUR KARTE</div>
+            <a class="t-caption pp-legal" href="#impressum">Impressum</a>
           </footer>
         </article>
       </div>
@@ -59,11 +59,29 @@ export class PaasPanel {
     const images = Array.isArray(data.images) && data.images.length
       ? data.images
       : (data.image ? [{ src: data.image, alt: data.imageAlt }] : []);
+    this._video = data.video || '';
     this.updateImages(images, data.title);
-    this.$body.innerHTML = (data.body || '').split('\n\n').map(p => `<p>${p}</p>`).join('');
+    // Absätze, die selbst mit einem Block-Element beginnen (Überschrift,
+    // Gastgeber-Profil …), nicht in <p> packen — sonst zerlegt der Browser
+    // das Markup und es entstehen leere Absätze.
+    const BLOCK = /^<(h[1-6]|div|section|figure|ul|ol|blockquote|hr|table)[\s>]/i;
+    this.$body.innerHTML = (data.body || '').split('\n\n')
+      .map(p => p.trim()).filter(Boolean)
+      .map(p => (BLOCK.test(p) ? p : `<p>${p}</p>`)).join('');
   }
   updateImages(images, title = '') {
     const _esc = (s) => String(s || '').replace(/"/g, '&quot;');
+    // Ein Ort mit Video zeigt statt der Fotos das Video — gedämpft, stumm,
+    // in Schleife, wie ein bewegtes Titelbild.
+    if (this._video) {
+      if (this.$figure.dataset.video === this._video) return;
+      this.$figure.className = 'pp-figure pp-video';
+      this.$figure.dataset.video = this._video;
+      this.$figure.innerHTML = `<video src="${_esc(this._video)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>`;
+      this.$figure.querySelector('video').play?.().catch(() => {});
+      return;
+    }
+    delete this.$figure.dataset.video;
     const imageList = Array.isArray(images) ? images.filter(Boolean) : [];
     if (imageList.length) {
       const cls = `pp-gallery pp-gallery--${Math.min(imageList.length, 6)}`;

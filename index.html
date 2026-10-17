@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#f4ecd8" />
+    <meta name="theme-color" content="#ffffff" />
     <title>PAASLEBEN · Ein Ort zum Atmen</title>
 
     <!-- Theme noch vor dem ersten Zeichnen setzen, sonst blitzt beim Laden
@@ -13,9 +13,9 @@
       try {
         var t = localStorage.getItem('paas-theme');
         document.documentElement.dataset.theme =
-          ['current', 'legacy-brand', 'combined'].indexOf(t) >= 0 ? t : 'current';
+          ['legacy-brand', 'current'].indexOf(t) >= 0 ? t : 'legacy-brand';
       } catch (e) {
-        document.documentElement.dataset.theme = 'current';
+        document.documentElement.dataset.theme = 'legacy-brand';
       }
     </script>
 
@@ -23,7 +23,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap"
+      data-paas-font="legacy-brand"
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;400;500&family=Oxygen:wght@300;400;700&display=swap"
     />
   </head>
   <body class="paper">
@@ -35,7 +36,7 @@
       </main>
 
       <header id="brand" class="brand">
-        <div class="brand-eyebrow t-caption" data-content-key="eyebrow">COACHING CAMPUS · MAREN &amp; TIL PAAS</div>
+        <div class="brand-eyebrow t-caption" data-content-key="eyebrow">MAREN &amp; TIL PAAS</div>
         <h1 class="brand-title t-headline" data-content-key="mainTitle">Paasleben</h1>
         <div class="brand-rule" aria-hidden="true"></div>
         <p class="brand-lede">
@@ -136,12 +137,21 @@
         </div>
       </div>
 
+      <a id="impressum-link" class="impressum-link t-caption" href="#impressum">Impressum</a>
+
+      <div id="impressum-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Impressum">
+        <div class="help-card impressum-card">
+          <button class="help-close" type="button" aria-label="Schließen">×</button>
+          <div id="impressum-content" class="impressum-content"></div>
+        </div>
+      </div>
+
       <div id="help-overlay" class="help-overlay" aria-hidden="true">
         <div class="help-card">
           <button class="help-close" type="button" aria-label="Schließen">×</button>
           <div class="t-caption help-eyebrow">Über Paasleben</div>
           <p class="help-intro">
-            Ein Retreat von Maren &amp; Till Paas. Erkunde das Atelier,
+            Ein Retreat von Maren &amp; Til Paas. Erkunde das Atelier,
             den Garten und das Haus — klicke ein Schild, um die Geschichte
             zu öffnen.
           </p>
@@ -165,6 +175,8 @@
               <li><span class="help-action"><kbd>Esc</kbd></span><span>Schließen</span></li>
             </ul>
           </div>
+
+          <p class="help-legal"><a class="t-caption" href="#impressum">Impressum</a></p>
         </div>
       </div>
     </div>

@@ -4,7 +4,6 @@
    tokens.css stehen, damit die Theme-Werte die Vorgaben überschreiben. */
 @import './styles/themes/current.css';
 @import './styles/themes/legacy-brand.css';
-@import './styles/themes/combined.css';
 @import './styles/components.css';
 
 * { box-sizing: border-box; }
@@ -90,7 +89,7 @@ body.paper { min-height: 100%; }
   /* extend well beyond the text box so the fade lives in empty space */
   inset: -4px -10px;
   z-index: -1;
-  background: radial-gradient(ellipse at 42% 48%, rgba(244,236,216,.18), transparent 72%);
+  background: radial-gradient(ellipse at 42% 48%, rgba(var(--paper-rgb),.18), transparent 72%);
   backdrop-filter: blur(4px) saturate(1.04);
   -webkit-backdrop-filter: blur(4px) saturate(1.04);
   -webkit-mask-image: radial-gradient(
@@ -207,8 +206,8 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
   flex-direction: column;
   align-items: center;
   gap: 0;
-  filter: drop-shadow(0 4px 8px rgba(40, 30, 18, 0.18))
-          drop-shadow(0 1px 2px rgba(40, 30, 18, 0.22));
+  filter: drop-shadow(0 4px 8px rgba(var(--shade-rgb), 0.18))
+          drop-shadow(0 1px 2px rgba(var(--shade-rgb), 0.22));
   will-change: opacity;
 }
 
@@ -229,12 +228,51 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
   border-bottom-color: var(--sign-border-low);
   box-shadow:
     inset 0 1px 0 rgba(255, 250, 235, 0.7),
-    inset 0 -1px 0 rgba(40, 30, 18, 0.08);
+    inset 0 -1px 0 rgba(var(--shade-rgb), 0.08);
   transform-origin: bottom center;
   transition: transform .35s var(--ease-bounce), filter .25s var(--ease-out-soft), background .25s;
 }
 .schild-marker {
   --stack-depth: 0;
+}
+.schild-marker:not(.is-clickable) { pointer-events: none; }
+/* Kein freier Platz für die volle Karte: kompakte Nummern-Plakette (gleiche
+   Optik wie auf Mobilgeräten). Der Name erscheint beim Darüberfahren als
+   schwebendes Etikett, ohne das Layout zu verändern. */
+.schild-marker.is-compact .sm-card { display: none; }
+.schild-marker.is-compact .sm-badge { display: inline-flex; position: relative; }
+.schild-marker.is-compact .sm-badge::after {
+  content: attr(data-name);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translate(-50%, 4px);
+  padding: 5px 10px;
+  white-space: nowrap;
+  font-family: var(--serif);
+  font-size: 14px;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  background: var(--paper-pale);
+  border: 1px solid var(--sign-border);
+  box-shadow: 0 4px 12px rgba(var(--shade-rgb), 0.16);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s var(--ease-out-soft), transform .18s var(--ease-out-soft);
+}
+.schild-marker.is-compact:hover .sm-badge::after,
+.schild-marker.is-compact:focus-visible .sm-badge::after {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+/* Desktop: nur Karte und Punkt sind Trefferflächen. Ein angehobenes Schild hat
+   einen langen Halm; die leere Fläche daneben gehört zum Button und würde
+   sonst Klicks auf das Schild dahinter abfangen. */
+@media (pointer: fine) and (min-width: 641px) {
+  .schild-marker.is-clickable { pointer-events: none; }
+  .schild-marker.is-clickable .sm-card,
+  .schild-marker.is-clickable .sm-badge,
+  .schild-marker.is-clickable .sm-dot { pointer-events: auto; }
 }
 .schild-marker .sm-card {
   opacity: calc(1 - var(--stack-depth) * .13);
@@ -257,7 +295,7 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
   width: 3px; height: 3px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, var(--rivet-hi), var(--rivet-lo) 70%);
-  box-shadow: 0 0 0 0.5px rgba(40,30,18,0.25);
+  box-shadow: 0 0 0 0.5px rgba(var(--shade-rgb),0.25);
 }
 .schild-marker .sm-card::before { left: 5px; }
 .schild-marker .sm-card::after  { right: 5px; }
@@ -300,7 +338,7 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
   box-shadow:
     0 0 0 2px var(--sign-ring),
     inset 0 1px 0 rgba(255, 250, 235, 0.7),
-    inset 0 -1px 0 rgba(40, 30, 18, 0.08);
+    inset 0 -1px 0 rgba(var(--shade-rgb), 0.08);
   font-family: var(--display);
   font-size: 12px;
   letter-spacing: 0.06em;
@@ -310,8 +348,10 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
 /* the rope/peg connecting card to world point */
 .schild-marker .sm-stem {
   width: 1px;
-  height: 18px;
-  background: linear-gradient(180deg, rgba(40,30,18,0.55), rgba(40,30,18,0.15));
+  /* --lift setzt updateMarkers(), wenn das Schild über einem anderen steht. */
+  height: calc(18px + var(--lift, 0px));
+  transition: height .32s var(--ease-out-soft);
+  background: linear-gradient(180deg, rgba(var(--shade-rgb),0.55), rgba(var(--shade-rgb),0.15));
 }
 .schild-marker .sm-dot {
   width: 7px; height: 7px;
@@ -319,7 +359,7 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
   background: var(--ink);
   box-shadow:
     0 0 0 2px var(--dot-ring),
-    0 0 0 3px rgba(40,30,18,0.4);
+    0 0 0 3px rgba(var(--shade-rgb),0.4);
   margin-top: -3px;
 }
 
@@ -354,12 +394,12 @@ body.is-topdown .schild-marker .sm-dot { opacity: 1; }
 .paas-cursor .pc-ring {
   width: 14px; height: 14px;
   border: 1.5px solid var(--ink);
-  background: rgba(244, 236, 216, 0.35);
+  background: rgba(var(--paper-rgb), 0.35);
   backdrop-filter: blur(10px) saturate(1.2);
   -webkit-backdrop-filter: blur(10px) saturate(1.2);
   box-shadow:
     inset 0 0 0 1px rgba(255,255,255,0.25),
-    0 6px 16px rgba(40,30,18,0.18);
+    0 6px 16px rgba(var(--shade-rgb),0.18);
 }
 .paas-cursor .pc-label { display: none !important; }
 .paas-cursor.pc-hot .pc-ring {
@@ -477,7 +517,7 @@ body.pp-ui-hidden .ui-chips {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(244, 236, 216, 0.55);
+  background: rgba(var(--paper-rgb), 0.55);
   backdrop-filter: blur(10px) saturate(1.1);
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
   opacity: 0;
@@ -586,7 +626,7 @@ body.show-help .help-card { transform: translateY(0); }
   right: 22px;
   z-index: 900;
   width: 280px;
-  background: rgba(244, 236, 216, 0.92);
+  background: rgba(var(--paper-rgb), 0.92);
   backdrop-filter: blur(14px) saturate(1.15);
   -webkit-backdrop-filter: blur(14px) saturate(1.15);
   border: 1px solid var(--rule-soft);
@@ -875,13 +915,13 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
     border-radius: 24px;
     color: var(--ink);
     background: color-mix(in srgb, var(--paper-pale) 96%, transparent);
-    box-shadow: 0 2px 10px rgba(40, 30, 18, .10);
+    box-shadow: 0 2px 10px rgba(var(--shade-rgb), .10);
     font: inherit;
     text-align: left;
     transition: color .16s ease, background .16s ease, border-color .16s ease,
       transform .16s cubic-bezier(.2,.82,.24,1), box-shadow .16s ease;
   }
-  .tl-nav-button:active { transform: scale(.975); box-shadow: 0 1px 5px rgba(40, 30, 18, .08); }
+  .tl-nav-button:active { transform: scale(.975); box-shadow: 0 1px 5px rgba(var(--shade-rgb), .08); }
   .tl-nav-button--next { justify-content: flex-end; text-align: right; }
   .tl-nav-button svg { flex: 0 0 22px; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
   .tl-nav-copy { min-width: 0; display: flex; flex-direction: column; }
@@ -931,7 +971,7 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   .schild-marker {
     padding: 13px;
     margin: -13px;
-    filter: drop-shadow(0 2px 5px rgba(40, 30, 18, 0.25));
+    filter: drop-shadow(0 2px 5px rgba(var(--shade-rgb), 0.25));
     /* Ohne Karte und Halm sitzt der Punkt direkt auf dem Ort. */
     transform: translate(var(--mx, -9999px), var(--my, -9999px)) translate(-50%, -50%);
   }
@@ -941,7 +981,7 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
     padding: 6vh 6vw 12vh !important;
     gap: 28px !important;
   }
-  .paas-panel .pp-head { padding: 0 6vw 20vh !important; }
+  .paas-panel .pp-head { padding: 0 6vw 2vh !important; }
   .paas-panel .pp-spacer { height: 18vh; }
 }
 
@@ -949,4 +989,50 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   .tl-track,
   .tl-panel-nav,
   .schild-marker .sm-card { transition-duration: .01ms !important; }
+}
+
+/* ─── Impressum ─── */
+.impressum-link {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  z-index: 30;
+  color: var(--ink-mute);
+  text-decoration: none;
+  font-size: 9px;
+}
+.impressum-link:hover { color: var(--accent); }
+body.show-impressum .impressum-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+body.show-impressum .impressum-card { transform: translateY(0); }
+.impressum-overlay { z-index: 900; }
+.impressum-card { max-width: 560px; }
+.impressum-content {
+  font-family: var(--serif);
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--ink-2);
+}
+.impressum-content h2,
+.impressum-content h3 {
+  font-family: var(--title);
+  font-weight: var(--title-weight);
+  text-transform: var(--title-transform);
+  letter-spacing: var(--title-spacing);
+  color: var(--ink);
+}
+.impressum-content h2 { font-size: 24px; margin: 0 0 14px; }
+.impressum-content h3 { font-size: 15px; margin: 20px 0 6px; }
+.impressum-content p { margin: 0 0 10px; }
+.impressum-content a,
+.help-legal a,
+.paas-panel .pp-legal { color: var(--link); }
+.help-legal { margin: 22px 0 0; }
+.help-legal a, .paas-panel .pp-legal { text-decoration: none; }
+/* Auf Touch-Geräten liegt unten die Zeitleiste — dort steht der Link im
+   Bedienungs-Fenster und am Ende jedes Standpunkt-Texts. */
+@media (pointer: coarse), (max-width: 640px) {
+  .impressum-link { display: none; }
 }

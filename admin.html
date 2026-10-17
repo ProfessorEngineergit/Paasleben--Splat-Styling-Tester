@@ -57,6 +57,7 @@
               <span class="theme-picker-label">Design</span>
               <select id="theme-select" class="theme-select" title="Design der Website — wirkt sofort für alle Besucher"></select>
             </label>
+            <button id="impressum-button" class="btn" type="button" title="Impressum der Website bearbeiten">Impressum</button>
             <a class="btn" href="./" target="_blank" rel="noopener">Website ansehen</a>
             <button id="tour-button" class="btn btn-tour" type="button" title="Kurzeinführung: was sich hier wo bearbeiten lässt" aria-label="Kurzeinführung starten">?</button>
             <span id="user-chip" class="user-chip"></span>
@@ -97,6 +98,10 @@
               <label class="field">
                 <span class="field-label">Text (HTML erlaubt, Absätze durch Leerzeile)</span>
                 <textarea id="f-body" name="body" rows="9"></textarea>
+              </label>
+              <label class="field">
+                <span class="field-label">Hintergrundvideo (optional, ersetzt die Fotos)</span>
+                <input id="f-video" name="video" type="text" placeholder="z. B. videos/porsche.mp4 oder https://…" />
               </label>
               <div class="field-row">
                 <label class="field field-small">
@@ -163,6 +168,22 @@
           <iframe id="preview-frame" class="preview-frame" title="End-Ansicht der Website"></iframe>
         </div>
       </div>
+
+      <!-- Impressum bearbeiten -->
+      <dialog id="impressum-dialog" class="library-dialog impressum-dialog">
+        <form method="dialog" class="impressum-form">
+          <div class="library-head">
+            <h2>Impressum</h2>
+            <button id="impressum-close" class="btn btn-quiet" type="button">Schließen</button>
+          </div>
+          <p class="impressum-hint">HTML erlaubt: &lt;h2&gt;, &lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche. Erscheint auf der Website über den Link „Impressum“.</p>
+          <textarea id="impressum-text" class="impressum-text" rows="22" spellcheck="true"></textarea>
+          <div class="impressum-actions">
+            <span id="impressum-status" class="save-status" aria-live="polite"></span>
+            <button id="impressum-save" class="btn btn-primary" type="button">Speichern</button>
+          </div>
+        </form>
+      </dialog>
 
       <!-- Bibliotheks-Auswahl -->
       <dialog id="library-dialog" class="library-dialog">

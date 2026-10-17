@@ -47,6 +47,10 @@
   --sign-border-low: rgba(51, 51, 51, 0.32);
   --sign-ring:       rgba(255, 255, 255, 0.94);
   --dot-ring:        rgba(255, 255, 255, 0.9);
+  /* Papier- und Schattenfarbe als RGB-Tripel, für halbtransparente
+     Verläufe und Schatten: rgba(var(--paper-rgb), .5). */
+  --paper-rgb: 255, 255, 255;
+  --shade-rgb: 51, 51, 51;
   --vignette:        rgba(248, 248, 246, 0.5);
 
   --display: "Barlow Condensed", "Oxygen", "Helvetica Neue", Arial, sans-serif;

@@ -18,6 +18,8 @@ const normalize = (id, data) => ({
   title: data.title || '',
   subtitle: data.subtitle || '',
   body: data.body || '',
+  // Optionales Hintergrundvideo (Pfad relativ zu public/ oder volle URL).
+  video: data.video || '',
   displayNumber: data.displayNumber || '',
   order: typeof data.order === 'number' ? data.order : 999,
   visible: data.visible !== false,

@@ -15,41 +15,40 @@
 // Bewusst NICHT Teil dieses Moduls: Kamera, Steuerung, Marker, Panel. Das
 // Theme wechselt ausschließlich Farben und Schriften.
 
-const THEME_IDS = ['current', 'legacy-brand', 'combined'];
-const DEFAULT_THEME = 'current';
+// Das Design der Website ist der Auftritt von Top Executive Events
+// (legacy-brand). Das ursprüngliche Papier-Design bleibt als Rückfallebene
+// im Editor wählbar; der zwischenzeitliche kombinierte Entwurf ist entfernt.
+const THEME_IDS = ['legacy-brand', 'current'];
+const DEFAULT_THEME = 'legacy-brand';
 const STORAGE_KEY = 'paas-theme';
 
 // Beschriftungen für die Editor-Oberfläche.
 export const THEMES = [
   {
-    id: 'current',
-    label: 'Aktuelles Design',
-    hint: 'Der heutige Auftritt: warmes Papier, Schreibmaschinen-Schrift.',
-  },
-  {
     id: 'legacy-brand',
-    label: 'Altes Branding',
-    hint: 'Nachbildung von top-executive-events.com: weiß, orange, Oxygen.',
+    label: 'Top Executive Events',
+    hint: 'Der Auftritt von top-executive-events.com: weiß, orange, Oxygen.',
   },
   {
-    id: 'combined',
-    label: 'Neues kombiniertes Design',
-    hint: 'Vorschlag: Kalkstein, gebranntes Siena, Fraunces über Inter.',
+    id: 'current',
+    label: 'Ursprüngliches Design',
+    hint: 'Das frühere Papier-Design mit Schreibmaschinen-Schrift.',
   },
 ];
 
 // Zusätzliche Web-Schriften je Theme. Werden erst geladen, wenn das Theme
 // wirklich aktiv wird — so bleibt die Ladezeit des Standard-Themes unberührt.
+// Die Schriften des Standard-Designs stehen schon im <head> (data-paas-font),
+// damit sie nicht erst nach dem ersten Zeichnen nachgeladen werden.
 const THEME_FONTS = {
   'legacy-brand': 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;400;500&family=Oxygen:wght@300;400;700&display=swap',
-  combined: 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@300;400;500;600&display=swap',
+  current: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap',
 };
 
 // Browser-UI-Farbe (Adressleiste auf Mobilgeräten) je Theme.
 const THEME_META_COLOR = {
   current: '#f4ecd8',
   'legacy-brand': '#ffffff',
-  combined: '#f7f4ee',
 };
 
 export const isTheme = (value) => THEME_IDS.includes(value);

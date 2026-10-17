@@ -32,7 +32,7 @@ export class PaasLoader {
     el.innerHTML = `
       <div class="pl-stage">
         <div class="pl-caption t-caption">PAASLEBEN · KAPITEL EINS</div>
-        <div class="pl-typed t-headline"><span class="pl-text"></span><span class="pl-caret">|</span></div>
+        <div class="pl-typed t-headline"><span class="pl-text"></span><span class="pl-caret" aria-hidden="true">|</span><span class="pl-rest" aria-hidden="true"></span></div>
       </div>
       <div class="pl-progress">
         <div class="pl-meta t-caption"><span class="pl-pct">000</span> · <span class="pl-asset">vorbereiten</span></div>
@@ -44,6 +44,8 @@ export class PaasLoader {
     this.el = el;
     this.$text = el.querySelector('.pl-text');
     this.$caret = el.querySelector('.pl-caret');
+    this.$rest = el.querySelector('.pl-rest');
+    this._show(0);
     this.$pct = el.querySelector('.pl-pct');
     this.$asset = el.querySelector('.pl-asset');
     this.$fill = el.querySelector('.pl-line-fill');
@@ -59,6 +61,15 @@ export class PaasLoader {
       if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') this._skipTyping();
     };
     window.addEventListener('keydown', this._keyHandler);
+  }
+  // Der vollständige Text steht von Anfang an im Layout: getippt wird nur
+  // die Sichtbarkeit. Vorher wuchs der Text Zeichen für Zeichen, brach dabei
+  // mehrfach um und der zentrierte Block sprang hin und her — auf breiten
+  // Fenstern sichtbar verschoben. So hat er vom ersten Zeichen an seine
+  // endgültige Bounding Box.
+  _show(n) {
+    this.$text.textContent = this.text.slice(0, n);
+    this.$rest.textContent = this.text.slice(n);
   }
   setProgress(p, asset = "") {
     this.progress = Math.max(this.progress, Math.min(1, p));
@@ -84,11 +95,12 @@ export class PaasLoader {
     for (let i = 0; i < this.text.length; i++) {
       if (this.skipped) break;
       this.typed += this.text[i];
-      this.$text.textContent = this.typed;
+      this._show(this.typed.length);
       const ch = this.text[i];
       let delay = 60 + Math.random() * 60;
       if (ch === ' ') delay = 30;
       if ('.,—!?'.includes(ch)) delay = 280;
+      if (ch === '\n') delay = 120;
       await new Promise(r => setTimeout(r, delay));
     }
     this._typingDone = true;
@@ -98,7 +110,7 @@ export class PaasLoader {
   _skipTyping() {
     if (this._finishing || this._typingDone) return;
     this.typed = this.text;
-    this.$text.textContent = this.text;
+    this._show(this.text.length);
     this._typingDone = true;
     this.skipped = true;   // bricht die Tippschleife ab
     this.$skip.textContent = 'SZENE WIRD GELADEN';
@@ -116,7 +128,7 @@ export class PaasLoader {
     clearTimeout(this._autoTimer);
     clearTimeout(this._hardTimer);
     this.skipped = skipped;
-    if (skipped) { this.$text.textContent = this.text; this._typingDone = true; }
+    if (skipped) { this._show(this.text.length); this._typingDone = true; }
     // hold beat
     await new Promise(r => setTimeout(r, skipped ? 100 : 600));
     this.$caret.style.opacity = '0';

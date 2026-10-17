@@ -1,7 +1,6 @@
 @import '../styles/tokens.css';
 @import '../styles/themes/current.css';
 @import '../styles/themes/legacy-brand.css';
-@import '../styles/themes/combined.css';
 
 /* Karten-Editor — Werkzeug-UI direkt auf denselben Design-Tokens wie die
    Website. Dadurch ist ein Design-Wechsel hier ohne Reload sofort sichtbar. */
@@ -539,3 +538,19 @@ html, body {
   color: #6b551f;
   border-bottom-color: #e2d3ad;
 }
+
+/* ── Impressum-Dialog ── */
+.impressum-dialog { width: min(760px, 94vw); }
+.impressum-form { display: flex; flex-direction: column; gap: 10px; }
+.impressum-hint { margin: 0; font-size: 12px; color: var(--ink-mute, #6f6a6b); }
+.impressum-text {
+  width: 100%;
+  min-height: 52vh;
+  font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: 10px 12px;
+  border: 1px solid var(--rule, rgba(0,0,0,.2));
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.impressum-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }

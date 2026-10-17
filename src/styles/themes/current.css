@@ -39,6 +39,10 @@
   --sign-border-low: rgba(40, 30, 18, 0.42);
   --sign-ring:       rgba(244, 236, 216, 0.92);
   --dot-ring:        rgba(244, 236, 216, 0.85);
+  /* Papier- und Schattenfarbe als RGB-Tripel, für halbtransparente
+     Verläufe und Schatten: rgba(var(--paper-rgb), .5). */
+  --paper-rgb: 244, 236, 216;
+  --shade-rgb: 40, 30, 18;
   --vignette:        rgba(244, 236, 216, 0.45);
 
   --display: "American Typewriter", "Courier Prime", "Courier New", ui-monospace, monospace;

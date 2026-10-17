@@ -5,31 +5,43 @@
 .paas-loader {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; flex-direction: column;
-  align-items: stretch; justify-content: center;
+  align-items: stretch; justify-content: flex-end;
   background: var(--paper);
   color: var(--ink);
   padding: 6vh 8vw;
   cursor: none;
 }
+/* Die Bühne ist auf das ganze Fenster zentriert, nicht auf den Raum über
+   dem Ladebalken — sonst saß der Text auf breiten Fenstern sichtbar zu hoch. */
 .paas-loader .pl-stage {
-  flex: 1;
+  position: absolute; inset: 0;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 28px;
+  padding: 0 8vw;
+  pointer-events: none;
 }
 .paas-loader .pl-caption {
   color: var(--ink-mute);
 }
 .paas-loader .pl-typed {
-  font-size: clamp(28px, 4.5vw, 56px);
+  font-size: clamp(26px, 4.2vw, 54px);
+  line-height: 1.18;
   color: var(--ink);
   text-align: center;
-  max-width: 22ch;
-  display: inline;
+  /* Zeilen kommen aus dem Text (\n), sehr schmale Displays dürfen trotzdem
+     umbrechen. */
+  white-space: pre-line;
+  max-width: 100%;
 }
+/* Der noch nicht getippte Rest belegt seinen Platz, bleibt aber unsichtbar. */
+.paas-loader .pl-rest { visibility: hidden; }
+/* Breite null: die Schreibmarke darf das Layout nicht verschieben. */
 .paas-loader .pl-caret {
   display: inline-block;
-  margin-left: 4px;
+  width: 0;
+  overflow: visible;
+  transform: translateX(3px);
   font-family: var(--display);
   color: var(--accent);
   animation: pl-blink 800ms steps(1) infinite;
@@ -107,7 +119,7 @@
   transform: translate(-50%, -50%) scale(0.4);
   opacity: 0;
   display: flex; align-items: center; justify-content: center;
-  background: rgba(244, 236, 216, 0.6);
+  background: rgba(var(--paper-rgb), 0.6);
   backdrop-filter: blur(6px);
   transition: transform .35s var(--ease-bounce), opacity .25s var(--ease-out-soft), width .35s var(--ease-bounce), height .35s var(--ease-bounce);
 }
@@ -143,7 +155,7 @@
   /* Eine leichte Papierlasur schafft Hierarchie ohne die frühere große
      Blur-Fläche. So bleibt das Areal räumlich lesbar und der WebGL-Layer muss
      beim Scrollen nicht permanent neu gefiltert werden. */
-  background: rgba(244, 236, 216, 0.34);
+  background: rgba(var(--paper-rgb), 0.34);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
   transition: opacity .54s cubic-bezier(.2,.82,.24,1);
@@ -174,7 +186,9 @@
 }
 .paas-panel .pp-scroll:focus { outline: none; }
 .paas-panel.pp-open .pp-scroll { transform: translateY(0%); }
-.paas-panel .pp-spacer { height: 25vh; pointer-events: none; }
+/* Über dem Panel bleibt ein Streifen Szene sichtbar — gerade so viel, dass
+   man räumlich verortet bleibt, ohne den Text unter die Falz zu schieben. */
+.paas-panel .pp-spacer { height: 20vh; pointer-events: none; }
 /* Fold-line: extends to scroll-content edges (no scrollbar offset). */
 .paas-panel .pp-folds {
   width: calc(100% + 16vw);
@@ -198,10 +212,10 @@
 
 .paas-panel .pp-close {
   position: relative;
-  background: rgba(244, 236, 216, 0.7);
+  background: rgba(var(--paper-rgb), 0.7);
   backdrop-filter: blur(14px) saturate(1.25);
   -webkit-backdrop-filter: blur(14px) saturate(1.25);
-  border: 1px solid rgba(40, 30, 18, 0.32);
+  border: 1px solid rgba(var(--shade-rgb), 0.32);
   height: 38px;
   padding: 0 22px;
   border-radius: 19px;
@@ -209,7 +223,7 @@
   color: var(--ink);
   cursor: none;
   pointer-events: auto;
-  box-shadow: 0 4px 12px rgba(40, 30, 18, 0.18);
+  box-shadow: 0 4px 12px rgba(var(--shade-rgb), 0.18);
   transition: background .25s, color .25s, border-color .25s;
   font-family: var(--display);
   font-size: 11px;
@@ -222,7 +236,7 @@
 .paas-panel .pp-close:hover {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(244, 236, 216, 0.85);
+  background: rgba(var(--paper-rgb), 0.85);
 }
 
 /* Beim Blättern bleibt das Panel stehen; nur sein redaktioneller Inhalt
@@ -244,10 +258,17 @@
 @keyframes pp-content-in { from { opacity: 0; transform: translateX(14px); } }
 @keyframes pp-content-in-back { from { opacity: 0; transform: translateX(-14px); } }
 
+/* Kein großer Abstand mehr zwischen Kopf und Text: vorher begann der Text
+   erst rund 22 vh unter den Metadaten und damit unterhalb der Bildkante —
+   man sah nur den Titel und nicht, dass es weitergeht. Jetzt steht die erste
+   Textzeile direkt unter dem Titel im Bild, das „Mehr lesen" entfällt. */
 .paas-panel .pp-head {
   position: relative;
+  /* Über dem Papierverlauf des Artikels, damit Titel und Metadaten scharf
+     bleiben und nur der Hintergrund ins Papier übergeht. */
+  z-index: 1;
   text-align: center;
-  padding: 0 8vw 22vh;
+  padding: 0 8vw 2vh;
   display: flex; flex-direction: column;
   align-items: center; gap: 16px;
 }
@@ -267,10 +288,6 @@
   color: var(--ink);
   font-weight: 700;
 }
-.paas-panel .pp-cue {
-  color: var(--ink);
-  font-weight: 700;
-}
 .paas-panel .pp-plus { color: var(--ink); opacity: 0.9; font-weight: 700; }
 .paas-panel .pp-plus {
   font-family: var(--display);
@@ -284,20 +301,10 @@
   display: flex; flex-direction: column; gap: 6px;
   color: var(--ink-mute);
 }
-.paas-panel .pp-cue {
-  position: relative;
-  margin-top: 28px;
-  left: auto;
-  bottom: auto;
-  transform: none;
-  color: var(--ink-mute);
-  animation: pp-cue 2s var(--ease-in-out) infinite;
-}
-@keyframes pp-cue { 0%, 100% { transform: translateY(0); opacity: .5; } 50% { transform: translateY(6px); opacity: 1; } }
 
 .paas-panel .pp-article {
   background: var(--paper);
-  padding: 8vh 8vw 12vh;
+  padding: 3vh 8vw 12vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 48px;
@@ -306,16 +313,27 @@
   position: relative;
 }
 /* Soft cream fade extending up into the head — no hard seam. */
-.paas-panel .pp-article::before {
+/* Langer, weicher Übergang von der Szene ins Papier. Er beginnt schon auf
+   Höhe des Titels, damit unten keine harte Kante entsteht und der Text
+   sichtbar „aus der Karte heraus" wächst.
+   Bewusst ::after: ::before belegt die Papier-Körnung der Klasse .paper
+   (multiply, im Top-Executive-Design opacity 0). Am selben Pseudo-Element
+   wurde dieser Verlauf dadurch unsichtbar bzw. multipliziert statt
+   überblendet — genau das war die harte Kante über dem Text. */
+.paas-panel .pp-article::after {
+  mix-blend-mode: normal;
+  opacity: 1;
+  z-index: 0;
   content: "";
   position: absolute;
   left: 0; right: 0;
-  top: -180px;
-  height: 200px;
+  top: -300px;
+  height: 302px;
   background: linear-gradient(
     to bottom,
-    rgba(244, 236, 216, 0) 0%,
-    rgba(244, 236, 216, 0.55) 55%,
+    rgba(var(--paper-rgb), 0) 0%,
+    rgba(var(--paper-rgb), 0.35) 35%,
+    rgba(var(--paper-rgb), 0.78) 68%,
     var(--paper) 100%
   );
   pointer-events: none;
@@ -391,6 +409,50 @@
   }
 }
 
+/* ─── Hintergrundvideo (z. B. Willkommen) ─────────────────────────── */
+.paas-panel .pp-figure.pp-video {
+  aspect-ratio: 16/10;
+  background: #111;
+  border: 0;
+}
+.paas-panel .pp-figure.pp-video video {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  /* bewusst etwas dunkler als natürlich */
+  filter: brightness(0.72) saturate(0.92);
+}
+
+/* ─── Gastgeber-Profile im Fließtext ──────────────────────────────── */
+.paas-panel .pp-body h2,
+.paas-panel .pp-body h3 {
+  font-family: var(--title);
+  font-weight: var(--title-weight);
+  text-transform: var(--title-transform);
+  letter-spacing: var(--title-spacing);
+  color: var(--ink);
+  line-height: 1.15;
+}
+.paas-panel .pp-body h2 { font-size: 22px; margin: 2.2em 0 0.8em; }
+.paas-panel .pp-body h3 { font-size: 17px; margin: 0 0 0.35em; }
+.paas-panel .pp-host {
+  display: grid;
+  grid-template-columns: 76px 1fr;
+  gap: 4px 16px;
+  margin: 0 0 1.8em;
+}
+.paas-panel .pp-host img {
+  grid-row: span 3;
+  width: 76px; aspect-ratio: 113/150;
+  object-fit: cover;
+  border: 1px solid var(--rule-soft);
+}
+.paas-panel .pp-host p { margin: 0 0 0.6em; }
+.paas-panel .pp-host .pp-host-contact {
+  font-size: 13px;
+  color: var(--ink-mute);
+}
+
 .paas-panel .pp-placeholder {
   width: 100%; height: 100%;
   background:
@@ -438,8 +500,8 @@
   background: linear-gradient(
     to bottom,
     transparent 0%,
-    rgba(244, 236, 216, 0.08) 24%,
-    rgba(244, 236, 216, 0.72) 62%,
+    rgba(var(--paper-rgb), 0.08) 24%,
+    rgba(var(--paper-rgb), 0.72) 62%,
     var(--paper) 100%
   );
   opacity: 0;
@@ -455,9 +517,9 @@
     background: linear-gradient(
       to bottom,
       transparent 0%,
-      rgba(244, 236, 216, 0.10) 20%,
-      rgba(244, 236, 216, 0.50) 55%,
-      rgba(244, 236, 216, 0.90) 100%
+      rgba(var(--paper-rgb), 0.10) 20%,
+      rgba(var(--paper-rgb), 0.50) 55%,
+      rgba(var(--paper-rgb), 0.90) 100%
     );
     backdrop-filter: none;
     -webkit-backdrop-filter: none;

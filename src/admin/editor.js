@@ -19,6 +19,7 @@ import {
 import { setupImagesUI } from './images.js';
 import { setupPreview } from './preview.js';
 import { setupTour } from './tour.js';
+import { loadImpressum, saveImpressum } from '../lib/impressum.js';
 
 const SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -161,6 +162,7 @@ export const startEditor = () => {
     if (keys.includes('title')) return 'Titel ändern';
     if (keys.includes('subtitle')) return 'Untertitel ändern';
     if (keys.includes('body')) return 'Text ändern';
+    if (keys.includes('video')) return 'Video ändern';
     if (keys.includes('displayNumber')) return 'Schildnummer ändern';
     if (keys.includes('order')) return 'Reihenfolge ändern';
     return 'Ort ändern';
@@ -508,6 +510,7 @@ export const startEditor = () => {
     title: document.querySelector('#f-title'),
     subtitle: document.querySelector('#f-subtitle'),
     body: document.querySelector('#f-body'),
+    video: document.querySelector('#f-video'),
     displayNumber: document.querySelector('#f-display'),
     order: document.querySelector('#f-order'),
     visible: document.querySelector('#f-visible'),
@@ -529,6 +532,7 @@ export const startEditor = () => {
     fields.title.value = loc.title;
     fields.subtitle.value = loc.subtitle;
     fields.body.value = loc.body;
+    fields.video.value = loc.video || '';
     fields.displayNumber.value = loc.displayNumber;
     fields.order.value = loc.order;
     fields.visible.checked = loc.visible;
@@ -674,6 +678,7 @@ export const startEditor = () => {
   bindField(fields.title, (i) => ({ title: i.value.trim() }));
   bindField(fields.subtitle, (i) => ({ subtitle: i.value.trim() }));
   bindField(fields.body, (i) => ({ body: i.value }));
+  bindField(fields.video, (i) => ({ video: i.value.trim() }));
   bindField(fields.displayNumber, (i) => ({ displayNumber: i.value.trim().padStart(2, '0') }));
   bindField(fields.order, (i) => ({ order: Number(i.value) || 0 }));
   fields.visible.addEventListener('change', () => {
@@ -702,6 +707,7 @@ export const startEditor = () => {
       title: `${loc.title} (Kopie)`,
       subtitle: loc.subtitle,
       body: loc.body,
+      video: loc.video || '',
       displayNumber: display,
       order: Number(display),
       visible: false,
@@ -859,6 +865,52 @@ export const startEditor = () => {
     select.addEventListener('change', () => persistTheme(select.value));
   };
   setupThemePicker();
+
+  // ── Impressum ──────────────────────────────────────────────────────
+  // Seitenweiter Text (paas_config/impressum), deshalb oben in der Leiste
+  // und nicht im Ort-Formular.
+  const setupImpressum = () => {
+    const button = document.querySelector('#impressum-button');
+    const dialog = document.querySelector('#impressum-dialog');
+    if (!button || !dialog) return;
+    const text = dialog.querySelector('#impressum-text');
+    const status = dialog.querySelector('#impressum-status');
+    const saveBtn = dialog.querySelector('#impressum-save');
+    let savedValue = '';
+    button.addEventListener('click', async () => {
+      status.textContent = 'Lädt…';
+      text.value = '';
+      dialog.showModal();
+      savedValue = await loadImpressum();
+      text.value = savedValue;
+      status.textContent = '';
+      saveBtn.disabled = READ_ONLY;
+      text.readOnly = READ_ONLY;
+    });
+    const close = () => {
+      if (text.value !== savedValue && !window.confirm('Ungespeicherte Änderungen am Impressum verwerfen?')) return;
+      dialog.close();
+    };
+    dialog.querySelector('#impressum-close').addEventListener('click', close);
+    dialog.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      status.textContent = 'Speichert…';
+      try {
+        await saveImpressum(text.value);
+        savedValue = text.value;
+        status.textContent = 'Gespeichert — sofort auf der Website sichtbar.';
+      } catch (err) {
+        console.error('Impressum speichern fehlgeschlagen:', err);
+        status.textContent = err?.code === 'permission-denied'
+          ? 'Keine Berechtigung zum Speichern.'
+          : 'Speichern fehlgeschlagen — bitte erneut versuchen.';
+      } finally {
+        saveBtn.disabled = READ_ONLY;
+      }
+    });
+  };
+  setupImpressum();
 
   // ── Kurzeinführung ─────────────────────────────────────────────────
   setupTour();

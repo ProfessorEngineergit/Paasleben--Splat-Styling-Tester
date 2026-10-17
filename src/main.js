@@ -12,6 +12,7 @@ import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
 import { createSky } from './lib/paas-sky.js';
 import { fetchLocations, resolveImages } from './lib/locations.js';
+import { loadImpressum } from './lib/impressum.js';
 import {
   REFERENCE_SPLAT, REFERENCE_CAMERA,
   buildSplatAlignment as buildSplatAlignmentShared,
@@ -41,6 +42,14 @@ const MOVE_RUBBER_SOFTNESS = 0.9;
 const MOVE_EDGE_SOFT_ZONE = 0.9;
 const MOVE_EDGE_MIN_FACTOR = 0.12;
 const MOVE_BOUNDS_REBOUND_INSET = 0.035;
+// Höhenstaffelung der Schilder (siehe updateMarkers): Abstand Punkt →
+// Kartenunterkante bei Grundhöhe, Luft zwischen zwei Etagen, höchste Etage.
+const MARKER_CARD_OFFSET = 36;  // nachgemessen: Projektionspunkt (--my) → Kartenunterkante
+const MARKER_LIFT_GAP = 10;
+const MARKER_MAX_LIFT = 3;
+const MARKER_TOP_MARGIN = 12;   // Karten dürfen nicht über den Fensterrand gehoben werden
+const MARKER_BADGE_SIZE = 28;   // Nummern-Plakette (siehe .sm-badge)
+const MARKER_MAX_BADGE_LIFT = 4;
 const DRAG_PAN_RIGHT_SPEED = 0.0125;
 const DRAG_PAN_FORWARD_SPEED = 0.015;
 const DRAG_INERTIA_MULTIPLIER = 3.75;
@@ -241,7 +250,8 @@ const boot = async () => {
   // ── Loader ─────────────────────────────
   const manager = new THREE.LoadingManager();
   const loader = new PaasLoader({
-    text: 'Ein Ort zum Atmen. Ein Ort für Skulpturen.',
+    // Je Satz eine Zeile — die drei gleich gebauten Sätze lesen sich als Reihe.
+    text: 'Ein Ort zum Atmen.\nEin Ort für Skulpturen.\nEin Ort für Tiere.',
     manager,
   });
 
@@ -741,7 +751,7 @@ const boot = async () => {
         <span class="sm-num">Nr. ${sp.display}</span>
         <span class="sm-title">${sp.name}</span>
       </span>
-      <span class="sm-badge" aria-hidden="true">${sp.display}</span>
+      <span class="sm-badge" aria-hidden="true" data-name="${sp.name}">${sp.display}</span>
       <span class="sm-stem" aria-hidden="true"></span>
       <span class="sm-dot" aria-hidden="true"></span>
     `;
@@ -802,34 +812,115 @@ const boot = async () => {
       }
       const klickbar = m.alpha > (introFlying ? 0.18 : 0.42);
       if (klickbar !== m.pe) {
-        m.el.style.pointerEvents = klickbar ? 'auto' : 'none';
+        // Als Klasse statt Inline-Stil: am Desktop sollen nur Karte und Punkt
+        // treffbar sein, nicht die leere Fläche neben einem verlängerten Halm
+        // (siehe style.css) — die würde sonst das Schild dahinter verdecken.
+        m.el.classList.toggle('is-clickable', klickbar);
         m.pe = klickbar;
       }
     }
 
-    // Dichte Schilder lesen sich als räumliche Stapel statt als flache Wand.
-    // Tiefere Karten werden dezent kleiner und weicher; Hover/Fokus holt jede
-    // davon ohne Layoutsprung vollständig nach vorne.
+    // Höhenstaffelung: Liegen Schilder übereinander, bekommt das hintere einen
+    // längeren Halm und steht eine Etage höher, bis es frei ist. Vorne (unten
+    // im Bild) wird zuerst platziert, damit die nahen Orte auf ihrem Punkt
+    // bleiben und die fernen ausweichen. Eine Etage zählt nur, wenn die Karte
+    // dabei im Fenster bleibt — der dichte Kern liegt oft am oberen Bildrand.
+    // Wer nirgends frei steht, wird zur kleinen Nummern-Plakette (der Name
+    // erscheint beim Darüberfahren). Vorher wurden verdeckte Schilder nur
+    // verkleinert und blieben übereinander — schwer zu treffen.
     const visible = markers
       .filter((m) => m.alpha > 0.32 && Number.isFinite(m.screenX) && Number.isFinite(m.screenY))
       .sort((a, b) => b.screenY - a.screenY);
+    const belegt = [];
+    const ueberlappt = (k) => belegt.some((b) => !(k.l >= b.r || k.r <= b.l || k.o >= b.u || k.u <= b.o));
     for (let i = 0; i < visible.length; i++) {
       const m = visible[i];
-      let depth = 0;
-      for (let j = 0; j < i; j++) {
-        const front = visible[j];
-        if (Math.abs(m.screenX - front.screenX) < 138
-            && Math.abs(m.screenY - front.screenY) < 64) depth += 1;
-      }
-      depth = Math.min(3, depth);
-      if (depth !== m.stackDepth) {
-        m.el.style.setProperty('--stack-depth', String(depth));
-        m.el.classList.toggle('is-stacked', depth > 0);
-        m.stackDepth = depth;
-      }
       m.el.style.zIndex = String(1000 - i);
+      if (!m.cardH) {
+        // Maße einmal lesen (nach Theme-Wechsel oder Resize neu, siehe
+        // invalidateMarkerSizes). Auf Mobilgeräten sind die Karten
+        // ausgeblendet (Höhe 0) — dort gibt es nur Punkte, keine Staffelung.
+        const card = m.el.querySelector('.sm-card');
+        m.cardW = card?.offsetWidth || 0;
+        m.cardH = card?.offsetHeight || 0;
+        if (!m.cardH) continue;
+      }
+      const etage = m.cardH + MARKER_LIFT_GAP;
+      const rect = (stufe, rand) => {
+        const unten = m.screenY - MARKER_CARD_OFFSET - stufe * etage;
+        return {
+          l: m.screenX - m.cardW / 2 - rand, r: m.screenX + m.cardW / 2 + rand,
+          o: unten - m.cardH - rand, u: unten + rand,
+        };
+      };
+      const passt = (stufe, rand) => {
+        const k = rect(stufe, rand);
+        return k.o + rand >= MARKER_TOP_MARGIN && !ueberlappt(k);
+      };
+      const bisher = m.liftLevel ?? 0;
+      const warKompakt = !!m.compact;
+      let stufe = -1;
+      for (let st = 0; st <= MARKER_MAX_LIFT; st++) {
+        if (passt(st, 3)) { stufe = st; break; }
+      }
+      // Hysterese gegen Springen beim Schwenken: die bisherige Lage bleibt,
+      // solange sie noch knapp passt und die neue nicht deutlich besser frei
+      // ist.
+      if (!warKompakt && bisher >= 0 && bisher !== stufe && passt(bisher, -2)
+          && (stufe < 0 || !passt(stufe, 14))) stufe = bisher;
+      if (warKompakt && stufe >= 0 && !passt(stufe, 14)) stufe = -1;
+
+      const kompakt = stufe < 0;
+      let liftPx;
+      if (kompakt) {
+        // Plakette: dieselbe Etagen-Suche, nur mit der kleinen Fläche — die
+        // findet fast immer Platz. Ihre Etagen sind niedriger als die der
+        // Karten, damit die Halme kurz bleiben.
+        const r = MARKER_BADGE_SIZE / 2;
+        const stufeB = MARKER_BADGE_SIZE + 6;
+        const badge = (st, rand) => {
+          const unten = m.screenY - MARKER_CARD_OFFSET - st * stufeB;
+          return { l: m.screenX - r - rand, r: m.screenX + r + rand,
+            o: unten - MARKER_BADGE_SIZE - rand, u: unten + rand };
+        };
+        // Nur Etagen, die im Fenster bleiben; ist keine frei, bleibt die
+        // Plakette unten auf ihrem Punkt (lieber leicht überlappt als
+        // aus dem Bild geschoben).
+        let st = 0;
+        for (let k = 0; k <= MARKER_MAX_BADGE_LIFT; k++) {
+          if (badge(k, 0).o < MARKER_TOP_MARGIN) break;
+          if (!ueberlappt(badge(k, 2))) { st = k; break; }
+        }
+        belegt.push(badge(st, 0));
+        stufe = -1 - st;          // negativ = Plakette in Etage st
+        liftPx = st * stufeB;
+      } else {
+        belegt.push(rect(stufe, 0));
+        liftPx = stufe * etage;
+      }
+      if (kompakt !== warKompakt) {
+        m.el.classList.toggle('is-compact', kompakt);
+        m.compact = kompakt;
+      }
+      if (stufe !== bisher) {
+        m.el.style.setProperty('--lift', `${liftPx}px`);
+        m.liftLevel = stufe;
+      }
     }
   };
+
+  // Kartenmaße hängen an Schrift und Fenster — nach Theme-Wechsel oder
+  // Resize neu messen. Dafür kurz alle Plaketten zurück zu Karten schalten,
+  // sonst misst offsetHeight eine ausgeblendete Karte als 0.
+  const invalidateMarkerSizes = () => {
+    for (const m of markers) {
+      m.cardH = 0;
+      m.compact = false;
+      m.el.classList.remove('is-compact');
+    }
+  };
+  window.addEventListener('paas:themechange', invalidateMarkerSizes);
+  window.addEventListener('resize', invalidateMarkerSizes);
 
   // Hinweis: kein eigener rAF-Loop mehr — updateMarkers() läuft am Ende
   // von animate() (siehe unten), damit die Projektion die Kameramatrix
@@ -1039,7 +1130,7 @@ const boot = async () => {
       </defs>
       <g filter="url(#pp-folds-shadow)">
         <path d="M 0 100 L 360 18 L 1240 18 L 1600 100"
-              fill="none" stroke="#f4ecd8" stroke-width="4"
+              fill="none" style="stroke: var(--paper)" stroke-width="4"
               stroke-linejoin="round" stroke-linecap="round"
               vector-effect="non-scaling-stroke" />
       </g>
@@ -1221,6 +1312,9 @@ const boot = async () => {
         { label: 'ORT', value: 'PAASLEBEN · GARTEN' },
       ],
       body: sp.body,
+      video: sp.video
+        ? (/^(https?:|data:|\/)/.test(sp.video) ? sp.video : `${import.meta.env.BASE_URL}${sp.video}`)
+        : '',
       images: [],
     };
     // 1) fly camera, 2) when tween is decelerating, slide panel up
@@ -1650,6 +1744,40 @@ const boot = async () => {
     if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
   }
 
+  // ── Impressum: jeder Link auf #impressum öffnet das Overlay ──
+  // Der Text kommt aus Firestore (im Editor bearbeitbar) und wird erst beim
+  // ersten Öffnen geladen.
+  const impressumOverlay = document.querySelector('#impressum-overlay');
+  if (impressumOverlay) {
+    const content = impressumOverlay.querySelector('#impressum-content');
+    let loaded = null;
+    const setImpressum = (open) => {
+      document.body.classList.toggle('show-impressum', open);
+      impressumOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+      if (open) {
+        if (helpVisible) toggleHelp(false);
+        loaded = loaded || loadImpressum().then((html) => { content.innerHTML = html; });
+      }
+    };
+    document.addEventListener('click', (e) => {
+      const link = e.target.closest?.('a[href="#impressum"]');
+      if (!link) return;
+      e.preventDefault();
+      setImpressum(true);
+    });
+    impressumOverlay.addEventListener('click', (e) => {
+      if (e.target === impressumOverlay || e.target.closest('.help-close')) setImpressum(false);
+    });
+    // Capture-Phase: Esc schließt nur das Impressum, nicht zusätzlich das
+    // darunterliegende Panel.
+    window.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !document.body.classList.contains('show-impressum')) return;
+      e.stopImmediatePropagation();
+      setImpressum(false);
+    }, true);
+    if (location.hash === '#impressum') setImpressum(true);
+  }
+
   // ── Audio: autoplay muted + mute/unmute toggle ──
   const audio = document.querySelector('#bgm');
   const audioBtn = document.querySelector('#audio-button');
@@ -2061,6 +2189,7 @@ const boot = async () => {
           name: loc.title,
           subtitle: loc.subtitle,
           body: loc.body,
+          video: loc.video,
           images: loc.images,
           world: new THREE.Vector3(loc.position.x, loc.position.y, loc.position.z),
         };
