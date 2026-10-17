@@ -16,10 +16,13 @@ import { subscribeLocations } from '../lib/locations.js';
 import {
   REFERENCE_CAMERA, buildSplatAlignment, applyAlignmentToSplat, applySplatOffset,
 } from '../lib/splat-alignment.js';
-import { setupImagesUI } from './images.js';
+import { setupImagesUI, fileToDataUrl } from './images.js';
 import { setupPreview } from './preview.js';
 import { setupTour } from './tour.js';
 import { loadImpressum, saveImpressum } from '../lib/impressum.js';
+import {
+  HEADER_FIELDS, loadSiteContent, saveSiteContent, resolvePhoto,
+} from '../lib/site-content.js';
 
 const SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -163,6 +166,8 @@ export const startEditor = () => {
     if (keys.includes('subtitle')) return 'Untertitel ändern';
     if (keys.includes('body')) return 'Text ändern';
     if (keys.includes('video')) return 'Video ändern';
+    if (keys.includes('showHosts')) return 'Gastgeber ein/aus';
+    if (keys.includes('showCaptions')) return 'Bildunterschriften ein/aus';
     if (keys.includes('displayNumber')) return 'Schildnummer ändern';
     if (keys.includes('order')) return 'Reihenfolge ändern';
     return 'Ort ändern';
@@ -511,6 +516,8 @@ export const startEditor = () => {
     subtitle: document.querySelector('#f-subtitle'),
     body: document.querySelector('#f-body'),
     video: document.querySelector('#f-video'),
+    showHosts: document.querySelector('#f-show-hosts'),
+    showCaptions: document.querySelector('#f-show-captions'),
     displayNumber: document.querySelector('#f-display'),
     order: document.querySelector('#f-order'),
     visible: document.querySelector('#f-visible'),
@@ -533,6 +540,8 @@ export const startEditor = () => {
     fields.subtitle.value = loc.subtitle;
     fields.body.value = loc.body;
     fields.video.value = loc.video || '';
+    fields.showHosts.checked = !!loc.showHosts;
+    fields.showCaptions.checked = !!loc.showCaptions;
     fields.displayNumber.value = loc.displayNumber;
     fields.order.value = loc.order;
     fields.visible.checked = loc.visible;
@@ -681,6 +690,12 @@ export const startEditor = () => {
   bindField(fields.video, (i) => ({ video: i.value.trim() }));
   bindField(fields.displayNumber, (i) => ({ displayNumber: i.value.trim().padStart(2, '0') }));
   bindField(fields.order, (i) => ({ order: Number(i.value) || 0 }));
+  fields.showHosts.addEventListener('change', () => {
+    if (selectedId) save(selectedId, { showHosts: fields.showHosts.checked });
+  });
+  fields.showCaptions.addEventListener('change', () => {
+    if (selectedId) save(selectedId, { showCaptions: fields.showCaptions.checked });
+  });
   fields.visible.addEventListener('change', () => {
     if (selectedId) save(selectedId, { visible: fields.visible.checked });
   });
@@ -866,51 +881,153 @@ export const startEditor = () => {
   };
   setupThemePicker();
 
-  // ── Impressum ──────────────────────────────────────────────────────
-  // Seitenweiter Text (paas_config/impressum), deshalb oben in der Leiste
-  // und nicht im Ort-Formular.
-  const setupImpressum = () => {
-    const button = document.querySelector('#impressum-button');
-    const dialog = document.querySelector('#impressum-dialog');
+  // ── Website-Texte ──────────────────────────────────────────────────
+  // Alles, was nicht zu einem Ort gehört: Kopfbereich, Gastgeber, Kontakt
+  // (paas_config/content) und Impressum (paas_config/impressum). Jeder
+  // Reiter sagt, wo der Text auf der Website erscheint.
+  const setupSiteTexts = () => {
+    const button = document.querySelector('#site-button');
+    const dialog = document.querySelector('#site-dialog');
     if (!button || !dialog) return;
-    const text = dialog.querySelector('#impressum-text');
-    const status = dialog.querySelector('#impressum-status');
-    const saveBtn = dialog.querySelector('#impressum-save');
-    let savedValue = '';
+    const $ = (sel) => dialog.querySelector(sel);
+    const status = $('#site-status');
+    const saveBtn = $('#site-save');
+    const headerBox = $('#site-header-fields');
+    const hostsBox = $('#site-hosts');
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    let hosts = [];
+    let snapshot = '';
+
+    headerBox.innerHTML = HEADER_FIELDS.map((f) => `
+      <label class="field"><span class="field-label">${f.label} <small>— ${f.hint}</small></span>
+        <input type="text" data-header-key="${f.key}" /></label>`).join('');
+
+    // Reiter
+    dialog.querySelectorAll('[data-site-tab]').forEach((tab) => tab.addEventListener('click', () => {
+      dialog.querySelectorAll('[data-site-tab]').forEach((t) => t.classList.toggle('is-active', t === tab));
+      dialog.querySelectorAll('[data-site-pane]').forEach((p) => { p.hidden = p.dataset.sitePane !== tab.dataset.siteTab; });
+    }));
+
+    const renderHosts = () => {
+      hostsBox.innerHTML = hosts.map((h, i) => `
+        <fieldset class="host-card" data-host="${i}">
+          <legend>Person ${i + 1}</legend>
+          <div class="host-photo">
+            ${h.photo ? `<img src="${esc(resolvePhoto(h.photo, import.meta.env.BASE_URL))}" alt="" />` : '<span class="host-nophoto">kein Foto</span>'}
+            <label class="btn btn-file">Foto wählen<input type="file" accept="image/*" hidden data-host-photo /></label>
+          </div>
+          <label class="field"><span class="field-label">Name</span><input type="text" data-host-field="name" value="${esc(h.name)}" /></label>
+          <label class="field"><span class="field-label">Profiltext <small>— Absätze durch Leerzeile</small></span><textarea rows="7" data-host-field="text">${esc(h.text)}</textarea></label>
+          <div class="field-row">
+            <label class="field"><span class="field-label">Telefon</span><input type="text" data-host-field="phone" value="${esc(h.phone)}" /></label>
+            <label class="field"><span class="field-label">E-Mail</span><input type="text" data-host-field="email" value="${esc(h.email)}" /></label>
+            <label class="field"><span class="field-label">Website</span><input type="text" data-host-field="web" value="${esc(h.web)}" /></label>
+          </div>
+          <div class="host-actions">
+            <button class="btn btn-quiet" type="button" data-host-move="-1" ${i === 0 ? 'disabled' : ''}>↑ nach oben</button>
+            <button class="btn btn-quiet" type="button" data-host-move="1" ${i === hosts.length - 1 ? 'disabled' : ''}>↓ nach unten</button>
+            <button class="btn btn-danger" type="button" data-host-remove>Entfernen</button>
+          </div>
+        </fieldset>`).join('');
+    };
+    hostsBox.addEventListener('input', (e) => {
+      const card = e.target.closest('[data-host]');
+      const key = e.target.dataset.hostField;
+      if (card && key) hosts[Number(card.dataset.host)][key] = e.target.value;
+    });
+    hostsBox.addEventListener('change', async (e) => {
+      if (!e.target.matches('[data-host-photo]')) return;
+      const file = e.target.files?.[0];
+      const i = Number(e.target.closest('[data-host]').dataset.host);
+      if (!file) return;
+      status.textContent = 'Foto wird verkleinert…';
+      try {
+        // Klein halten: alle Website-Texte liegen in einem Dokument (≤ 1 MB).
+        hosts[i].photo = await fileToDataUrl(file, 480);
+        status.textContent = 'Foto übernommen — noch speichern.';
+        renderHosts();
+      } catch (err) {
+        status.textContent = `Foto nicht lesbar: ${err.message}`;
+      }
+    });
+    hostsBox.addEventListener('click', (e) => {
+      const card = e.target.closest('[data-host]');
+      if (!card) return;
+      const i = Number(card.dataset.host);
+      if (e.target.matches('[data-host-remove]')) {
+        if (!window.confirm(`„${hosts[i].name || 'Person'}“ entfernen?`)) return;
+        hosts.splice(i, 1);
+        renderHosts();
+      } else if (e.target.matches('[data-host-move]')) {
+        const j = i + Number(e.target.dataset.hostMove);
+        [hosts[i], hosts[j]] = [hosts[j], hosts[i]];
+        renderHosts();
+      }
+    });
+    $('#site-add-host').addEventListener('click', () => {
+      hosts.push({ name: '', photo: '', text: '', phone: '', email: '', web: '' });
+      renderHosts();
+    });
+
+    const collect = () => {
+      const content = {
+        hostsHeading: $('#site-hosts-heading').value.trim(),
+        contactEmail: $('#site-contact-email').value.trim(),
+        contactPhone: $('#site-contact-phone').value.trim(),
+        hosts: hosts.map((h) => ({
+          name: (h.name || '').trim(), photo: h.photo || '', text: (h.text || '').trim(),
+          phone: (h.phone || '').trim(), email: (h.email || '').trim(), web: (h.web || '').trim(),
+        })),
+      };
+      dialog.querySelectorAll('[data-header-key]').forEach((input) => {
+        content[input.dataset.headerKey] = input.value.trim();
+      });
+      return { content, impressum: $('#impressum-text').value };
+    };
+
     button.addEventListener('click', async () => {
       status.textContent = 'Lädt…';
-      text.value = '';
       dialog.showModal();
-      savedValue = await loadImpressum();
-      text.value = savedValue;
+      const [content, impressum] = await Promise.all([loadSiteContent(), loadImpressum()]);
+      dialog.querySelectorAll('[data-header-key]').forEach((input) => {
+        input.value = content[input.dataset.headerKey] || '';
+      });
+      $('#site-hosts-heading').value = content.hostsHeading || '';
+      $('#site-contact-email').value = content.contactEmail || '';
+      $('#site-contact-phone').value = content.contactPhone || '';
+      $('#impressum-text').value = impressum;
+      hosts = (content.hosts || []).map((h) => ({ ...h }));
+      renderHosts();
+      snapshot = JSON.stringify(collect());
       status.textContent = '';
       saveBtn.disabled = READ_ONLY;
-      text.readOnly = READ_ONLY;
     });
     const close = () => {
-      if (text.value !== savedValue && !window.confirm('Ungespeicherte Änderungen am Impressum verwerfen?')) return;
+      if (JSON.stringify(collect()) !== snapshot
+        && !window.confirm('Ungespeicherte Änderungen verwerfen?')) return;
       dialog.close();
     };
-    dialog.querySelector('#impressum-close').addEventListener('click', close);
+    $('#site-close').addEventListener('click', close);
     dialog.addEventListener('cancel', (e) => { e.preventDefault(); close(); });
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       status.textContent = 'Speichert…';
       try {
-        await saveImpressum(text.value);
-        savedValue = text.value;
-        status.textContent = 'Gespeichert — sofort auf der Website sichtbar.';
+        const { content, impressum } = collect();
+        await Promise.all([saveSiteContent(content), saveImpressum(impressum)]);
+        snapshot = JSON.stringify({ content, impressum });
+        status.textContent = 'Gespeichert — beim nächsten Laden der Website sichtbar.';
       } catch (err) {
-        console.error('Impressum speichern fehlgeschlagen:', err);
+        console.error('Website-Texte speichern fehlgeschlagen:', err);
         status.textContent = err?.code === 'permission-denied'
           ? 'Keine Berechtigung zum Speichern.'
-          : 'Speichern fehlgeschlagen — bitte erneut versuchen.';
+          : `Speichern fehlgeschlagen: ${err.message}`;
       } finally {
         saveBtn.disabled = READ_ONLY;
       }
     });
   };
-  setupImpressum();
+  setupSiteTexts();
 
   // ── Kurzeinführung ─────────────────────────────────────────────────
   setupTour();

@@ -13,6 +13,7 @@ import { PaasPanel } from './lib/paas-panel.js';
 import { createSky } from './lib/paas-sky.js';
 import { fetchLocations, resolveImages } from './lib/locations.js';
 import { loadImpressum } from './lib/impressum.js';
+import { loadSiteContent, renderHostsHTML } from './lib/site-content.js';
 import {
   REFERENCE_SPLAT, REFERENCE_CAMERA,
   buildSplatAlignment as buildSplatAlignmentShared,
@@ -169,7 +170,29 @@ const loadSheetContent = async () => {
   }
 };
 
-loadSheetContent();
+// Website-Texte aus dem Editor (paas_config/content) überschreiben die
+// Rahmentexte aus der CSV; außerdem Kontakt und Gastgeber.
+let siteContent = null;
+// Erst nach der CSV anwenden, sonst überschreibt sie die Editor-Texte.
+Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
+  siteContent = content;
+  document.querySelectorAll('[data-content-key]').forEach((el) => {
+    const value = content[el.getAttribute('data-content-key')];
+    if (typeof value === 'string' && value.trim()) el.textContent = value;
+  });
+  document.querySelectorAll('[data-contact="email"]').forEach((el) => {
+    el.textContent = content.contactEmail;
+    el.href = `mailto:${content.contactEmail}`;
+  });
+  document.querySelectorAll('[data-contact="phone"]').forEach((el) => {
+    el.textContent = content.contactPhone;
+    el.href = `tel:${content.contactPhone.replace(/[^+\d]/g, '').replace(/^\+49(0)?/, '+49')}`;
+  });
+  document.querySelectorAll('[data-contact-row]').forEach((el) => {
+    el.hidden = !content[el.getAttribute('data-contact-row')];
+  });
+  return content;
+});
 
 // Theme aus Firestore anwenden (paas_config/site). Absichtlich nicht
 // abgewartet: der zwischengespeicherte Wert steht sofort, der verbindliche
@@ -1262,6 +1285,10 @@ const boot = async () => {
       }
     };
     panel.el.classList.add('pp-editing');
+    // Beschriftungen, damit klar ist, welches Feld man gerade bearbeitet.
+    panel.$title.dataset.editLabel = 'Titel';
+    panel.$body.dataset.editLabel = 'Fließtext';
+    panel.$extra.dataset.editLabel = 'Gastgeber — im Editor unter „Website-Texte“ bearbeiten';
 
     // Titel: echte Schreibweise editieren, Anzeige bleibt versal.
     panel.$title.textContent = sp.name;
@@ -1274,6 +1301,7 @@ const boot = async () => {
 
     const subtitleEl = panel.$meta.querySelectorAll('li')[1]?.querySelector('span:last-child');
     if (subtitleEl) {
+      subtitleEl.dataset.editLabel = 'Untertitel';
       subtitleEl.setAttribute('contenteditable', 'plaintext-only');
       subtitleEl.onblur = () => {
         const v = subtitleEl.textContent.trim();
@@ -1283,8 +1311,10 @@ const boot = async () => {
 
     panel.$body.setAttribute('contenteditable', 'true');
     panel.$body.onblur = () => {
-      const paragraphs = [...panel.$body.querySelectorAll('p')]
-        .map((p) => p.innerHTML.trim())
+      // Absätze als Text, andere Blöcke (Überschriften …) unverändert —
+      // vorher gingen alle Nicht-<p>-Elemente beim Speichern verloren.
+      const paragraphs = [...panel.$body.children]
+        .map((el) => (el.tagName === 'P' ? el.innerHTML : el.outerHTML).trim())
         .filter(Boolean);
       const v = paragraphs.length ? paragraphs.join('\n\n') : panel.$body.textContent.trim();
       if (v !== sp.body) { sp.body = v; post('body', v); }
@@ -1315,6 +1345,8 @@ const boot = async () => {
       video: sp.video
         ? (/^(https?:|data:|\/)/.test(sp.video) ? sp.video : `${import.meta.env.BASE_URL}${sp.video}`)
         : '',
+      captions: sp.showCaptions,
+      extraHtml: sp.showHosts && siteContent ? renderHostsHTML(siteContent, import.meta.env.BASE_URL) : '',
       images: [],
     };
     // 1) fly camera, 2) when tween is decelerating, slide panel up
@@ -1744,39 +1776,49 @@ const boot = async () => {
     if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
   }
 
-  // ── Impressum: jeder Link auf #impressum öffnet das Overlay ──
-  // Der Text kommt aus Firestore (im Editor bearbeitbar) und wird erst beim
-  // ersten Öffnen geladen.
-  const impressumOverlay = document.querySelector('#impressum-overlay');
-  if (impressumOverlay) {
-    const content = impressumOverlay.querySelector('#impressum-content');
-    let loaded = null;
-    const setImpressum = (open) => {
-      document.body.classList.toggle('show-impressum', open);
-      impressumOverlay.setAttribute('aria-hidden', open ? 'false' : 'true');
-      if (open) {
-        if (helpVisible) toggleHelp(false);
-        loaded = loaded || loadImpressum().then((html) => { content.innerHTML = html; });
-      }
-    };
-    document.addEventListener('click', (e) => {
-      const link = e.target.closest?.('a[href="#impressum"]');
-      if (!link) return;
-      e.preventDefault();
-      setImpressum(true);
+  // ── Kontakt & Impressum: Links auf #kontakt / #impressum öffnen das
+  // jeweilige Overlay. Das Impressum (im Editor bearbeitbar) wird erst beim
+  // ersten Öffnen aus Firestore geladen.
+  const infoOverlays = {
+    kontakt: document.querySelector('#kontakt-overlay'),
+    impressum: document.querySelector('#impressum-overlay'),
+  };
+  let impressumLoaded = null;
+  let openInfo = null;
+  const setInfoOverlay = (name) => {
+    openInfo = name && infoOverlays[name] ? name : null;
+    for (const [key, el] of Object.entries(infoOverlays)) {
+      if (!el) continue;
+      const open = key === openInfo;
+      document.body.classList.toggle(`show-${key}`, open);
+      el.setAttribute('aria-hidden', open ? 'false' : 'true');
+    }
+    if (!openInfo) return;
+    if (helpVisible) toggleHelp(false);
+    if (openInfo === 'impressum') {
+      const content = infoOverlays.impressum.querySelector('#impressum-content');
+      impressumLoaded = impressumLoaded || loadImpressum().then((html) => { content.innerHTML = html; });
+    }
+  };
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest?.('a[href="#impressum"], a[href="#kontakt"]');
+    if (!link) return;
+    e.preventDefault();
+    setInfoOverlay(link.getAttribute('href').slice(1));
+  });
+  for (const el of Object.values(infoOverlays)) {
+    el?.addEventListener('click', (e) => {
+      if (e.target === el || e.target.closest('.help-close')) setInfoOverlay(null);
     });
-    impressumOverlay.addEventListener('click', (e) => {
-      if (e.target === impressumOverlay || e.target.closest('.help-close')) setImpressum(false);
-    });
-    // Capture-Phase: Esc schließt nur das Impressum, nicht zusätzlich das
-    // darunterliegende Panel.
-    window.addEventListener('keydown', (e) => {
-      if (e.key !== 'Escape' || !document.body.classList.contains('show-impressum')) return;
-      e.stopImmediatePropagation();
-      setImpressum(false);
-    }, true);
-    if (location.hash === '#impressum') setImpressum(true);
   }
+  // Capture-Phase: Esc schließt nur das Overlay, nicht zusätzlich das
+  // darunterliegende Panel.
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !openInfo) return;
+    e.stopImmediatePropagation();
+    setInfoOverlay(null);
+  }, true);
+  if (location.hash === '#impressum' || location.hash === '#kontakt') setInfoOverlay(location.hash.slice(1));
 
   // ── Audio: autoplay muted + mute/unmute toggle ──
   const audio = document.querySelector('#bgm');
@@ -2190,6 +2232,8 @@ const boot = async () => {
           subtitle: loc.subtitle,
           body: loc.body,
           video: loc.video,
+          showHosts: loc.showHosts,
+          showCaptions: loc.showCaptions,
           images: loc.images,
           world: new THREE.Vector3(loc.position.x, loc.position.y, loc.position.z),
         };

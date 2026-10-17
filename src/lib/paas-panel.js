@@ -24,7 +24,10 @@ export class PaasPanel {
         </header>
         <article class="pp-article paper">
           <figure class="pp-figure"></figure>
-          <div class="pp-body t-body"></div>
+          <div class="pp-text">
+            <div class="pp-body t-body"></div>
+            <section class="pp-extra t-body"></section>
+          </div>
           <footer class="pp-foot">
             <div class="hairline"></div>
             <div class="t-caption pp-back">← ZURÜCK ZUR KARTE</div>
@@ -42,6 +45,7 @@ export class PaasPanel {
     this.$meta = el.querySelector('.pp-meta');
     this.$figure = el.querySelector('.pp-figure');
     this.$body = el.querySelector('.pp-body');
+    this.$extra = el.querySelector('.pp-extra');
     this.$close.addEventListener('click', () => this.close());
     el.querySelector('.pp-back').addEventListener('click', () => this.close());
     this.$scroll.addEventListener('scroll', () => this._onScroll(), { passive: true });
@@ -60,6 +64,11 @@ export class PaasPanel {
       ? data.images
       : (data.image ? [{ src: data.image, alt: data.imageAlt }] : []);
     this._video = data.video || '';
+    this._captions = !!data.captions;
+    // Zusatzabschnitt (z. B. Gastgeber) — eigenes Element, damit das
+    // Bearbeiten des Fließtexts ihn nicht erfasst.
+    this.$extra.innerHTML = data.extraHtml || '';
+    this.$extra.hidden = !data.extraHtml;
     this.updateImages(images, data.title);
     // Absätze, die selbst mit einem Block-Element beginnen (Überschrift,
     // Gastgeber-Profil …), nicht in <p> packen — sonst zerlegt der Browser
@@ -82,13 +91,15 @@ export class PaasPanel {
       return;
     }
     delete this.$figure.dataset.video;
+    const _escText = (s) => String(s || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const imageList = Array.isArray(images) ? images.filter(Boolean) : [];
     if (imageList.length) {
-      const cls = `pp-gallery pp-gallery--${Math.min(imageList.length, 6)}`;
+      const cls = `pp-gallery pp-gallery--${Math.min(imageList.length, 6)}${this._captions ? ' pp-gallery--captions' : ''}`;
       this.$figure.className = `pp-figure ${cls}`;
       this.$figure.innerHTML = imageList.map((img, i) => (
         `<div class="pp-gallery-item" style="--i:${i}">
            <img src="${_esc(img.src)}" alt="${_esc(img.alt)}" loading="lazy" decoding="async">
+           ${this._captions && img.alt ? `<figcaption class="pp-caption">${_escText(img.alt)}</figcaption>` : ''}
          </div>`
       )).join('');
     } else {

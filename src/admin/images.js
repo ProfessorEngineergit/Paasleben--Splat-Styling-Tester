@@ -24,9 +24,9 @@ const hashBytes = async (bytes) => {
 const hashDataUrl = (dataUrl) => hashBytes(new TextEncoder().encode(dataUrl));
 
 // Bild clientseitig verkleinern, bis die data-URL unter das Limit passt.
-const fileToDataUrl = async (file) => {
+export const fileToDataUrl = async (file, maxEdge = MAX_EDGE_PX) => {
   const bitmap = await createImageBitmap(file);
-  let edge = Math.min(MAX_EDGE_PX, Math.max(bitmap.width, bitmap.height));
+  let edge = Math.min(maxEdge, Math.max(bitmap.width, bitmap.height));
   for (const quality of [0.82, 0.7, 0.58, 0.45]) {
     const scale = edge / Math.max(bitmap.width, bitmap.height);
     const canvas = document.createElement('canvas');
@@ -121,7 +121,7 @@ export const setupImagesUI = ({ onImagesChanged }) => {
       li.innerHTML = `
         <img class="image-thumb" alt="" loading="lazy" />
         <div class="image-meta">
-          <input class="image-alt" type="text" placeholder="Alt-Text (Beschreibung)" />
+          <input class="image-alt" type="text" placeholder="Beschreibung / Bildunterschrift (z. B. Werk, Künstler)" />
           <span class="image-source"></span>
         </div>
         <div class="image-buttons">

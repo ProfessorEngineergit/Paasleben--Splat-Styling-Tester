@@ -57,7 +57,7 @@
               <span class="theme-picker-label">Design</span>
               <select id="theme-select" class="theme-select" title="Design der Website — wirkt sofort für alle Besucher"></select>
             </label>
-            <button id="impressum-button" class="btn" type="button" title="Impressum der Website bearbeiten">Impressum</button>
+            <button id="site-button" class="btn" type="button" title="Kopfbereich, Gastgeber, Kontakt und Impressum bearbeiten">Website-Texte</button>
             <a class="btn" href="./" target="_blank" rel="noopener">Website ansehen</a>
             <button id="tour-button" class="btn btn-tour" type="button" title="Kurzeinführung: was sich hier wo bearbeiten lässt" aria-label="Kurzeinführung starten">?</button>
             <span id="user-chip" class="user-chip"></span>
@@ -88,15 +88,15 @@
               </div>
 
               <label class="field">
-                <span class="field-label">Titel</span>
+                <span class="field-label">Titel <small>— große Überschrift im Panel und Name auf dem Schild</small></span>
                 <input id="f-title" name="title" type="text" required />
               </label>
               <label class="field">
-                <span class="field-label">Untertitel</span>
+                <span class="field-label">Untertitel <small>— kleine Zeile „Charakter“ unter dem Titel</small></span>
                 <input id="f-subtitle" name="subtitle" type="text" />
               </label>
               <label class="field">
-                <span class="field-label">Text (HTML erlaubt, Absätze durch Leerzeile)</span>
+                <span class="field-label">Fließtext <small>— der Haupttext des Ortes; Absätze durch Leerzeile</small></span>
                 <textarea id="f-body" name="body" rows="9"></textarea>
               </label>
               <label class="field">
@@ -115,6 +115,16 @@
                 <label class="field field-check">
                   <input id="f-visible" name="visible" type="checkbox" />
                   <span class="field-label">Sichtbar</span>
+                </label>
+              </div>
+              <div class="field-row">
+                <label class="field field-check" title="Zeigt den Abschnitt aus „Website-Texte → Gastgeber“ unter dem Fließtext">
+                  <input id="f-show-hosts" type="checkbox" />
+                  <span class="field-label">Gastgeber hier anzeigen</span>
+                </label>
+                <label class="field field-check" title="Der Alt-Text jedes Fotos erscheint als Bildunterschrift — z. B. Titel und Künstler eines Werks">
+                  <input id="f-show-captions" type="checkbox" />
+                  <span class="field-label">Bildunterschriften zeigen</span>
                 </label>
               </div>
               <details class="pos-details">
@@ -169,20 +179,43 @@
         </div>
       </div>
 
-      <!-- Impressum bearbeiten -->
-      <dialog id="impressum-dialog" class="library-dialog impressum-dialog">
-        <form method="dialog" class="impressum-form">
-          <div class="library-head">
-            <h2>Impressum</h2>
-            <button id="impressum-close" class="btn btn-quiet" type="button">Schließen</button>
-          </div>
-          <p class="impressum-hint">HTML erlaubt: &lt;h2&gt;, &lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche. Erscheint auf der Website über den Link „Impressum“.</p>
-          <textarea id="impressum-text" class="impressum-text" rows="22" spellcheck="true"></textarea>
-          <div class="impressum-actions">
-            <span id="impressum-status" class="save-status" aria-live="polite"></span>
-            <button id="impressum-save" class="btn btn-primary" type="button">Speichern</button>
-          </div>
-        </form>
+      <!-- Website-Texte (alles, was nicht zu einem Ort gehört) -->
+      <dialog id="site-dialog" class="library-dialog site-dialog">
+        <div class="library-head">
+          <h2>Website-Texte</h2>
+          <button id="site-close" class="btn btn-quiet" type="button">Schließen</button>
+        </div>
+        <nav class="site-tabs" role="tablist">
+          <button class="site-tab is-active" type="button" data-site-tab="header">Kopfbereich</button>
+          <button class="site-tab" type="button" data-site-tab="hosts">Gastgeber</button>
+          <button class="site-tab" type="button" data-site-tab="contact">Kontakt</button>
+          <button class="site-tab" type="button" data-site-tab="impressum">Impressum</button>
+        </nav>
+        <div class="site-body">
+          <section class="site-pane" data-site-pane="header">
+            <p class="site-where">Erscheint <b>oben links auf der Website</b>, über der Karte.</p>
+            <div id="site-header-fields"></div>
+          </section>
+          <section class="site-pane" data-site-pane="hosts" hidden>
+            <p class="site-where">Erscheint <b>unter dem Fließtext</b> aller Orte, bei denen „Gastgeber hier anzeigen“ angehakt ist (z. B. Willkommen).</p>
+            <label class="field"><span class="field-label">Überschrift des Abschnitts</span><input id="site-hosts-heading" type="text" /></label>
+            <div id="site-hosts"></div>
+            <button id="site-add-host" class="btn" type="button">＋ Person hinzufügen</button>
+          </section>
+          <section class="site-pane" data-site-pane="contact" hidden>
+            <p class="site-where">Erscheint im Fenster <b>„Kontakt“</b> (Knopf oben rechts und Link unten).</p>
+            <label class="field"><span class="field-label">E-Mail</span><input id="site-contact-email" type="email" /></label>
+            <label class="field"><span class="field-label">Telefon</span><input id="site-contact-phone" type="text" /></label>
+          </section>
+          <section class="site-pane" data-site-pane="impressum" hidden>
+            <p class="site-where">Erscheint im Fenster <b>„Impressum“</b>. HTML erlaubt: &lt;h2&gt;/&lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche.</p>
+            <textarea id="impressum-text" class="impressum-text" rows="22" spellcheck="true"></textarea>
+          </section>
+        </div>
+        <div class="impressum-actions">
+          <span id="site-status" class="save-status" aria-live="polite"></span>
+          <button id="site-save" class="btn btn-primary" type="button">Speichern</button>
+        </div>
       </dialog>
 
       <!-- Bibliotheks-Auswahl -->

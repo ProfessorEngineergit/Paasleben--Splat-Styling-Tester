@@ -20,6 +20,10 @@ const normalize = (id, data) => ({
   body: data.body || '',
   // Optionales Hintergrundvideo (Pfad relativ zu public/ oder volle URL).
   video: data.video || '',
+  // Gastgeber-Abschnitt (Website-Texte) unter dem Fließtext anzeigen.
+  showHosts: data.showHosts === true,
+  // Alt-Texte der Fotos als Bildunterschrift zeigen (z. B. Kunstwerke).
+  showCaptions: data.showCaptions === true,
   displayNumber: data.displayNumber || '',
   order: typeof data.order === 'number' ? data.order : 999,
   visible: data.visible !== false,

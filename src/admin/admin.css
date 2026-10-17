@@ -554,3 +554,32 @@ html, body {
   box-sizing: border-box;
 }
 .impressum-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; }
+
+/* ── Website-Texte ── */
+.site-dialog { width: min(820px, 96vw); }
+.site-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--rule-soft, rgba(0,0,0,.12)); margin: 4px 0 12px; }
+.site-tab {
+  border: 0; background: none; cursor: pointer;
+  padding: 8px 14px; font: inherit; font-size: 13px;
+  color: var(--ink-mute, #6f6a6b);
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+.site-tab.is-active { color: var(--ink, #403a3c); border-bottom-color: var(--accent, #e98517); font-weight: 600; }
+.site-body { max-height: 62vh; overflow-y: auto; padding-right: 4px; }
+.site-where {
+  margin: 0 0 14px; padding: 8px 12px;
+  background: var(--accent-pale, rgba(233,133,23,.12));
+  border-radius: 6px; font-size: 13px;
+}
+.site-pane .field { margin-bottom: 12px; }
+.field-label small { font-weight: 400; color: var(--ink-mute, #6f6a6b); }
+.host-card {
+  border: 1px solid var(--rule-soft, rgba(0,0,0,.12));
+  border-radius: 8px; padding: 12px 14px 10px; margin: 0 0 14px;
+}
+.host-card legend { font-size: 12px; font-weight: 600; padding: 0 6px; }
+.host-photo { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.host-photo img { width: 60px; height: 80px; object-fit: cover; border-radius: 4px; }
+.host-nophoto { width: 60px; height: 80px; display: grid; place-items: center; font-size: 11px; color: var(--ink-mute, #6f6a6b); background: var(--paper-warm, #f8f8f6); border-radius: 4px; }
+.host-card textarea { width: 100%; box-sizing: border-box; }
+.host-actions { display: flex; gap: 8px; justify-content: flex-end; }

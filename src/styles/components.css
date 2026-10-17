@@ -424,8 +424,8 @@
 }
 
 /* ─── Gastgeber-Profile im Fließtext ──────────────────────────────── */
-.paas-panel .pp-body h2,
-.paas-panel .pp-body h3 {
+.paas-panel .pp-text h2,
+.paas-panel .pp-text h3 {
   font-family: var(--title);
   font-weight: var(--title-weight);
   text-transform: var(--title-transform);
@@ -433,8 +433,21 @@
   color: var(--ink);
   line-height: 1.15;
 }
-.paas-panel .pp-body h2 { font-size: 22px; margin: 2.2em 0 0.8em; }
-.paas-panel .pp-body h3 { font-size: 17px; margin: 0 0 0.35em; }
+.paas-panel .pp-text h2 { font-size: 22px; margin: 2.2em 0 0.8em; }
+.paas-panel .pp-text h3 { font-size: 17px; margin: 0 0 0.35em; }
+.paas-panel .pp-text { min-width: 0; }
+.paas-panel .pp-extra { font-size: 15px; max-width: 38ch; color: var(--ink-2); }
+.paas-panel .pp-extra a { color: var(--link); }
+/* Werk-Galerie (z. B. Skulpturenpark): Bildunterschrift = Alt-Text */
+.paas-panel .pp-gallery--captions .pp-gallery-item { aspect-ratio: auto; overflow: visible; border: 0; background: none; }
+.paas-panel .pp-gallery--captions .pp-gallery-item img { aspect-ratio: 4/3; height: auto; border: 1px solid var(--rule-soft); }
+.paas-panel .pp-caption {
+  font-family: var(--serif);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-mute);
+  padding: 6px 2px 0;
+}
 .paas-panel .pp-host {
   display: grid;
   grid-template-columns: 76px 1fr;
@@ -442,7 +455,6 @@
   margin: 0 0 1.8em;
 }
 .paas-panel .pp-host img {
-  grid-row: span 3;
   width: 76px; aspect-ratio: 113/150;
   object-fit: cover;
   border: 1px solid var(--rule-soft);
