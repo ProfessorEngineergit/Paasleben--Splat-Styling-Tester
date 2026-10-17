@@ -1,5 +1,5 @@
 // Seitenweite Texte, die nicht zu einem einzelnen Ort gehören: Kopfbereich
-// oben links, Kontakt und die Gastgeber-Profile. Liegt in Firestore
+// oben links und die Gastgeber-Profile (samt Kontaktdaten). Liegt in Firestore
 // (`paas_config/content`) und wird im Editor unter „Website-Texte" gepflegt.
 // Die Werte hier sind Startwerte und Fallback ohne Verbindung.
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -22,8 +22,6 @@ export const DEFAULT_SITE_CONTENT = {
   tagline: 'Coaching Campus & Country Club',
   lede: 'Tier- und Skulpturenpark.',
   ledeSub: 'Lofts, Areal, Pferde — klick die Schilder, lies die Geschichten.',
-  contactEmail: 'maren.paas@grasleben.com',
-  contactPhone: '+49 (0)173 8833018',
   hostsHeading: 'Die Gastgeber',
   hosts: [
     {
@@ -90,12 +88,12 @@ export const renderHostsHTML = (content, baseUrl = '/') => {
       .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
     const web = h.web ? h.web.replace(/^https?:\/\//, '') : '';
     const contact = [
-      h.phone && `Tel. ${esc(h.phone)}`,
+      h.phone && `<a href="tel:${esc(String(h.phone).replace(/[^+\d]/g, '').replace(/^0/, '+49'))}">${esc(h.phone)}</a>`,
       h.email && `<a href="mailto:${esc(h.email)}">${esc(h.email)}</a>`,
       web && `<a href="https://${esc(web)}" target="_blank" rel="noopener">${esc(web)}</a>`,
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).join('<br>');
     const photo = resolvePhoto(h.photo, baseUrl);
-    return `<div class="pp-host">${photo ? `<img src="${esc(photo)}" alt="Porträt ${esc(h.name)}" loading="lazy">` : '<span></span>'}<div><h3>${esc(h.name)}</h3>${paras}${contact ? `<p class="pp-host-contact">${contact}</p>` : ''}</div></div>`;
+    return `<div class="pp-host">${photo ? `<img src="${esc(photo)}" alt="Porträt ${esc(h.name)}" loading="lazy">` : '<span></span>'}<div><h3>${esc(h.name)}</h3>${contact ? `<p class="pp-host-contact">${contact}</p>` : ''}${paras}</div></div>`;
   }).join('');
   return `<h2>${esc(content.hostsHeading || 'Die Gastgeber')}</h2>${items}`;
 };

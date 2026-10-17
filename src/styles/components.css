@@ -460,10 +460,14 @@
   border: 1px solid var(--rule-soft);
 }
 .paas-panel .pp-host p { margin: 0 0 0.6em; }
+/* Kontakt direkt unter dem Namen — schnell zu finden, ohne eigenen Knopf. */
 .paas-panel .pp-host .pp-host-contact {
   font-size: 13px;
+  line-height: 1.6;
   color: var(--ink-mute);
+  margin-bottom: 0.9em;
 }
+.paas-panel .pp-host .pp-host-contact a { text-decoration: none; }
 
 .paas-panel .pp-placeholder {
   width: 100%; height: 100%;

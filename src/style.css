@@ -1018,7 +1018,7 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   .schild-marker .sm-card { transition-duration: .01ms !important; }
 }
 
-/* ─── Kontakt & Impressum ─── */
+/* ─── Impressum ─── */
 .legal-links {
   position: fixed;
   right: 18px;
@@ -1030,35 +1030,12 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
 }
 .legal-links a { color: var(--ink-mute); text-decoration: none; }
 .legal-links a:hover { color: var(--accent); }
-body.show-impressum .impressum-overlay,
-body.show-kontakt .kontakt-overlay {
+body.show-impressum .impressum-overlay {
   opacity: 1;
   pointer-events: auto;
 }
-body.show-impressum .impressum-card,
-body.show-kontakt .kontakt-card { transform: translateY(0); }
-.impressum-overlay, .kontakt-overlay { z-index: 900; }
-.kontakt-list {
-  list-style: none;
-  padding: 0;
-  margin: 18px 0 0;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 10px 18px;
-  font-family: var(--serif);
-  font-size: 15px;
-}
-.kontakt-list li { display: contents; }
-.kontakt-list li[hidden] { display: none; }
-.kontakt-list .help-action {
-  font-family: var(--display);
-  font-size: 10px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--ink-mute);
-  align-self: center;
-}
-.kontakt-list a { color: var(--link); text-decoration: none; }
+body.show-impressum .impressum-card { transform: translateY(0); }
+.impressum-overlay { z-index: 900; }
 .brand-tagline {
   position: relative;
   z-index: 1;
@@ -1067,7 +1044,6 @@ body.show-kontakt .kontakt-card { transform: translateY(0); }
   letter-spacing: 0.22em;
   color: var(--ink-2);
 }
-.contact-glyph svg { display: block; }
 .impressum-card { max-width: 560px; }
 .impressum-content {
   font-family: var(--serif);
@@ -1091,8 +1067,8 @@ body.show-kontakt .kontakt-card { transform: translateY(0); }
 .paas-panel .pp-legal { color: var(--link); }
 .help-legal { margin: 22px 0 0; }
 .help-legal a, .paas-panel .pp-legal { text-decoration: none; }
-/* Auf Touch-Geräten liegt unten die Zeitleiste — dort stehen die Links im
-   Bedienungs-Fenster, als Kontakt-Knopf oben und am Ende jedes Texts. */
+/* Auf Touch-Geräten liegt unten die Zeitleiste — dort steht der Link im
+   Bedienungs-Fenster und am Ende jedes Texts. */
 @media (pointer: coarse), (max-width: 640px) {
   .legal-links { display: none; }
 }

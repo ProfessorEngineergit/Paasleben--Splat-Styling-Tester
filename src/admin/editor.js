@@ -882,8 +882,8 @@ export const startEditor = () => {
   setupThemePicker();
 
   // ── Website-Texte ──────────────────────────────────────────────────
-  // Alles, was nicht zu einem Ort gehört: Kopfbereich, Gastgeber, Kontakt
-  // (paas_config/content) und Impressum (paas_config/impressum). Jeder
+  // Alles, was nicht zu einem Ort gehört: Kopfbereich, Gastgeber samt
+  // Kontaktdaten (paas_config/content) und Impressum (paas_config/impressum). Jeder
   // Reiter sagt, wo der Text auf der Website erscheint.
   const setupSiteTexts = () => {
     const button = document.querySelector('#site-button');
@@ -972,8 +972,6 @@ export const startEditor = () => {
     const collect = () => {
       const content = {
         hostsHeading: $('#site-hosts-heading').value.trim(),
-        contactEmail: $('#site-contact-email').value.trim(),
-        contactPhone: $('#site-contact-phone').value.trim(),
         hosts: hosts.map((h) => ({
           name: (h.name || '').trim(), photo: h.photo || '', text: (h.text || '').trim(),
           phone: (h.phone || '').trim(), email: (h.email || '').trim(), web: (h.web || '').trim(),
@@ -993,8 +991,6 @@ export const startEditor = () => {
         input.value = content[input.dataset.headerKey] || '';
       });
       $('#site-hosts-heading').value = content.hostsHeading || '';
-      $('#site-contact-email').value = content.contactEmail || '';
-      $('#site-contact-phone').value = content.contactPhone || '';
       $('#impressum-text').value = impressum;
       hosts = (content.hosts || []).map((h) => ({ ...h }));
       renderHosts();

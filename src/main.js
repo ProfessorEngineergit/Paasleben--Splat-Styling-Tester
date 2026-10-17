@@ -171,7 +171,7 @@ const loadSheetContent = async () => {
 };
 
 // Website-Texte aus dem Editor (paas_config/content) überschreiben die
-// Rahmentexte aus der CSV; außerdem Kontakt und Gastgeber.
+// Rahmentexte aus der CSV; außerdem die Gastgeber (Panel).
 let siteContent = null;
 // Erst nach der CSV anwenden, sonst überschreibt sie die Editor-Texte.
 Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
@@ -179,17 +179,6 @@ Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
   document.querySelectorAll('[data-content-key]').forEach((el) => {
     const value = content[el.getAttribute('data-content-key')];
     if (typeof value === 'string' && value.trim()) el.textContent = value;
-  });
-  document.querySelectorAll('[data-contact="email"]').forEach((el) => {
-    el.textContent = content.contactEmail;
-    el.href = `mailto:${content.contactEmail}`;
-  });
-  document.querySelectorAll('[data-contact="phone"]').forEach((el) => {
-    el.textContent = content.contactPhone;
-    el.href = `tel:${content.contactPhone.replace(/[^+\d]/g, '').replace(/^\+49(0)?/, '+49')}`;
-  });
-  document.querySelectorAll('[data-contact-row]').forEach((el) => {
-    el.hidden = !content[el.getAttribute('data-contact-row')];
   });
   return content;
 });
@@ -1776,11 +1765,9 @@ const boot = async () => {
     if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
   }
 
-  // ── Kontakt & Impressum: Links auf #kontakt / #impressum öffnen das
-  // jeweilige Overlay. Das Impressum (im Editor bearbeitbar) wird erst beim
-  // ersten Öffnen aus Firestore geladen.
+  // ── Impressum: Links auf #impressum öffnen das Overlay. Der Text (im
+  // Editor bearbeitbar) wird erst beim ersten Öffnen aus Firestore geladen.
   const infoOverlays = {
-    kontakt: document.querySelector('#kontakt-overlay'),
     impressum: document.querySelector('#impressum-overlay'),
   };
   let impressumLoaded = null;
@@ -1801,7 +1788,7 @@ const boot = async () => {
     }
   };
   document.addEventListener('click', (e) => {
-    const link = e.target.closest?.('a[href="#impressum"], a[href="#kontakt"]');
+    const link = e.target.closest?.('a[href="#impressum"]');
     if (!link) return;
     e.preventDefault();
     setInfoOverlay(link.getAttribute('href').slice(1));
@@ -1818,7 +1805,7 @@ const boot = async () => {
     e.stopImmediatePropagation();
     setInfoOverlay(null);
   }, true);
-  if (location.hash === '#impressum' || location.hash === '#kontakt') setInfoOverlay(location.hash.slice(1));
+  if (location.hash === '#impressum') setInfoOverlay('impressum');
 
   // ── Audio: autoplay muted + mute/unmute toggle ──
   const audio = document.querySelector('#bgm');
