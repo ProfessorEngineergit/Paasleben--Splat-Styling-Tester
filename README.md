@@ -122,3 +122,7 @@ public/images/                 statische Foto-Bibliothek
 firestore.rules, firebase.json Security Rules / Firebase-Projektconfig
 tools/                         Migrations-/Export-Skripte (Node)
 ```
+
+## Entwicklung und KI-Beteiligung
+
+Die Historie des Hauptbranches enthält ausdrücklich Claude zugeschriebene Beiträge ([Beispiel](https://github.com/ProfessorEngineergit/Paasleben--Splat-Styling-Tester/commit/e1a5f82e1cd7b3d6b53c2327ee56db3c0fde2148)). Das belegt KI-Beteiligung an diesen Beiträgen, nicht die Herkunft jeder Zeile oder eine unabhängige Prüfung. Bestehende Autor-, Co-Autoren- und Sitzungsangaben bleiben erhalten.
