@@ -1,11 +1,11 @@
-# PAASLEBEN — Interaktive Splat-Karte
+# PAASLEBEN - Interaktive Splat-Karte
 
 3D-Rundgang über das Areal PAASLEBEN (Tier- und Skulpturenpark, Coaching
 Campus): eine Gaussian-Splat-Szene (`public/scene.ksplat`) mit klickbaren
 Orts-Schildern. Jedes Schild öffnet ein Panel mit Texten und Fotos.
 
 **Inhalte (Orte, Texte, Fotos) liegen in Firebase/Firestore** und werden über
-den eingebauten Karten-Editor gepflegt — Änderungen sind sofort live, ohne
+den eingebauten Karten-Editor gepflegt - Änderungen sind sofort live, ohne
 neues Deployment. Der Code (dieses Repo) wird bei jedem Push auf `main`
 automatisch zu GitHub Pages und zu IONOS deployt.
 
@@ -36,7 +36,7 @@ npm run build    # Produktions-Build (Viewer + Editor) nach dist/
   Pfeiltasten (Shift = grob); Titel/Untertitel/Text/Schild-Nr./Sichtbarkeit
   im Formular; Position auch numerisch; „Duplizieren" für ähnliche Punkte.
 - **End-Ansicht:** Knopf im Formular öffnet die echte Website-Ansicht des
-  Ortes — Titel, Untertitel und Text sind dort direkt anklick- und
+  Ortes - Titel, Untertitel und Text sind dort direkt anklick- und
   editierbar (automatisch gespeichert). Bearbeiten geht wahlweise dort
   oder im Formular.
 - **Fotos:** eigene Uploads werden clientseitig verkleinert, per SHA-256
@@ -45,7 +45,7 @@ npm run build    # Produktions-Build (Viewer + Editor) nach dist/
   die bereits unter `public/images/**` liegen, werden direkt wiederverwendet.
   Alle statischen und hochgeladenen Bibliotheksbilder können an mehreren Orten
   eingesetzt werden. Reihenfolge und Alt-Texte bleiben je Ort separat.
-- Neue Orte starten **ausgeblendet** — erst „Sichtbar" anhaken, wenn fertig.
+- Neue Orte starten **ausgeblendet** - erst „Sichtbar" anhaken, wenn fertig.
 - Deep-Link: `/?ort=08` öffnet die Website direkt an einem Standpunkt.
 
 ## Datenhaltung (Firebase-Projekt `tasks-4182a`)
@@ -58,30 +58,30 @@ npm run build    # Produktions-Build (Viewer + Editor) nach dist/
 
 Security Rules: `firestore.rules` (deployen mit
 `firebase deploy --only firestore:rules`). Das Projekt beherbergt auch andere
-Apps — die Zonen-Aufteilung (`cq_*`, `paas_*`, Rest) in den Rules unbedingt
+Apps - die Zonen-Aufteilung (`cq_*`, `paas_*`, Rest) in den Rules unbedingt
 erhalten.
 
 Nützliche Skripte in `tools/`:
 
-- `node tools/export-snapshot.mjs` — zieht den aktuellen Firestore-Stand als
+- `node tools/export-snapshot.mjs` - zieht den aktuellen Firestore-Stand als
   Offline-Fallback nach `src/data/locations-snapshot.json` (gelegentlich nach
   größeren Inhaltsänderungen ausführen und committen).
-- `node tools/migrate-to-firestore.mjs` — einmalige Erst-Migration (bereits
-  gelaufen; überschreibt Firestore mit dem Alt-Stand — nur bewusst nutzen).
+- `node tools/migrate-to-firestore.mjs` - einmalige Erst-Migration (bereits
+  gelaufen; überschreibt Firestore mit dem Alt-Stand - nur bewusst nutzen).
 
 ## Deployment
 
 Zwei GitHub-Actions-Workflows, beide bei Push auf `main`:
 
-1. **GitHub Pages** (`.github/workflows/deploy.yml`) — läuft ohne weitere
+1. **GitHub Pages** (`.github/workflows/deploy.yml`) - läuft ohne weitere
    Einrichtung, Basis-Pfad `/<repo>/`.
-2. **IONOS** (`.github/workflows/deploy-ionos.yml`) — lädt den Build per
+2. **IONOS** (`.github/workflows/deploy-ionos.yml`) - lädt den Build per
    SFTP auf den IONOS-Webspace, Basis-Pfad `/`.
 
 ## Übergabe an die IT / IONOS
 
 Für den automatischen IONOS-Deploy müssen einmalig **drei Secrets** im
-GitHub-Repo hinterlegt werden — mehr nicht:
+GitHub-Repo hinterlegt werden - mehr nicht:
 
 1. GitHub → Repo → **Settings → Secrets and variables → Actions →
    „New repository secret"** und diese drei Einträge anlegen:
@@ -92,7 +92,7 @@ GitHub-Repo hinterlegt werden — mehr nicht:
    | `IONOS_SFTP_USER` | SFTP-Benutzer des Webspace, z. B. `accXXXXXXXXXX` |
    | `IONOS_SFTP_PASSWORD` | zugehöriges Passwort |
 
-   (IONOS: Menü **Hosting → SFTP & SSH** — dort stehen Host und Benutzer;
+   (IONOS: Menü **Hosting → SFTP & SSH** - dort stehen Host und Benutzer;
    Passwort ggf. neu setzen. Der Deploy nutzt SFTP über SSH auf Port 22.)
 
 2. Danach im Repo unter **Actions → „Deploy to IONOS" → „Run workflow"**
@@ -103,7 +103,7 @@ GitHub-Repo hinterlegt werden — mehr nicht:
    Settings → Authorized domains) die endgültige IONOS-Domain eintragen,
    sonst funktioniert der Editor-Login auf dieser Domain nicht.
 
-Der Webspace braucht keinerlei Server-Software — es sind statische Dateien.
+Der Webspace braucht keinerlei Server-Software - es sind statische Dateien.
 Die Inhalte der Karte kommen zur Laufzeit aus Firebase; dafür ist **kein**
 IONOS-Zugriff nötig, die Pflege bleibt vollständig beim Betreiber über
 `https://<domain>/admin.html`.
@@ -123,6 +123,6 @@ firestore.rules, firebase.json Security Rules / Firebase-Projektconfig
 tools/                         Migrations-/Export-Skripte (Node)
 ```
 
-## Entwicklung und KI-Beteiligung
+## KI-Beteiligung
 
-Die Historie des Hauptbranches enthält ausdrücklich Claude zugeschriebene Beiträge ([Beispiel](https://github.com/ProfessorEngineergit/Paasleben--Splat-Styling-Tester/commit/e1a5f82e1cd7b3d6b53c2327ee56db3c0fde2148)). Das belegt KI-Beteiligung an diesen Beiträgen, nicht die Herkunft jeder Zeile oder eine unabhängige Prüfung. Bestehende Autor-, Co-Autoren- und Sitzungsangaben bleiben erhalten.
+Einzelne Code-Beiträge sind ausdrücklich KI-Tools zugeschrieben: [generated with Claude Code](https://github.com/ProfessorEngineergit/Paasleben--Splat-Styling-Tester/commit/3be97c6a8a05a268e65fa401e6ec043b3e06e3b1). Das gilt für diese Beiträge, nicht pauschal für alle Dateien.
