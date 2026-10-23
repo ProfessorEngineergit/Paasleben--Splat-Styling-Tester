@@ -1,3 +1,4 @@
+@import './styles/fonts.css';
 @import './styles/tokens.css';
 /* Laufzeit-Themes: alle drei immer geladen, aktiv ist immer nur das, dessen
    data-theme auf <html> steht (siehe src/lib/paas-theme.js). Muss nach
@@ -1026,15 +1027,17 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   z-index: 30;
   display: flex;
   gap: 16px;
-  font-size: 9px;
+  font-size: 10px;
 }
 .legal-links a { color: var(--ink-mute); text-decoration: none; }
 .legal-links a:hover { color: var(--accent); }
-body.show-impressum .impressum-overlay {
+body.show-impressum #impressum-overlay,
+body.show-datenschutz #datenschutz-overlay {
   opacity: 1;
   pointer-events: auto;
 }
-body.show-impressum .impressum-card { transform: translateY(0); }
+body.show-impressum #impressum-overlay .impressum-card,
+body.show-datenschutz #datenschutz-overlay .impressum-card { transform: translateY(0); }
 .impressum-overlay { z-index: 900; }
 .brand-tagline {
   position: relative;
@@ -1065,8 +1068,10 @@ body.show-impressum .impressum-card { transform: translateY(0); }
 .impressum-content a,
 .help-legal a,
 .paas-panel .pp-legal { color: var(--link); }
-.help-legal { margin: 22px 0 0; }
-.help-legal a, .paas-panel .pp-legal { text-decoration: none; }
+.help-legal { margin: 22px 0 0; display: flex; flex-wrap: wrap; gap: 6px 16px; }
+.help-legal a, .paas-panel .pp-legal a { text-decoration: none; }
+.paas-panel .pp-legal { display: flex; gap: 16px; }
+.paas-panel .pp-legal a { color: var(--link); }
 /* Auf Touch-Geräten liegt unten die Zeitleiste — dort steht der Link im
    Bedienungs-Fenster und am Ende jedes Texts. */
 @media (pointer: coarse), (max-width: 640px) {

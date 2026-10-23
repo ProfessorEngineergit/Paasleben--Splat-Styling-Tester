@@ -423,6 +423,65 @@
   filter: brightness(0.72) saturate(0.92);
 }
 
+/* Video angekündigt, aber noch nicht hinterlegt: gleicher Rahmen, erstes
+   Foto als gedimmtes Standbild, mittig ein ruhiger Hinweis. */
+.paas-panel .pp-video-pending { position: relative; }
+.paas-panel .pp-video-pending .pp-video-poster {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  filter: brightness(0.62) saturate(0.85);
+}
+.paas-panel .pp-video-note {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  color: #fff;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.35);
+}
+.paas-panel .pp-video-note .t-caption { color: #fff; letter-spacing: 0.24em; }
+.paas-panel .pp-video-play {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.12);
+  display: inline-flex; align-items: center; justify-content: center;
+  padding-left: 3px;
+}
+
+/* ─── Banner-Layout (Orte mit Video, z. B. Willkommen) ───────────────
+   Der Film läuft über die volle Breite, darunter Begrüßung, Gastgeber und
+   Kontakt in einer zentrierten Spalte — ein Willkommensbanner statt der
+   üblichen Bild-links-Text-rechts-Aufteilung. */
+.paas-panel.pp-has-hero .pp-article {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: 40px;
+}
+.paas-panel.pp-has-hero .pp-figure.pp-video {
+  width: 100%;
+  max-width: 1120px;
+  aspect-ratio: 16/9;
+}
+.paas-panel.pp-has-hero .pp-text {
+  width: 100%;
+  max-width: 1120px;
+}
+.paas-panel.pp-has-hero .pp-body {
+  max-width: 62ch;
+  font-size: 17px;
+  line-height: 1.6;
+  margin: 0 auto;
+  text-align: center;
+}
+.paas-panel.pp-has-hero .pp-extra { max-width: none; }
+.paas-panel.pp-has-hero .pp-extra > h2 { text-align: center; }
+.paas-panel.pp-has-hero .pp-hosts {
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 28px;
+  align-items: start;
+}
+.paas-panel.pp-has-hero .pp-extra > h2 { font-size: 30px; margin: 1.6em 0 1em; }
+
 /* ─── Gastgeber-Profile im Fließtext ──────────────────────────────── */
 .paas-panel .pp-text h2,
 .paas-panel .pp-text h3 {
@@ -448,26 +507,83 @@
   color: var(--ink-mute);
   padding: 6px 2px 0;
 }
+.paas-panel .pp-host h3 {
+  font-size: 30px;
+  line-height: 1.05;
+  margin: 6px 0 14px;
+}
+/* Gastgeber als Karten: Porträt, Rolle, Name und Kontakt-Knöpfe oben,
+   Profiltext darunter. In schmalen Spalten (Orte ohne Banner) stapeln sich
+   die Karten einfach untereinander. */
+.paas-panel .pp-hosts { display: grid; gap: 24px; }
 .paas-panel .pp-host {
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 4px 16px;
-  margin: 0 0 1.8em;
-}
-.paas-panel .pp-host img {
-  width: 76px; aspect-ratio: 113/150;
-  object-fit: cover;
+  background: var(--paper-warm);
   border: 1px solid var(--rule-soft);
+  padding: 28px;
+  display: flex; flex-direction: column; gap: 22px;
+  min-width: 0;
 }
-.paas-panel .pp-host p { margin: 0 0 0.6em; }
-/* Kontakt direkt unter dem Namen — schnell zu finden, ohne eigenen Knopf. */
-.paas-panel .pp-host .pp-host-contact {
+.paas-panel .pp-host-head {
+  display: grid;
+  grid-template-columns: 148px minmax(0, 1fr);
+  gap: 24px;
+  align-items: end;
+}
+.paas-panel .pp-host-photo {
+  width: 148px;
+  aspect-ratio: 113/150;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 18px 34px -22px rgba(26, 24, 20, 0.55);
+}
+.paas-panel .pp-host-id { min-width: 0; }
+.paas-panel .pp-host-role { color: var(--accent, var(--link)); letter-spacing: 0.2em; }
+.paas-panel .pp-host-contact { display: flex; flex-wrap: wrap; gap: 8px; }
+.paas-panel .pp-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  max-width: 100%;
+  padding: 7px 13px 7px 11px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 999px;
+  background: var(--paper-pale);
+  color: var(--ink-2);
   font-size: 13px;
-  line-height: 1.6;
-  color: var(--ink-mute);
-  margin-bottom: 0.9em;
+  line-height: 1.2;
+  text-decoration: none;
+  transition: border-color .18s ease, color .18s ease, background .18s ease;
 }
-.paas-panel .pp-host .pp-host-contact a { text-decoration: none; }
+.paas-panel .pp-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.paas-panel .pp-chip svg { width: 15px; height: 15px; flex: none; color: var(--link); }
+.paas-panel .pp-chip:hover,
+.paas-panel .pp-chip:focus-visible { border-color: var(--link); color: var(--link); }
+.paas-panel .pp-host-text { font-size: 15.5px; line-height: 1.65; color: var(--ink-2); }
+.paas-panel .pp-host-text p { margin: 0 0 0.9em; }
+.paas-panel .pp-host-text p:last-child { margin-bottom: 0; }
+@media (max-width: 560px) {
+  .paas-panel .pp-host { padding: 20px; }
+  .paas-panel .pp-host-head { grid-template-columns: 104px minmax(0, 1fr); gap: 16px; }
+  .paas-panel .pp-host-photo { width: 104px; }
+  .paas-panel .pp-host h3 { font-size: 24px; }
+}
+/* Allgemeine Anfrage-Adresse unter den Gastgebern */
+.paas-panel .pp-contact {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  margin: 1.4em 0 0;
+  padding: 28px 0 0;
+  border-top: 1px solid var(--rule-soft);
+  text-align: center;
+}
+.paas-panel .pp-contact .t-caption { color: var(--ink-mute); }
+.paas-panel .pp-contact-link {
+  font-family: var(--title);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  color: var(--link);
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 2px;
+}
+.paas-panel .pp-contact-link:hover { color: var(--link-hover); }
 
 .paas-panel .pp-placeholder {
   width: 100%; height: 100%;

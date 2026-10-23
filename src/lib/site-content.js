@@ -1,11 +1,11 @@
 // Seitenweite Texte, die nicht zu einem einzelnen Ort gehören: Kopfbereich
-// oben links und die Gastgeber-Profile (samt Kontaktdaten). Liegt in Firestore
-// (`paas_config/content`) und wird im Editor unter „Website-Texte" gepflegt.
-// Die Werte hier sind Startwerte und Fallback ohne Verbindung.
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase.js';
+// oben links, die allgemeine Kontakt-E-Mail und die Gastgeber-Profile (samt
+// Kontaktdaten). Liegt in Firestore (`paas_config/content`) und wird im
+// Editor unter „Website-Texte" gepflegt. Die Werte hier sind Startwerte und
+// Fallback ohne Verbindung.
+import { readDoc } from './firestore-rest.js';
 
-const CONTENT_DOC = ['paas_config', 'content'];
+const CONTENT_DOC = 'paas_config/content';
 
 // Reihenfolge = Reihenfolge im Kopfbereich der Website.
 export const HEADER_FIELDS = [
@@ -22,10 +22,13 @@ export const DEFAULT_SITE_CONTENT = {
   tagline: 'Coaching Campus & Country Club',
   lede: 'Tier- und Skulpturenpark.',
   ledeSub: 'Lofts, Areal, Pferde — klick die Schilder, lies die Geschichten.',
+  // Allgemeine Anfragen: Fußzeile, Willkommen, Bedienungs-Fenster.
+  contactEmail: 'kontakt@paasleben.com',
   hostsHeading: 'Die Gastgeber',
   hosts: [
     {
       name: 'Maren Paas',
+      role: 'Gastgeberin · Executive Coach',
       photo: 'images/gastgeber/maren-paas.jpg',
       text: 'Maren Paas ist seit über 33 Jahren Beraterin internationaler Führungskräfte (mehr als 30 Jahre Egon Zehnder) und ausgebildeter Executive Coach (2002). Sie kennt die hohen Anforderungen an Spitzenkräfte der Wirtschaft und die Herausforderungen der Führung, insbesondere in Transformations-Situationen.\n\nMit menschlicher Offenheit und einem klaren Anspruch, den Themen auf den Grund zu gehen, arbeitet sie Wesentliches heraus und bringt es in die Umsetzung. Die Sicherung der Coaching- und Trainingsergebnisse und der Transfer in den Führungsalltag stehen bei ihr im Vordergrund.\n\nAls leidenschaftliche Beraterin ist sie auch eine große Natur- und Tierliebhaberin. Seit knapp 20 Jahren ist sie lizenzierte Besitzertrainerin des Direktoriums für Vollblutzucht und Rennen und registrierte Züchterin von Vollblütern. Sie lebt mit ihren Pferden auf dem Naturareal PAASLEBEN und ist zertifizierter HOGAN und REISS Motivation Profil Master.',
       phone: '0173 / 88 33 018',
@@ -34,6 +37,7 @@ export const DEFAULT_SITE_CONTENT = {
     },
     {
       name: 'Tilman Paas',
+      role: 'Gastgeber · Künstler & Unternehmer',
       photo: 'images/gastgeber/tilman-paas.jpg',
       text: 'Tilman Paas ist Unternehmer, Künstler, Transformator und Multitalent. Ein Mann der wenigen, aber essentiellen Worte. Cowboy, Bauer, Immobilien-Unternehmer, Baggerfahrer, Tausendsassa, ‚Taugenichts‘ – er sagt, er ‚tauge für das Normale nicht‘.\n\nEin Seismograph für Authentizität. Visionär und Createur, der das Andere denkt und ungewöhnliche Ideen verwirklicht. Er bewegt sich permanent ‚out of the box‘ und verlässt Komfortzonen. Sein besonderes Talent: Er ermutigt andere, ihr volles Potential zu entfalten.',
       phone: '0172 / 966 9666',
@@ -56,8 +60,8 @@ const merge = (data = {}) => {
 
 let cached = null;
 export const loadSiteContent = () => {
-  cached = cached || getDoc(doc(db, ...CONTENT_DOC))
-    .then((snap) => merge(snap.exists() ? snap.data() : {}))
+  cached = cached || readDoc(CONTENT_DOC)
+    .then((data) => merge(data || {}))
     .catch((err) => {
       console.warn('Website-Texte nicht ladbar — nutze Startwerte:', err);
       return merge();
@@ -65,9 +69,14 @@ export const loadSiteContent = () => {
   return cached;
 };
 
-export const saveSiteContent = (data) => {
+// Nur im Editor genutzt — das SDK wird erst hier nachgeladen.
+export const saveSiteContent = async (data) => {
   cached = null;
-  return setDoc(doc(db, ...CONTENT_DOC), { ...data, updatedAt: serverTimestamp() }, { merge: true });
+  const [{ doc, setDoc, serverTimestamp }, { db }] = await Promise.all([
+    import('firebase/firestore'),
+    import('./firebase.js'),
+  ]);
+  return setDoc(doc(db, CONTENT_DOC), { ...data, updatedAt: serverTimestamp() }, { merge: true });
 };
 
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -78,22 +87,51 @@ export const resolvePhoto = (photo, baseUrl = '/') => {
   return /^(https?:|data:|\/)/.test(photo) ? photo : `${baseUrl}${photo}`;
 };
 
-// HTML des Gastgeber-Abschnitts für das Panel. Texte werden escaped —
-// Absätze entstehen durch Leerzeilen, nicht durch HTML.
+export const mailtoHref = (email) => `mailto:${esc(String(email || '').trim())}`;
+
+// Kontaktblock am Ende des Gastgeber-Abschnitts: die allgemeine Adresse für
+// Anfragen, gut sichtbar statt nur in der Fußzeile.
+const renderContactHTML = (content) => {
+  const email = String(content.contactEmail || '').trim();
+  if (!email) return '';
+  return `<div class="pp-contact"><span class="t-caption">Anfragen &amp; Kontakt</span><a class="pp-contact-link" href="${mailtoHref(email)}">${esc(email)}</a></div>`;
+};
+
+const ICONS = {
+  phone: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.5h2.6l1.3 4.1-2 1.4a12 12 0 0 0 6.5 6.5l1.4-2 4.1 1.3v2.6a2 2 0 0 1-2.2 2A16.6 16.6 0 0 1 4.6 5.7a2 2 0 0 1 2-2.2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m4 6.5 8 6.5 8-6.5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+  web: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 12h17M12 3.5c2.6 2.5 2.6 14.5 0 17M12 3.5c-2.6 2.5-2.6 14.5 0 17" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+};
+const chip = (href, icon, label, external = false) =>
+  `<a class="pp-chip" href="${href}"${external ? ' target="_blank" rel="noopener"' : ''}>${ICONS[icon]}<span>${esc(label)}</span></a>`;
+
+// HTML des Gastgeber-Abschnitts für das Panel: je Person eine Karte mit
+// Porträt, Name, Rolle und Kontakt-Knöpfen, darunter der Profiltext. Texte
+// werden escaped — Absätze entstehen durch Leerzeilen, nicht durch HTML.
 export const renderHostsHTML = (content, baseUrl = '/') => {
   const hosts = (content.hosts || []).filter((h) => h && (h.name || h.text));
-  if (!hosts.length) return '';
+  if (!hosts.length) return renderContactHTML(content);
   const items = hosts.map((h) => {
     const paras = String(h.text || '').split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean)
       .map((p) => `<p>${esc(p).replace(/\n/g, '<br>')}</p>`).join('');
     const web = h.web ? h.web.replace(/^https?:\/\//, '') : '';
     const contact = [
-      h.phone && `<a href="tel:${esc(String(h.phone).replace(/[^+\d]/g, '').replace(/^0/, '+49'))}">${esc(h.phone)}</a>`,
-      h.email && `<a href="mailto:${esc(h.email)}">${esc(h.email)}</a>`,
-      web && `<a href="https://${esc(web)}" target="_blank" rel="noopener">${esc(web)}</a>`,
-    ].filter(Boolean).join('<br>');
+      h.phone && chip(`tel:${esc(String(h.phone).replace(/[^+\d]/g, '').replace(/^0/, '+49'))}`, 'phone', h.phone),
+      h.email && chip(mailtoHref(h.email), 'mail', h.email),
+      web && chip(`https://${esc(web)}`, 'web', web, true),
+    ].filter(Boolean).join('');
     const photo = resolvePhoto(h.photo, baseUrl);
-    return `<div class="pp-host">${photo ? `<img src="${esc(photo)}" alt="Porträt ${esc(h.name)}" loading="lazy">` : '<span></span>'}<div><h3>${esc(h.name)}</h3>${contact ? `<p class="pp-host-contact">${contact}</p>` : ''}${paras}</div></div>`;
+    return `<article class="pp-host">
+      <div class="pp-host-head">
+        ${photo ? `<img class="pp-host-photo" src="${esc(photo)}" alt="Porträt ${esc(h.name)}" loading="lazy">` : ''}
+        <div class="pp-host-id">
+          ${h.role ? `<span class="pp-host-role t-caption">${esc(h.role)}</span>` : ''}
+          <h3>${esc(h.name)}</h3>
+          ${contact ? `<div class="pp-host-contact">${contact}</div>` : ''}
+        </div>
+      </div>
+      <div class="pp-host-text">${paras}</div>
+    </article>`;
   }).join('');
-  return `<h2>${esc(content.hostsHeading || 'Die Gastgeber')}</h2>${items}`;
+  return `<h2>${esc(content.hostsHeading || 'Die Gastgeber')}</h2><div class="pp-hosts">${items}</div>${renderContactHTML(content)}`;
 };

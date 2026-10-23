@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="robots" content="noindex, nofollow" />
     <title>PAASLEBEN · Editor</title>
+    <!-- Anmeldung und Foto-Upload brauchen eine verschlüsselte Verbindung
+         (u. a. crypto.subtle gibt es nur unter https). -->
+    <script>
+      if (location.protocol === 'http:' && /\.[a-z]{2,}$/i.test(location.hostname)) {
+        location.replace('https:' + location.href.slice(location.protocol.length));
+      }
+    </script>
   </head>
   <body>
     <div id="admin-app">
@@ -57,7 +64,7 @@
               <span class="theme-picker-label">Design</span>
               <select id="theme-select" class="theme-select" title="Design der Website — wirkt sofort für alle Besucher"></select>
             </label>
-            <button id="site-button" class="btn" type="button" title="Kopfbereich, Gastgeber mit Kontaktdaten und Impressum bearbeiten">Website-Texte</button>
+            <button id="site-button" class="btn" type="button" title="Kopfbereich, Kontakt, Gastgeber, Impressum und Datenschutz bearbeiten">Website-Texte</button>
             <a class="btn" href="./" target="_blank" rel="noopener">Website ansehen</a>
             <button id="tour-button" class="btn btn-tour" type="button" title="Kurzeinführung: was sich hier wo bearbeiten lässt" aria-label="Kurzeinführung starten">?</button>
             <span id="user-chip" class="user-chip"></span>
@@ -100,8 +107,12 @@
                 <textarea id="f-body" name="body" rows="9"></textarea>
               </label>
               <label class="field">
-                <span class="field-label">Hintergrundvideo (optional, ersetzt die Fotos)</span>
-                <input id="f-video" name="video" type="text" placeholder="z. B. videos/porsche.mp4 oder https://…" />
+                <span class="field-label">Hintergrundvideo <small>— optional, ersetzt die Fotos; Datei unter public/videos/ oder volle URL zu einer .mp4</small></span>
+                <input id="f-video" name="video" type="text" placeholder="z. B. videos/porsche.mp4" />
+              </label>
+              <label class="field field-check" title="Zeigt den Rahmen des Videos mit dem ersten Foto als Standbild und „Film folgt in Kürze“ — bis oben eine Videodatei eingetragen ist">
+                <input id="f-video-placeholder" type="checkbox" />
+                <span class="field-label">Video-Platzhalter zeigen, solange kein Video eingetragen ist</span>
               </label>
               <div class="field-row">
                 <label class="field field-small">
@@ -142,7 +153,7 @@
                 <div class="image-actions">
                   <label class="btn btn-file">
                     Foto hochladen
-                    <input id="image-upload" type="file" accept="image/*" multiple hidden />
+                    <input id="image-upload" type="file" accept="image/*,.heic,.heif" multiple hidden />
                   </label>
                   <button id="open-library" class="btn" type="button">Aus Bibliothek wählen</button>
                 </div>
@@ -189,6 +200,7 @@
           <button class="site-tab is-active" type="button" data-site-tab="header">Kopfbereich</button>
           <button class="site-tab" type="button" data-site-tab="hosts">Gastgeber</button>
           <button class="site-tab" type="button" data-site-tab="impressum">Impressum</button>
+          <button class="site-tab" type="button" data-site-tab="datenschutz">Datenschutz</button>
         </nav>
         <div class="site-body">
           <section class="site-pane" data-site-pane="header">
@@ -196,7 +208,8 @@
             <div id="site-header-fields"></div>
           </section>
           <section class="site-pane" data-site-pane="hosts" hidden>
-            <p class="site-where">Erscheint <b>unter dem Fließtext</b> aller Orte, bei denen „Gastgeber hier anzeigen“ angehakt ist (z. B. Willkommen). Telefon, E-Mail und Website jeder Person sind gleichzeitig die Kontaktdaten der Website.</p>
+            <p class="site-where">Erscheint <b>unter dem Fließtext</b> aller Orte, bei denen „Gastgeber hier anzeigen“ angehakt ist (z. B. Willkommen). Telefon, E-Mail und Website stehen unter dem Namen jeder Person.</p>
+            <label class="field"><span class="field-label">Kontakt-E-Mail der Website <small>— Knopf „Kontakt“ in der Fußzeile, im Bedienungs-Fenster und unter den Gastgebern</small></span><input id="site-contact-email" type="email" placeholder="kontakt@paasleben.com" /></label>
             <label class="field"><span class="field-label">Überschrift des Abschnitts</span><input id="site-hosts-heading" type="text" /></label>
             <div id="site-hosts"></div>
             <button id="site-add-host" class="btn" type="button">＋ Person hinzufügen</button>
@@ -204,6 +217,10 @@
           <section class="site-pane" data-site-pane="impressum" hidden>
             <p class="site-where">Erscheint im Fenster <b>„Impressum“</b>. HTML erlaubt: &lt;h2&gt;/&lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche.</p>
             <textarea id="impressum-text" class="impressum-text" rows="22" spellcheck="true"></textarea>
+          </section>
+          <section class="site-pane" data-site-pane="datenschutz" hidden>
+            <p class="site-where">Erscheint im Fenster <b>„Datenschutz“</b> (Link unten rechts, im Bedienungs-Fenster und am Ende jedes Ortes). HTML wie beim Impressum. Der Startwert beschreibt den technischen Stand der Website — bei neuen Diensten (z. B. YouTube-Einbettung, Statistik) bitte anpassen.</p>
+            <textarea id="datenschutz-text" class="impressum-text" rows="22" spellcheck="true"></textarea>
           </section>
         </div>
         <div class="impressum-actions">

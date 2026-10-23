@@ -31,7 +31,11 @@ export class PaasPanel {
           <footer class="pp-foot">
             <div class="hairline"></div>
             <div class="t-caption pp-back">← ZURÜCK ZUR KARTE</div>
-            <a class="t-caption pp-legal" href="#impressum">Impressum</a>
+            <nav class="t-caption pp-legal" aria-label="Kontakt und Rechtliches">
+              <a href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
+              <a href="#impressum">Impressum</a>
+              <a href="#datenschutz">Datenschutz</a>
+            </nav>
           </footer>
         </article>
       </div>
@@ -64,7 +68,11 @@ export class PaasPanel {
       ? data.images
       : (data.image ? [{ src: data.image, alt: data.imageAlt }] : []);
     this._video = data.video || '';
+    this._videoPlaceholder = !this._video && !!data.videoPlaceholder;
     this._captions = !!data.captions;
+    // Orte mit Video (oder Video-Platzhalter) werden als Banner gesetzt:
+    // Film über die volle Breite, Text und Gastgeber darunter.
+    this.el.classList.toggle('pp-has-hero', Boolean(this._video || this._videoPlaceholder));
     // Zusatzabschnitt (z. B. Gastgeber) — eigenes Element, damit das
     // Bearbeiten des Fließtexts ihn nicht erfasst.
     this.$extra.innerHTML = data.extraHtml || '';
@@ -82,15 +90,36 @@ export class PaasPanel {
     const _esc = (s) => String(s || '').replace(/"/g, '&quot;');
     // Ein Ort mit Video zeigt statt der Fotos das Video — gedämpft, stumm,
     // in Schleife, wie ein bewegtes Titelbild.
+    const poster = Array.isArray(images) ? images.find(Boolean)?.src || '' : '';
     if (this._video) {
-      if (this.$figure.dataset.video === this._video) return;
+      if (this.$figure.dataset.video === this._video) {
+        // Fotos kommen oft erst nach dem Video an: erstes Foto als Standbild.
+        const video = this.$figure.querySelector('video');
+        if (video && poster && !video.getAttribute('poster')) video.setAttribute('poster', poster);
+        return;
+      }
       this.$figure.className = 'pp-figure pp-video';
       this.$figure.dataset.video = this._video;
-      this.$figure.innerHTML = `<video src="${_esc(this._video)}" autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>`;
+      this.$figure.innerHTML = `<video src="${_esc(this._video)}"${poster ? ` poster="${_esc(poster)}"` : ''} autoplay muted loop playsinline preload="metadata" aria-hidden="true"></video>`;
       this.$figure.querySelector('video').play?.().catch(() => {});
       return;
     }
     delete this.$figure.dataset.video;
+    // Video angekündigt, aber noch nicht hinterlegt: derselbe Rahmen wie das
+    // spätere Video, mit dem ersten Foto als Standbild und einem Hinweis.
+    // Sobald im Editor eine Videodatei eingetragen ist, läuft dort der Film.
+    if (this._videoPlaceholder) {
+      this.$figure.className = 'pp-figure pp-video pp-video-pending';
+      this.$figure.innerHTML = `
+        ${poster ? `<img class="pp-video-poster" src="${_esc(poster)}" alt="" decoding="async">` : ''}
+        <div class="pp-video-note">
+          <span class="pp-video-play" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
+          </span>
+          <span class="t-caption">Film folgt in Kürze</span>
+        </div>`;
+      return;
+    }
     const _escText = (s) => String(s || '').replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
     const imageList = Array.isArray(images) ? images.filter(Boolean) : [];
     if (imageList.length) {

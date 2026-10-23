@@ -1,0 +1,17 @@
+/* Web-Schriften, lokal ausgeliefert (@fontsource-Pakete, OFL-Lizenz).
+   Früher kamen sie von fonts.googleapis.com — dabei geht die IP-Adresse der
+   Besucher an Google, was nach DSGVO eine Einwilligung bräuchte. Jetzt liegen
+   die Dateien im Build; der Browser lädt nur die Schnitte und Zeichensätze,
+   die das aktive Theme wirklich benutzt. */
+@import '@fontsource/oxygen/300.css';
+@import '@fontsource/oxygen/400.css';
+@import '@fontsource/oxygen/700.css';
+@import '@fontsource/barlow-condensed/200.css';
+@import '@fontsource/barlow-condensed/400.css';
+@import '@fontsource/barlow-condensed/500.css';
+@import '@fontsource/cormorant-garamond/400.css';
+@import '@fontsource/cormorant-garamond/500.css';
+@import '@fontsource/cormorant-garamond/600.css';
+@import '@fontsource/cormorant-garamond/700.css';
+@import '@fontsource/courier-prime/400.css';
+@import '@fontsource/courier-prime/700.css';

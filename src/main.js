@@ -12,8 +12,8 @@ import { PaasCursor } from './lib/paas-cursor.js';
 import { PaasPanel } from './lib/paas-panel.js';
 import { createSky } from './lib/paas-sky.js';
 import { fetchLocations, resolveImages } from './lib/locations.js';
-import { loadImpressum } from './lib/impressum.js';
-import { loadSiteContent, renderHostsHTML } from './lib/site-content.js';
+import { loadLegalText } from './lib/legal.js';
+import { loadSiteContent, mailtoHref, renderHostsHTML } from './lib/site-content.js';
 import {
   REFERENCE_SPLAT, REFERENCE_CAMERA,
   buildSplatAlignment as buildSplatAlignmentShared,
@@ -173,6 +173,16 @@ const loadSheetContent = async () => {
 // Website-Texte aus dem Editor (paas_config/content) überschreiben die
 // Rahmentexte aus der CSV; außerdem die Gastgeber (Panel).
 let siteContent = null;
+// Alle „Kontakt"-Links ([data-contact-email]) auf die Adresse aus dem Editor
+// stellen. Läuft nach dem Laden und noch einmal, sobald das Panel gebaut ist.
+const applyContactEmail = () => {
+  const email = siteContent?.contactEmail;
+  if (!email) return;
+  document.querySelectorAll('[data-contact-email]').forEach((el) => {
+    el.setAttribute('href', mailtoHref(email));
+    el.title = email;
+  });
+};
 // Erst nach der CSV anwenden, sonst überschreibt sie die Editor-Texte.
 Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
   siteContent = content;
@@ -180,6 +190,7 @@ Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
     const value = content[el.getAttribute('data-content-key')];
     if (typeof value === 'string' && value.trim()) el.textContent = value;
   });
+  applyContactEmail();
   return content;
 });
 
@@ -940,6 +951,7 @@ const boot = async () => {
 
   // ── Panel + camera tween ───────────────
   const panel = new PaasPanel({ sceneVeil });
+  applyContactEmail();
   const brandBar = document.querySelector('.brand');
   const widgetBar = document.querySelector('.ui-chips');
   const timeline = document.querySelector('#timeline');
@@ -1334,6 +1346,7 @@ const boot = async () => {
       video: sp.video
         ? (/^(https?:|data:|\/)/.test(sp.video) ? sp.video : `${import.meta.env.BASE_URL}${sp.video}`)
         : '',
+      videoPlaceholder: sp.videoPlaceholder,
       captions: sp.showCaptions,
       extraHtml: sp.showHosts && siteContent ? renderHostsHTML(siteContent, import.meta.env.BASE_URL) : '',
       images: [],
@@ -1765,12 +1778,14 @@ const boot = async () => {
     if (helpClose) helpClose.addEventListener('click', () => toggleHelp(false));
   }
 
-  // ── Impressum: Links auf #impressum öffnen das Overlay. Der Text (im
-  // Editor bearbeitbar) wird erst beim ersten Öffnen aus Firestore geladen.
+  // ── Impressum & Datenschutz: Links auf #impressum bzw. #datenschutz öffnen
+  // das jeweilige Overlay. Der Text (im Editor bearbeitbar) wird erst beim
+  // ersten Öffnen aus Firestore geladen.
   const infoOverlays = {
     impressum: document.querySelector('#impressum-overlay'),
+    datenschutz: document.querySelector('#datenschutz-overlay'),
   };
-  let impressumLoaded = null;
+  const legalLoaded = {};
   let openInfo = null;
   const setInfoOverlay = (name) => {
     openInfo = name && infoOverlays[name] ? name : null;
@@ -1782,13 +1797,13 @@ const boot = async () => {
     }
     if (!openInfo) return;
     if (helpVisible) toggleHelp(false);
-    if (openInfo === 'impressum') {
-      const content = infoOverlays.impressum.querySelector('#impressum-content');
-      impressumLoaded = impressumLoaded || loadImpressum().then((html) => { content.innerHTML = html; });
-    }
+    const key = openInfo;
+    const content = infoOverlays[key].querySelector(`#${key}-content`);
+    legalLoaded[key] = legalLoaded[key] || loadLegalText(key).then((html) => { content.innerHTML = html; });
+    infoOverlays[key].querySelector('.help-card').scrollTop = 0;
   };
   document.addEventListener('click', (e) => {
-    const link = e.target.closest?.('a[href="#impressum"]');
+    const link = e.target.closest?.('a[href="#impressum"], a[href="#datenschutz"]');
     if (!link) return;
     e.preventDefault();
     setInfoOverlay(link.getAttribute('href').slice(1));
@@ -1805,7 +1820,7 @@ const boot = async () => {
     e.stopImmediatePropagation();
     setInfoOverlay(null);
   }, true);
-  if (location.hash === '#impressum') setInfoOverlay('impressum');
+  if (infoOverlays[location.hash.slice(1)]) setInfoOverlay(location.hash.slice(1));
 
   // ── Audio: autoplay muted + mute/unmute toggle ──
   const audio = document.querySelector('#bgm');
@@ -2219,6 +2234,7 @@ const boot = async () => {
           subtitle: loc.subtitle,
           body: loc.body,
           video: loc.video,
+          videoPlaceholder: loc.videoPlaceholder,
           showHosts: loc.showHosts,
           showCaptions: loc.showCaptions,
           images: loc.images,

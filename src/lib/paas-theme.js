@@ -8,19 +8,22 @@
 //   • Welches Theme gilt, entscheidet ein einzelnes Firestore-Dokument
 //     (paas_config/site, Feld `theme`). Damit wirkt die Auswahl im Editor
 //     sofort für alle Besucher, ohne Deploy.
-//   • localStorage dient nur als Zwischenspeicher des letzten bekannten
-//     Werts, damit beim Laden nichts aufblitzt. Die Wahrheit steht in
-//     Firestore.
+//   • Im Browser wird bewusst nichts zwischengespeichert (kein localStorage,
+//     DSGVO/TDDDG). Bis Firestore antwortet, gilt das Standard-Theme; das ist
+//     zugleich das gewählte, ein Aufblitzen gibt es also praktisch nie.
+//   • Alle Schriften liegen lokal im Bundle (src/styles/fonts.css), es geht
+//     keine Anfrage an Google Fonts.
 //
 // Bewusst NICHT Teil dieses Moduls: Kamera, Steuerung, Marker, Panel. Das
 // Theme wechselt ausschließlich Farben und Schriften.
+
+import { readDoc } from './firestore-rest.js';
 
 // Das Design der Website ist der Auftritt von Top Executive Events
 // (legacy-brand). Das ursprüngliche Papier-Design bleibt als Rückfallebene
 // im Editor wählbar; der zwischenzeitliche kombinierte Entwurf ist entfernt.
 const THEME_IDS = ['legacy-brand', 'current'];
 const DEFAULT_THEME = 'legacy-brand';
-const STORAGE_KEY = 'paas-theme';
 
 // Beschriftungen für die Editor-Oberfläche.
 export const THEMES = [
@@ -36,15 +39,6 @@ export const THEMES = [
   },
 ];
 
-// Zusätzliche Web-Schriften je Theme. Werden erst geladen, wenn das Theme
-// wirklich aktiv wird — so bleibt die Ladezeit des Standard-Themes unberührt.
-// Die Schriften des Standard-Designs stehen schon im <head> (data-paas-font),
-// damit sie nicht erst nach dem ersten Zeichnen nachgeladen werden.
-const THEME_FONTS = {
-  'legacy-brand': 'https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;400;500&family=Oxygen:wght@300;400;700&display=swap',
-  current: 'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Courier+Prime:wght@400;700&display=swap',
-};
-
 // Browser-UI-Farbe (Adressleiste auf Mobilgeräten) je Theme.
 const THEME_META_COLOR = {
   current: '#f4ecd8',
@@ -53,65 +47,37 @@ const THEME_META_COLOR = {
 
 export const isTheme = (value) => THEME_IDS.includes(value);
 
-const ensureFont = (theme) => {
-  const href = THEME_FONTS[theme];
-  if (!href || document.querySelector(`link[data-paas-font="${theme}"]`)) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  link.dataset.paasFont = theme;
-  document.head.appendChild(link);
-};
-
 /** Setzt das Theme sofort und meldet den Wechsel per `paas:themechange`. */
 export const applyTheme = (theme) => {
   const next = isTheme(theme) ? theme : DEFAULT_THEME;
-  ensureFont(next);
   document.documentElement.dataset.theme = next;
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta && THEME_META_COLOR[next]) meta.setAttribute('content', THEME_META_COLOR[next]);
-  try {
-    localStorage.setItem(STORAGE_KEY, next);
-  } catch {
-    // Privater Modus o. Ä. — dann fehlt nur der Zwischenspeicher.
-  }
   window.dispatchEvent(new CustomEvent('paas:themechange', { detail: { theme: next } }));
   return next;
 };
 
 export const cachedTheme = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (isTheme(stored)) return stored;
-  } catch {
-    // ignorieren
-  }
-  return DEFAULT_THEME;
+  const current = document.documentElement.dataset.theme;
+  return isTheme(current) ? current : DEFAULT_THEME;
 };
 
 /**
- * Wendet zuerst den zwischengespeicherten Wert an (kein Aufblitzen) und holt
- * danach den verbindlichen Wert aus Firestore. Firestore wird dynamisch
- * importiert, damit das Modul auch ohne Verbindung nutzbar bleibt und der
- * Import die erste Anzeige nicht aufhält.
+ * Wendet sofort das Standard-Theme an und holt danach den verbindlichen Wert
+ * aus Firestore (REST, ohne SDK).
  */
 export const initTheme = async () => {
   applyTheme(cachedTheme());
   try {
-    const [{ doc, getDoc }, { db }] = await Promise.all([
-      import('firebase/firestore'),
-      import('./firebase.js'),
-    ]);
-    const snap = await getDoc(doc(db, 'paas_config', 'site'));
-    const remote = snap.exists() ? snap.data()?.theme : null;
+    const site = await readDoc('paas_config/site');
+    const remote = site?.theme;
     if (isTheme(remote) && remote !== document.documentElement.dataset.theme) {
       applyTheme(remote);
     }
     return document.documentElement.dataset.theme;
   } catch (err) {
-    // Ohne Verbindung bleibt der zwischengespeicherte Wert stehen — die Seite
-    // ist damit vollständig benutzbar, nur eben eventuell nicht im zuletzt im
-    // Editor gewählten Theme.
+    // Ohne Verbindung bleibt das Standard-Theme stehen — die Seite ist damit
+    // vollständig benutzbar, nur eben eventuell nicht im Editor-Theme.
     console.warn('Theme konnte nicht aus Firestore geladen werden:', err);
     return document.documentElement.dataset.theme;
   }
