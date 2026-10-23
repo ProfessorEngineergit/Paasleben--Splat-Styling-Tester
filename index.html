@@ -35,6 +35,11 @@
           <span class="brand-lede-sub" data-content-key="ledeSub">Entdecke die Lofts, das Areal und die Pferde —
           klicke die Schilder, um die Geschichten zu lesen.</span>
         </p>
+        <!-- Kontakt gleich unter dem Titel — nicht erst in der Fußzeile. -->
+        <a class="brand-contact t-caption" href="mailto:kontakt@paasleben.com" data-contact-email>
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/><path d="m4 6.5 8 6.5 8-6.5"/></svg>
+          <span data-i18n="Kontakt aufnehmen">Kontakt aufnehmen</span>
+        </a>
       </header>
 
       <div id="ui-chips" class="ui-chips">
@@ -66,11 +71,19 @@
           </span>
           <span class="ui-chip-label t-caption" data-i18n="Bedienung">Bedienung</span>
         </button>
-        <!-- Sprachumschalter: zeigt die jeweils andere Sprache (Deutsch → EN,
-             Englisch → DE); lädt die Seite mit ?lang=… neu (src/lib/i18n.js). -->
-        <button id="lang-button" class="ui-chip ui-chip--lang" type="button" aria-label="English version" lang="en">
-          <span class="ui-chip-label t-caption">EN</span>
-        </button>
+        <!-- Sprachumschalter: Deutsch links, Englisch rechts, als schlichte
+             einfarbige Flaggen mit einem Schrägstrich dazwischen. Die aktive
+             Sprache steht voll da, die andere gedämpft; ein Klick lädt die
+             Seite mit ?lang=… neu (src/lib/i18n.js). -->
+        <div id="lang-switch" class="ui-chip ui-chip--lang" role="group" aria-label="Sprache / Language">
+          <button type="button" class="lang-opt" data-lang="de" lang="de" aria-label="Deutsch" title="Deutsch">
+            <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x=".7" y=".7" width="22.6" height="14.6" rx="1.8"/><path d="M.7 5.6h22.6M.7 10.4h22.6"/></svg>
+          </button>
+          <span class="lang-sep" aria-hidden="true"></span>
+          <button type="button" class="lang-opt" data-lang="en" lang="en" aria-label="English" title="English">
+            <svg viewBox="0 0 24 16" width="22" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x=".7" y=".7" width="22.6" height="14.6" rx="1.8"/><path d="M.7 .7 23.3 15.3M23.3 .7 .7 15.3M12 .7v14.6M.7 8h22.6"/></svg>
+          </button>
+        </div>
       </div>
 
       <!-- Zeitleiste: auf Touch-Geräten der Weg zwischen den Orten, weil die
@@ -133,8 +146,7 @@
         </div>
       </div>
 
-      <nav class="legal-links t-caption" aria-label="Kontakt und Rechtliches" data-i18n-label="Kontakt und Rechtliches">
-        <a class="contact-link" href="mailto:kontakt@paasleben.com" data-contact-email data-i18n="Kontakt">Kontakt</a>
+      <nav class="legal-links t-caption" aria-label="Rechtliches" data-i18n-label="Rechtliches">
         <a href="#impressum" data-i18n="Impressum">Impressum</a>
         <a href="#datenschutz" data-i18n="Datenschutz">Datenschutz</a>
       </nav>
