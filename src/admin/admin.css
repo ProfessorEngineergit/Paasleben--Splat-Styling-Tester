@@ -1,3 +1,4 @@
+@import '../styles/fonts.css';
 @import '../styles/tokens.css';
 @import '../styles/themes/current.css';
 @import '../styles/themes/legacy-brand.css';
@@ -537,6 +538,11 @@ html, body {
   background: #f7efd9;
   color: #6b551f;
   border-bottom-color: #e2d3ad;
+}
+.editor-banner.is-ok {
+  background: #e3efe2;
+  color: #24502a;
+  border-bottom-color: #bcd6b9;
 }
 
 /* ── Impressum-Dialog ── */

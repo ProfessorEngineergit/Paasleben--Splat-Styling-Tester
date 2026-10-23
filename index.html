@@ -6,26 +6,16 @@
     <meta name="theme-color" content="#ffffff" />
     <title>PAASLEBEN · Ein Ort zum Atmen</title>
 
-    <!-- Theme noch vor dem ersten Zeichnen setzen, sonst blitzt beim Laden
-         kurz das Standard-Theme auf. Verbindlich ist der Wert aus Firestore,
-         den src/lib/paas-theme.js gleich danach nachzieht. -->
+    <!-- Nur verschlüsselt ausliefern: Der Webspace antwortet auch auf http://,
+         ohne umzuleiten. Lokale Entwicklung (localhost, LAN-IP) bleibt
+         ausgenommen. Das Theme steht als Attribut direkt am <html>; der
+         Wert aus Firestore wird von src/lib/paas-theme.js nachgezogen. -->
     <script>
-      try {
-        var t = localStorage.getItem('paas-theme');
-        document.documentElement.dataset.theme =
-          ['legacy-brand', 'current'].indexOf(t) >= 0 ? t : 'legacy-brand';
-      } catch (e) {
-        document.documentElement.dataset.theme = 'legacy-brand';
+      if (location.protocol === 'http:' && /\.[a-z]{2,}$/i.test(location.hostname)) {
+        location.replace('https:' + location.href.slice(location.protocol.length));
       }
+      document.documentElement.dataset.theme = 'legacy-brand';
     </script>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      data-paas-font="legacy-brand"
-      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@200;400;500&family=Oxygen:wght@300;400;700&display=swap"
-    />
   </head>
   <body class="paper">
     <div id="app">
@@ -138,8 +128,10 @@
         </div>
       </div>
 
-      <nav class="legal-links t-caption" aria-label="Rechtliches">
+      <nav class="legal-links t-caption" aria-label="Kontakt und Rechtliches">
+        <a class="contact-link" href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
         <a href="#impressum">Impressum</a>
+        <a href="#datenschutz">Datenschutz</a>
       </nav>
 
 
@@ -147,6 +139,13 @@
         <div class="help-card impressum-card">
           <button class="help-close" type="button" aria-label="Schließen">×</button>
           <div id="impressum-content" class="impressum-content"></div>
+        </div>
+      </div>
+
+      <div id="datenschutz-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Datenschutzerklärung">
+        <div class="help-card impressum-card">
+          <button class="help-close" type="button" aria-label="Schließen">×</button>
+          <div id="datenschutz-content" class="impressum-content"></div>
         </div>
       </div>
 
@@ -180,7 +179,11 @@
             </ul>
           </div>
 
-          <p class="help-legal"><a class="t-caption" href="#impressum">Impressum</a></p>
+          <p class="help-legal t-caption">
+            <a href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
+            <a href="#impressum">Impressum</a>
+            <a href="#datenschutz">Datenschutz</a>
+          </p>
         </div>
       </div>
     </div>

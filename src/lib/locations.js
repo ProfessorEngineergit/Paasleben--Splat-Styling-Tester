@@ -3,23 +3,23 @@
 // Bilder sind entweder statische Assets (`url`, relativ zu public/) oder
 // im Editor hochgeladene Fotos, die als Base64-Dokumente in `paas_images`
 // liegen (`imageId`) — Letztere werden erst beim Öffnen eines Panels geladen.
-import {
-  collection, doc, getDoc, getDocs, onSnapshot, query, orderBy,
-} from 'firebase/firestore';
-import { db } from './firebase.js';
+// Die Website liest per REST (firestore-rest.js); das Live-Abo des Editors
+// liegt in src/admin/live-locations.js.
+import { readCollection, readDoc } from './firestore-rest.js';
 import snapshotFallback from '../data/locations-snapshot.json';
 
 const LOCATIONS = 'paas_locations';
 const IMAGES = 'paas_images';
-const FETCH_TIMEOUT_MS = 8000;
 
-const normalize = (id, data) => ({
+export const normalize = (id, data) => ({
   id,
   title: data.title || '',
   subtitle: data.subtitle || '',
   body: data.body || '',
   // Optionales Hintergrundvideo (Pfad relativ zu public/ oder volle URL).
   video: data.video || '',
+  // Solange kein Video hinterlegt ist: Platzhalter-Rahmen statt der Fotos.
+  videoPlaceholder: data.videoPlaceholder === true,
   // Gastgeber-Abschnitt (Website-Texte) unter dem Fließtext anzeigen.
   showHosts: data.showHosts === true,
   // Alt-Texte der Fotos als Bildunterschrift zeigen (z. B. Kunstwerke).
@@ -33,36 +33,21 @@ const normalize = (id, data) => ({
     : [],
 });
 
+export const byOrder = (a, b) => a.order - b.order;
+
 const fromSnapshot = () =>
-  snapshotFallback.map(({ id, ...data }) => normalize(id, data));
+  snapshotFallback.map(({ id, ...data }) => normalize(id, data)).sort(byOrder);
 
 // Lädt alle Orte; fällt bei Fehler/Timeout auf den committeten Snapshot zurück.
 export const fetchLocations = async () => {
   try {
-    const q = query(collection(db, LOCATIONS), orderBy('order'));
-    const snap = await Promise.race([
-      getDocs(q),
-      new Promise((_, rej) => setTimeout(() => rej(new Error('Firestore-Timeout')), FETCH_TIMEOUT_MS)),
-    ]);
-    if (snap.empty) return fromSnapshot();
-    return snap.docs.map((d) => normalize(d.id, d.data()));
+    const docs = await readCollection(LOCATIONS);
+    if (!docs.length) return fromSnapshot();
+    return docs.map((d) => normalize(d.id, d.data)).sort(byOrder);
   } catch (err) {
     console.warn('Orte aus Firestore nicht ladbar — nutze Snapshot:', err);
     return fromSnapshot();
   }
-};
-
-// Live-Abo für den Editor (und optional den Viewer).
-export const subscribeLocations = (cb, onError) => {
-  const q = query(collection(db, LOCATIONS), orderBy('order'));
-  return onSnapshot(
-    q,
-    (snap) => cb(snap.docs.map((d) => normalize(d.id, d.data()))),
-    (err) => {
-      console.warn('Locations-Abo fehlgeschlagen:', err);
-      if (onError) onError(err);
-    },
-  );
 };
 
 // Cache für hochgeladene Bilder (paas_images → data-URL).
@@ -70,8 +55,8 @@ const imageDataCache = new Map();
 
 const loadImageData = async (imageId) => {
   if (imageDataCache.has(imageId)) return imageDataCache.get(imageId);
-  const promise = getDoc(doc(db, IMAGES, imageId)).then((snap) => {
-    const data = snap.exists() ? snap.data().data : null;
+  const promise = readDoc(`${IMAGES}/${imageId}`).then((image) => {
+    const data = image?.data || null;
     if (!data) imageDataCache.delete(imageId);
     return data;
   }).catch((err) => {

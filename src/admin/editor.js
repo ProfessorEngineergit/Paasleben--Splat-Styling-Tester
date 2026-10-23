@@ -12,14 +12,15 @@ import { db } from '../lib/firebase.js';
 import {
   THEMES, applyTheme, cachedTheme, isTheme,
 } from '../lib/paas-theme.js';
-import { subscribeLocations } from '../lib/locations.js';
+import { subscribeLocations } from './live-locations.js';
 import {
   REFERENCE_CAMERA, buildSplatAlignment, applyAlignmentToSplat, applySplatOffset,
 } from '../lib/splat-alignment.js';
 import { setupImagesUI, fileToDataUrl } from './images.js';
 import { setupPreview } from './preview.js';
 import { setupTour } from './tour.js';
-import { loadImpressum, saveImpressum } from '../lib/impressum.js';
+import { loadLegalText, saveLegalText } from '../lib/legal.js';
+import { runPendingMigrations } from './migrations.js';
 import {
   HEADER_FIELDS, loadSiteContent, saveSiteContent, resolvePhoto,
 } from '../lib/site-content.js';
@@ -166,6 +167,7 @@ export const startEditor = () => {
     if (keys.includes('subtitle')) return 'Untertitel ändern';
     if (keys.includes('body')) return 'Text ändern';
     if (keys.includes('video')) return 'Video ändern';
+    if (keys.includes('videoPlaceholder')) return 'Video-Platzhalter ein/aus';
     if (keys.includes('showHosts')) return 'Gastgeber ein/aus';
     if (keys.includes('showCaptions')) return 'Bildunterschriften ein/aus';
     if (keys.includes('displayNumber')) return 'Schildnummer ändern';
@@ -225,7 +227,7 @@ export const startEditor = () => {
     if (err?.code === 'permission-denied' || /insufficient permissions/i.test(err?.message || '')) {
       return READ_ONLY
         ? 'Vorschau-Modus: Änderungen können nicht gespeichert werden. Melde dich unter /admin.html mit deinem Google-Konto an.'
-        : 'Keine Schreibrechte — die Änderung wurde verworfen. Bist du mit dem freigeschalteten Google-Konto angemeldet? Freigeschaltet ist derzeit nur bahriannovotny@gmail.com.';
+        : 'Keine Schreibrechte — die Änderung wurde verworfen. Bist du mit einem freigeschalteten Konto angemeldet (Firestore → paas_admins)?';
     }
     return `Speichern fehlgeschlagen: ${err?.code || err?.message || err}`;
   };
@@ -516,6 +518,7 @@ export const startEditor = () => {
     subtitle: document.querySelector('#f-subtitle'),
     body: document.querySelector('#f-body'),
     video: document.querySelector('#f-video'),
+    videoPlaceholder: document.querySelector('#f-video-placeholder'),
     showHosts: document.querySelector('#f-show-hosts'),
     showCaptions: document.querySelector('#f-show-captions'),
     displayNumber: document.querySelector('#f-display'),
@@ -540,6 +543,7 @@ export const startEditor = () => {
     fields.subtitle.value = loc.subtitle;
     fields.body.value = loc.body;
     fields.video.value = loc.video || '';
+    fields.videoPlaceholder.checked = !!loc.videoPlaceholder;
     fields.showHosts.checked = !!loc.showHosts;
     fields.showCaptions.checked = !!loc.showCaptions;
     fields.displayNumber.value = loc.displayNumber;
@@ -690,6 +694,9 @@ export const startEditor = () => {
   bindField(fields.video, (i) => ({ video: i.value.trim() }));
   bindField(fields.displayNumber, (i) => ({ displayNumber: i.value.trim().padStart(2, '0') }));
   bindField(fields.order, (i) => ({ order: Number(i.value) || 0 }));
+  fields.videoPlaceholder.addEventListener('change', () => {
+    if (selectedId) save(selectedId, { videoPlaceholder: fields.videoPlaceholder.checked });
+  });
   fields.showHosts.addEventListener('change', () => {
     if (selectedId) save(selectedId, { showHosts: fields.showHosts.checked });
   });
@@ -723,6 +730,9 @@ export const startEditor = () => {
       subtitle: loc.subtitle,
       body: loc.body,
       video: loc.video || '',
+      videoPlaceholder: !!loc.videoPlaceholder,
+      showHosts: !!loc.showHosts,
+      showCaptions: !!loc.showCaptions,
       displayNumber: display,
       order: Number(display),
       visible: false,
@@ -882,9 +892,10 @@ export const startEditor = () => {
   setupThemePicker();
 
   // ── Website-Texte ──────────────────────────────────────────────────
-  // Alles, was nicht zu einem Ort gehört: Kopfbereich, Gastgeber samt
-  // Kontaktdaten (paas_config/content) und Impressum (paas_config/impressum). Jeder
-  // Reiter sagt, wo der Text auf der Website erscheint.
+  // Alles, was nicht zu einem Ort gehört: Kopfbereich, Kontakt-E-Mail und
+  // Gastgeber (paas_config/content), Impressum und Datenschutzerklärung
+  // (paas_config/impressum, paas_config/datenschutz). Jeder Reiter sagt, wo
+  // der Text auf der Website erscheint.
   const setupSiteTexts = () => {
     const button = document.querySelector('#site-button');
     const dialog = document.querySelector('#site-dialog');
@@ -914,9 +925,12 @@ export const startEditor = () => {
           <legend>Person ${i + 1}</legend>
           <div class="host-photo">
             ${h.photo ? `<img src="${esc(resolvePhoto(h.photo, import.meta.env.BASE_URL))}" alt="" />` : '<span class="host-nophoto">kein Foto</span>'}
-            <label class="btn btn-file">Foto wählen<input type="file" accept="image/*" hidden data-host-photo /></label>
+            <label class="btn btn-file">Foto wählen<input type="file" accept="image/*,.heic,.heif" hidden data-host-photo /></label>
           </div>
-          <label class="field"><span class="field-label">Name</span><input type="text" data-host-field="name" value="${esc(h.name)}" /></label>
+          <div class="field-row">
+            <label class="field"><span class="field-label">Name</span><input type="text" data-host-field="name" value="${esc(h.name)}" /></label>
+            <label class="field"><span class="field-label">Rolle <small>— kleine Zeile über dem Namen</small></span><input type="text" data-host-field="role" value="${esc(h.role)}" placeholder="z. B. Gastgeberin · Executive Coach" /></label>
+          </div>
           <label class="field"><span class="field-label">Profiltext <small>— Absätze durch Leerzeile</small></span><textarea rows="7" data-host-field="text">${esc(h.text)}</textarea></label>
           <div class="field-row">
             <label class="field"><span class="field-label">Telefon</span><input type="text" data-host-field="phone" value="${esc(h.phone)}" /></label>
@@ -943,7 +957,7 @@ export const startEditor = () => {
       status.textContent = 'Foto wird verkleinert…';
       try {
         // Klein halten: alle Website-Texte liegen in einem Dokument (≤ 1 MB).
-        hosts[i].photo = await fileToDataUrl(file, 480);
+        hosts[i].photo = await fileToDataUrl(file, 640);
         status.textContent = 'Foto übernommen — noch speichern.';
         renderHosts();
       } catch (err) {
@@ -965,33 +979,42 @@ export const startEditor = () => {
       }
     });
     $('#site-add-host').addEventListener('click', () => {
-      hosts.push({ name: '', photo: '', text: '', phone: '', email: '', web: '' });
+      hosts.push({ name: '', role: '', photo: '', text: '', phone: '', email: '', web: '' });
       renderHosts();
     });
 
     const collect = () => {
       const content = {
+        contactEmail: $('#site-contact-email').value.trim(),
         hostsHeading: $('#site-hosts-heading').value.trim(),
         hosts: hosts.map((h) => ({
-          name: (h.name || '').trim(), photo: h.photo || '', text: (h.text || '').trim(),
+          name: (h.name || '').trim(), role: (h.role || '').trim(), photo: h.photo || '', text: (h.text || '').trim(),
           phone: (h.phone || '').trim(), email: (h.email || '').trim(), web: (h.web || '').trim(),
         })),
       };
       dialog.querySelectorAll('[data-header-key]').forEach((input) => {
         content[input.dataset.headerKey] = input.value.trim();
       });
-      return { content, impressum: $('#impressum-text').value };
+      return {
+        content,
+        impressum: $('#impressum-text').value,
+        datenschutz: $('#datenschutz-text').value,
+      };
     };
 
     button.addEventListener('click', async () => {
       status.textContent = 'Lädt…';
       dialog.showModal();
-      const [content, impressum] = await Promise.all([loadSiteContent(), loadImpressum()]);
+      const [content, impressum, datenschutz] = await Promise.all([
+        loadSiteContent(), loadLegalText('impressum'), loadLegalText('datenschutz'),
+      ]);
       dialog.querySelectorAll('[data-header-key]').forEach((input) => {
         input.value = content[input.dataset.headerKey] || '';
       });
+      $('#site-contact-email').value = content.contactEmail || '';
       $('#site-hosts-heading').value = content.hostsHeading || '';
       $('#impressum-text').value = impressum;
+      $('#datenschutz-text').value = datenschutz;
       hosts = (content.hosts || []).map((h) => ({ ...h }));
       renderHosts();
       snapshot = JSON.stringify(collect());
@@ -1009,9 +1032,13 @@ export const startEditor = () => {
       saveBtn.disabled = true;
       status.textContent = 'Speichert…';
       try {
-        const { content, impressum } = collect();
-        await Promise.all([saveSiteContent(content), saveImpressum(impressum)]);
-        snapshot = JSON.stringify({ content, impressum });
+        const texts = collect();
+        await Promise.all([
+          saveSiteContent(texts.content),
+          saveLegalText('impressum', texts.impressum),
+          saveLegalText('datenschutz', texts.datenschutz),
+        ]);
+        snapshot = JSON.stringify(texts);
         status.textContent = 'Gespeichert — beim nächsten Laden der Website sichtbar.';
       } catch (err) {
         console.error('Website-Texte speichern fehlgeschlagen:', err);
@@ -1027,6 +1054,21 @@ export const startEditor = () => {
 
   // ── Kurzeinführung ─────────────────────────────────────────────────
   setupTour();
+
+  // ── Inhalts-Updates ────────────────────────────────────────────────
+  // Strukturänderungen an den Inhalten (neue Orte, Umbenennungen …) kommen
+  // mit dem Code, landen aber in Firestore. Das erledigt der erste
+  // angemeldete Editor-Start nach dem Deploy — einmalig, siehe migrations.js.
+  if (!READ_ONLY) {
+    runPendingMigrations()
+      .then((done) => {
+        if (done.length) showBanner(`Inhalte aktualisiert: ${done.join(' · ')}`, 'ok');
+      })
+      .catch((err) => {
+        console.error('Inhalts-Update fehlgeschlagen:', err);
+        showBanner(`Inhalts-Update fehlgeschlagen: ${err?.code || err?.message || err}`);
+      });
+  }
 
   // ── Live-Daten ─────────────────────────────────────────────────────
   subscribeLocations(
