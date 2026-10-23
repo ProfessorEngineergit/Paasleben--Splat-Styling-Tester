@@ -7,6 +7,7 @@
 // liegt in src/admin/live-locations.js.
 import { readCollection, readDoc } from './firestore-rest.js';
 import snapshotFallback from '../data/locations-snapshot.json';
+import * as willkommen2026 from './content-updates/2026-10-willkommen.js';
 
 const LOCATIONS = 'paas_locations';
 const IMAGES = 'paas_images';
@@ -16,6 +17,10 @@ export const normalize = (id, data) => ({
   title: data.title || '',
   subtitle: data.subtitle || '',
   body: data.body || '',
+  // Englische Texte (im Editor gepflegt); leer = Standardtext aus translations-en.js.
+  title_en: data.title_en || '',
+  subtitle_en: data.subtitle_en || '',
+  body_en: data.body_en || '',
   // Optionales Hintergrundvideo (Pfad relativ zu public/ oder volle URL).
   video: data.video || '',
   // Solange kein Video hinterlegt ist: Platzhalter-Rahmen statt der Fotos.
@@ -38,12 +43,36 @@ export const byOrder = (a, b) => a.order - b.order;
 const fromSnapshot = () =>
   snapshotFallback.map(({ id, ...data }) => normalize(id, data)).sort(byOrder);
 
+// Inhalts-Updates, die der Editor noch nicht nach Firestore geschrieben hat
+// (das passiert erst beim nächsten Editor-Login, siehe src/admin/migrations.js),
+// zeigt die Website schon jetzt: dieselbe reine Plan-Funktion, im Speicher
+// angewendet. Sobald das Update in Firestore steht, wird hier nichts mehr getan.
+const CONTENT_UPDATES = [willkommen2026];
+const applyPendingUpdates = async (locations) => {
+  let applied = [];
+  try {
+    applied = (await readDoc('paas_config/migrations'))?.applied || [];
+  } catch {
+    return locations; // ohne Status lieber nichts verändern
+  }
+  let result = locations;
+  for (const update of CONTENT_UPDATES) {
+    if (applied.includes(update.ID)) continue;
+    const { updates, creates } = update.plan(result);
+    result = result
+      .map((loc) => normalize(loc.id, { ...loc, ...(updates[loc.id] || {}) }))
+      .concat(Object.entries(creates).map(([id, data]) => normalize(id, data)))
+      .sort(byOrder);
+  }
+  return result;
+};
+
 // Lädt alle Orte; fällt bei Fehler/Timeout auf den committeten Snapshot zurück.
 export const fetchLocations = async () => {
   try {
     const docs = await readCollection(LOCATIONS);
     if (!docs.length) return fromSnapshot();
-    return docs.map((d) => normalize(d.id, d.data)).sort(byOrder);
+    return applyPendingUpdates(docs.map((d) => normalize(d.id, d.data)).sort(byOrder));
   } catch (err) {
     console.warn('Orte aus Firestore nicht ladbar — nutze Snapshot:', err);
     return fromSnapshot();

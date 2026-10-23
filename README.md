@@ -102,12 +102,12 @@ ein angemeldeter Admin. Deshalb:
    und genau einmal (erledigte IDs in `paas_config/migrations`). Das Banner
    „Inhalte aktualisiert: …" bestätigt es.
 
-Aktuell: `src/admin/migrations/2026-10-willkommen.js` teilt „Willkommen" in
+Aktuell: `src/lib/content-updates/2026-10-willkommen.js` teilt „Willkommen" in
 Willkommen (mit Gastgebern und Video-Platzhalter) und „Geschichte" (Nr. 02),
 rückt die folgenden Orte eine Nummer weiter und legt „Nandu-Weide" und
 „Skulpturen" an.
 
-Neues Update anlegen: Datei in `src/admin/migrations/`, die eine eindeutige
+Neues Update anlegen: Datei in `src/lib/content-updates/`, die eine eindeutige
 `ID` und eine reine Funktion `plan(locations)` exportiert (liefert
 `{ updates, creates, summary }`, ohne Firestore-Zugriff), und in
 `src/admin/migrations.js` in `MIGRATIONS` eintragen.
