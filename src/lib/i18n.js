@@ -1,7 +1,7 @@
 // Zweisprachige Website (Deutsch/Englisch).
 //
-// Sprachwahl: `?lang=en` bzw. `?lang=de` in der Adresse; ohne Angabe die
-// Browsersprache (englisch, wenn sie mit „en" beginnt, sonst deutsch).
+// Sprachwahl: `?lang=en` bzw. `?lang=de` in der Adresse; ohne Angabe immer
+// Deutsch — unabhängig von der Browsersprache.
 // Gespeichert wird nichts im Browser (kein localStorage/Cookie, DSGVO) — die
 // Wahl lebt in der URL, der Umschalter lädt die Seite mit dem neuen Parameter.
 //
@@ -21,7 +21,7 @@ const detect = () => {
   if (params.get('edit') === '1') return 'de';
   const param = params.get('lang');
   if (LANGS.includes(param)) return param;
-  return /^en\b/i.test(navigator.language || '') ? 'en' : 'de';
+  return 'de';
 };
 
 export const LANG = detect();
@@ -42,6 +42,7 @@ const UI = {
     'Draufsicht': 'Top view',
     'Bedienung': 'Help',
     'Kontakt': 'Contact',
+    'Kontakt aufnehmen': 'Get in touch',
     'Impressum': 'Legal notice',
     'Datenschutz': 'Privacy',
     '× SCHLIESSEN': '× CLOSE',

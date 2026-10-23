@@ -500,9 +500,64 @@ a.ui-chip { text-decoration: none; }
   letter-spacing: 0.22em;
   color: inherit;
 }
-/* Sprachumschalter: nur das Kürzel der anderen Sprache, schmal gehalten. */
-.ui-chip--lang { padding: 0 13px; }
-.ui-chip--lang .ui-chip-label { letter-spacing: 0.16em; }
+/* Sprachumschalter: zwei einfarbige Flaggen (Deutsch links, Englisch rechts)
+   mit einem Schrägstrich dazwischen. Aktiv = volle Tinte, die andere
+   gedämpft; beim Darüberfahren wird auch sie voll. */
+.ui-chip--lang { padding: 0 5px; gap: 0; }
+.lang-opt {
+  display: inline-flex; align-items: center; justify-content: center;
+  height: 100%;
+  padding: 0 9px;
+  border: 0;
+  background: none;
+  color: var(--ink-mute);
+  opacity: .5;
+  font: inherit;
+  cursor: none;
+  transition: opacity .2s ease, color .2s ease;
+}
+.lang-opt svg { display: block; }
+.lang-opt[aria-pressed="true"] { color: var(--ink); opacity: 1; }
+.lang-opt:hover,
+.lang-opt:focus-visible { opacity: 1; outline: none; }
+.lang-sep {
+  width: 1px; height: 20px;
+  background: var(--ink-mute);
+  opacity: .45;
+  transform: rotate(22deg);
+}
+
+/* Kontakt gleich unter dem Titel: dezenter Knopf im Stil der Bedienknöpfe. */
+.brand-contact {
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 9px;
+  margin-top: 4px;
+  padding: 10px 18px 10px 14px;
+  border: 1px solid var(--rule-soft);
+  border-radius: 20px;
+  background: var(--paper-pale);
+  color: var(--ink-2);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: none;
+  pointer-events: auto;
+  box-shadow: 0 1px 2px var(--paper-shadow), 0 6px 16px -8px var(--paper-shadow);
+  transition: background .24s ease, color .24s ease, border-color .24s ease;
+}
+.brand-contact svg { display: block; flex: none; }
+.brand-contact:hover,
+.brand-contact:focus-visible {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper-pale);
+  outline: none;
+}
+body.pp-ui-hidden .brand-contact { pointer-events: none; }
 .info-glyph {
   width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -969,11 +1024,13 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
     left: 0;
     right: 0;
     max-width: none;
-    height: 62px;
+    min-height: 62px;
+    height: auto;
     justify-content: center;
     gap: 2px;
-    /* Platz für vier Bedienknöpfe: 4×38 px + 3×6 px Abstand + 14 px Rand. */
-    padding: 0 196px 0 18px;
+    /* Platz für drei Knöpfe (3×38 px), den breiteren Sprachumschalter
+       (ca. 76 px), 3×6 px Abstand und 14 px Rand. */
+    padding: 8px 232px 8px 18px;
   }
   .brand::before { display: none; }
   .brand-rule,
@@ -993,8 +1050,20 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   .ui-chips { top: 12px; right: 14px; gap: 6px; }
   .ui-chip { width: 38px; padding: 0; justify-content: center; gap: 0; }
   .ui-chip .ui-chip-label { display: none; }
-  /* Der Sprachumschalter hat kein Symbol — sein Kürzel bleibt sichtbar. */
-  .ui-chip--lang .ui-chip-label { display: inline; }
+  /* Der Sprachumschalter zeigt zwei Flaggen und braucht mehr Breite. */
+  .ui-chip--lang { width: auto; padding: 0 3px; }
+  .lang-opt { padding: 0 6px; }
+  .lang-opt svg { width: 19px; height: 13px; }
+  /* Kontakt als kleine Zeile unter dem Titel; die Leiste wächst mit. */
+  .brand-contact {
+    margin-top: 3px;
+    padding: 5px 11px 5px 9px;
+    gap: 6px;
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    box-shadow: none;
+  }
+  .brand-contact svg { width: 11px; height: 11px; }
 
   /* Ortsschilder verschwinden ganz. Sie überdeckten sich gegenseitig zu einer
      unlesbaren Wand; navigiert wird über die Zeitleiste am unteren Rand, der

@@ -41,16 +41,13 @@ const applyStaticTranslations = () => {
   });
 };
 applyStaticTranslations();
-// Umschalter: zeigt die jeweils andere Sprache und lädt die Seite damit neu.
-const langBtn = document.querySelector('#lang-button');
-if (langBtn) {
-  const english = LANG === 'en';
-  langBtn.setAttribute('aria-label', english ? 'Deutsche Version' : 'English version');
-  langBtn.setAttribute('lang', english ? 'de' : 'en');
-  const lbl = langBtn.querySelector('.ui-chip-label');
-  if (lbl) lbl.textContent = english ? 'DE' : 'EN';
-  langBtn.addEventListener('click', () => switchLang());
-}
+// Umschalter: die aktive Sprache ist markiert, ein Klick auf die andere lädt
+// die Seite damit neu.
+document.querySelectorAll('#lang-switch .lang-opt').forEach((btn) => {
+  const active = btn.dataset.lang === LANG;
+  btn.setAttribute('aria-pressed', String(active));
+  if (!active) btn.addEventListener('click', () => switchLang(btn.dataset.lang));
+});
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;

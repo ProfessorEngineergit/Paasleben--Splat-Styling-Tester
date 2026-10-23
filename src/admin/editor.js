@@ -80,7 +80,10 @@ export const startEditor = () => {
   orbit.enableDamping = true;
   orbit.dampingFactor = 0.12;
   orbit.rotateSpeed = 1.3;
-  orbit.panSpeed = 1.4;
+  // Verschieben (linke Maustaste / ein Finger) skaliert mit dem Abstand zum
+  // Ziel; bei 1,4 war es klar langsamer als auf der Website (ca. 0,007–0,010
+  // Welteinheiten pro Pixel gegen 0,0125 dort). 3,0 liegt etwas darüber.
+  orbit.panSpeed = 3.0;
   orbit.zoomSpeed = 1.5;
   orbit.minDistance = 0.05;
   orbit.maxDistance = 120;
