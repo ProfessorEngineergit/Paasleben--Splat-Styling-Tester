@@ -1718,8 +1718,21 @@ const boot = async () => {
   let helpVisible = false;
   let helpMode = 'modal'; // 'modal' (sticky, e.g. Info button) | 'hint' (closes on mousemove)
   const dbg = document.querySelector('#debug-panel');
+  // Dialoge (Bedienung, Impressum, Datenschutz) ersetzen die Ansicht: ein
+  // offenes Detail-Fenster wird zuerst geschlossen, die Kamera fährt heim.
+  // Sonst standen Titel, Schließen-Knopf und Vor/Zurück-Leiste des Fensters
+  // neben bzw. vor dem Dialog — auf dem Handy kaum lesbar.
+  const closeDetailForDialog = () => {
+    if (!panel.open_ && !document.body.classList.contains('pp-is-open')) return;
+    panel.close();
+    tweenCameraHome();
+    activeIndex = -1;
+    syncTimeline();
+  };
+
   const toggleHelp = (force, mode = 'modal') => {
     helpVisible = force ?? !helpVisible;
+    if (helpVisible && mode === 'modal') closeDetailForDialog();
     if (helpVisible) helpMode = mode;
     document.body.classList.toggle('show-help', helpVisible);
   };
@@ -1834,6 +1847,7 @@ const boot = async () => {
     }
     if (!openInfo) return;
     if (helpVisible) toggleHelp(false);
+    closeDetailForDialog();
     const key = openInfo;
     const content = infoOverlays[key].querySelector(`#${key}-content`);
     legalLoaded[key] = legalLoaded[key] || loadLegalText(LANG === 'en' ? `${key}_en` : key).then((html) => { content.innerHTML = html; });

@@ -518,7 +518,9 @@ a.ui-chip { text-decoration: none; }
 .help-overlay {
   position: fixed;
   inset: 0;
-  z-index: 850;
+  /* Über allem außer dem Mauszeiger — auch über den mobilen Leisten des
+     Detail-Fensters (z: 910). */
+  z-index: 1500;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1043,7 +1045,7 @@ body.show-datenschutz #datenschutz-overlay {
 }
 body.show-impressum #impressum-overlay .impressum-card,
 body.show-datenschutz #datenschutz-overlay .impressum-card { transform: translateY(0); }
-.impressum-overlay { z-index: 900; }
+.impressum-overlay { z-index: 1500; }
 .brand-tagline {
   position: relative;
   z-index: 1;
