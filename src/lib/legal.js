@@ -8,6 +8,7 @@
 // keine Cookies, kein Tracking). Ändert sich daran etwas — etwa ein
 // eingebettetes YouTube-Video oder ein Analyse-Tool —, muss der Text mit.
 import { readDoc } from './firestore-rest.js';
+import { EN_LEGAL_DEFAULTS } from './i18n.js';
 
 export const DEFAULT_IMPRESSUM_HTML = `<h2>Impressum</h2>
 
@@ -70,6 +71,9 @@ export const DEFAULT_DATENSCHUTZ_HTML = `<h2>Datenschutzerklärung</h2>
 export const LEGAL_PAGES = {
   impressum: { label: 'Impressum', doc: 'paas_config/impressum', fallback: DEFAULT_IMPRESSUM_HTML },
   datenschutz: { label: 'Datenschutz', doc: 'paas_config/datenschutz', fallback: DEFAULT_DATENSCHUTZ_HTML },
+  // Englische Fassungen (eigene Dokumente; leer = englischer Standardtext).
+  impressum_en: { label: 'Legal notice', doc: 'paas_config/impressum_en', fallback: EN_LEGAL_DEFAULTS.impressum },
+  datenschutz_en: { label: 'Privacy policy', doc: 'paas_config/datenschutz_en', fallback: EN_LEGAL_DEFAULTS.datenschutz },
 };
 
 export const loadLegalText = async (key) => {

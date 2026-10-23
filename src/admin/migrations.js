@@ -9,7 +9,7 @@ import {
   collection, doc, getDocs, runTransaction,
 } from 'firebase/firestore';
 import { db as defaultDb } from '../lib/firebase.js';
-import * as willkommen2026 from './migrations/2026-10-willkommen.js';
+import * as willkommen2026 from '../lib/content-updates/2026-10-willkommen.js';
 
 const MIGRATIONS = [willkommen2026];
 const LOCATIONS = 'paas_locations';
