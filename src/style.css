@@ -500,6 +500,9 @@ a.ui-chip { text-decoration: none; }
   letter-spacing: 0.22em;
   color: inherit;
 }
+/* Sprachumschalter: nur das Kürzel der anderen Sprache, schmal gehalten. */
+.ui-chip--lang { padding: 0 13px; }
+.ui-chip--lang .ui-chip-label { letter-spacing: 0.16em; }
 .info-glyph {
   width: 16px; height: 16px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -967,8 +970,8 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
     height: 62px;
     justify-content: center;
     gap: 2px;
-    /* Platz für drei Bedienknöpfe: 3×40 px + 2×6 px Abstand + 14 px Rand. */
-    padding: 0 152px 0 18px;
+    /* Platz für vier Bedienknöpfe: 4×38 px + 3×6 px Abstand + 14 px Rand. */
+    padding: 0 196px 0 18px;
   }
   .brand::before { display: none; }
   .brand-rule,
@@ -988,6 +991,8 @@ body.pp-is-open .timeline { opacity: 0; pointer-events: none; }
   .ui-chips { top: 12px; right: 14px; gap: 6px; }
   .ui-chip { width: 38px; padding: 0; justify-content: center; gap: 0; }
   .ui-chip .ui-chip-label { display: none; }
+  /* Der Sprachumschalter hat kein Symbol — sein Kürzel bleibt sichtbar. */
+  .ui-chip--lang .ui-chip-label { display: inline; }
 
   /* Ortsschilder verschwinden ganz. Sie überdeckten sich gegenseitig zu einer
      unlesbaren Wand; navigiert wird über die Zeitleiste am unteren Rand, der
@@ -1078,5 +1083,5 @@ body.show-datenschutz #datenschutz-overlay .impressum-card { transform: translat
   .legal-links { display: none; }
 }
 @media (max-width: 640px) {
-  .brand-tagline { font-size: 8.5px; letter-spacing: 0.16em; line-height: 1.5; max-width: calc(100vw - 225px); }
+  .brand-tagline { font-size: 8.5px; letter-spacing: 0.16em; line-height: 1.5; max-width: calc(100vw - 269px); }
 }

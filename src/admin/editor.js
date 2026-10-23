@@ -22,6 +22,9 @@ import { setupTour } from './tour.js';
 import { loadLegalText, saveLegalText } from '../lib/legal.js';
 import { runPendingMigrations } from './migrations.js';
 import {
+  EN_LOCATIONS, EN_SITE, EN_IMPRESSUM_HTML, EN_DATENSCHUTZ_HTML,
+} from '../lib/translations-en.js';
+import {
   HEADER_FIELDS, loadSiteContent, saveSiteContent, resolvePhoto,
 } from '../lib/site-content.js';
 
@@ -166,6 +169,7 @@ export const startEditor = () => {
     if (keys.includes('title')) return 'Titel ändern';
     if (keys.includes('subtitle')) return 'Untertitel ändern';
     if (keys.includes('body')) return 'Text ändern';
+    if (keys.some((key) => key.endsWith('_en'))) return 'Englischer Text ändern';
     if (keys.includes('video')) return 'Video ändern';
     if (keys.includes('videoPlaceholder')) return 'Video-Platzhalter ein/aus';
     if (keys.includes('showHosts')) return 'Gastgeber ein/aus';
@@ -517,6 +521,9 @@ export const startEditor = () => {
     title: document.querySelector('#f-title'),
     subtitle: document.querySelector('#f-subtitle'),
     body: document.querySelector('#f-body'),
+    title_en: document.querySelector('#f-title-en'),
+    subtitle_en: document.querySelector('#f-subtitle-en'),
+    body_en: document.querySelector('#f-body-en'),
     video: document.querySelector('#f-video'),
     videoPlaceholder: document.querySelector('#f-video-placeholder'),
     showHosts: document.querySelector('#f-show-hosts'),
@@ -542,6 +549,14 @@ export const startEditor = () => {
     fields.title.value = loc.title;
     fields.subtitle.value = loc.subtitle;
     fields.body.value = loc.body;
+    // Englisch: leer = Standardübersetzung — sie steht als Platzhalter da.
+    const enDefault = EN_LOCATIONS[loc.id] || {};
+    fields.title_en.value = loc.title_en || '';
+    fields.subtitle_en.value = loc.subtitle_en || '';
+    fields.body_en.value = loc.body_en || '';
+    fields.title_en.placeholder = enDefault.title || '';
+    fields.subtitle_en.placeholder = enDefault.subtitle || '';
+    fields.body_en.placeholder = enDefault.body || '';
     fields.video.value = loc.video || '';
     fields.videoPlaceholder.checked = !!loc.videoPlaceholder;
     fields.showHosts.checked = !!loc.showHosts;
@@ -691,6 +706,9 @@ export const startEditor = () => {
   bindField(fields.title, (i) => ({ title: i.value.trim() }));
   bindField(fields.subtitle, (i) => ({ subtitle: i.value.trim() }));
   bindField(fields.body, (i) => ({ body: i.value }));
+  bindField(fields.title_en, (i) => ({ title_en: i.value.trim() }));
+  bindField(fields.subtitle_en, (i) => ({ subtitle_en: i.value.trim() }));
+  bindField(fields.body_en, (i) => ({ body_en: i.value }));
   bindField(fields.video, (i) => ({ video: i.value.trim() }));
   bindField(fields.displayNumber, (i) => ({ displayNumber: i.value.trim().padStart(2, '0') }));
   bindField(fields.order, (i) => ({ order: Number(i.value) || 0 }));
@@ -729,6 +747,9 @@ export const startEditor = () => {
       title: `${loc.title} (Kopie)`,
       subtitle: loc.subtitle,
       body: loc.body,
+      title_en: loc.title_en || '',
+      subtitle_en: loc.subtitle_en || '',
+      body_en: loc.body_en || '',
       video: loc.video || '',
       videoPlaceholder: !!loc.videoPlaceholder,
       showHosts: !!loc.showHosts,
@@ -909,9 +930,29 @@ export const startEditor = () => {
     let hosts = [];
     let snapshot = '';
 
+    // Unter jedem deutschen Feld der englische Text (`<key>_en`); leer =
+    // Standardübersetzung, die als Platzhalter angezeigt wird.
     headerBox.innerHTML = HEADER_FIELDS.map((f) => `
       <label class="field"><span class="field-label">${f.label} <small>— ${f.hint}</small></span>
-        <input type="text" data-header-key="${f.key}" /></label>`).join('');
+        <input type="text" data-header-key="${f.key}" /></label>
+      <label class="field field-en"><span class="field-label">English <small>— leer = Standardübersetzung</small></span>
+        <input type="text" lang="en" data-header-key="${f.key}_en" placeholder="${esc(EN_SITE[f.key] || '')}" /></label>`).join('');
+    $('#site-hosts-heading-en').placeholder = EN_SITE.hostsHeading || '';
+
+    // Impressum/Datenschutz: je Reiter ein Umschalter Deutsch | English
+    dialog.querySelectorAll('.lang-switch').forEach((box) => box.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-legal-lang]');
+      if (!btn) return;
+      const pane = box.closest('.site-pane');
+      box.querySelectorAll('[data-legal-lang]').forEach((b) => {
+        b.classList.toggle('is-active', b === btn);
+        b.setAttribute('aria-pressed', String(b === btn));
+      });
+      pane.querySelectorAll('[data-legal-text]').forEach((ta) => { ta.hidden = ta.dataset.legalText !== btn.dataset.legalLang; });
+    }));
+    // Englische Rechtstexte: ohne eigenen Eintrag gilt die gebündelte Übersetzung.
+    const loadEnglishLegal = (key, fallback) => loadLegalText(key).catch(() => fallback);
+    let loadedLegalEn = { impressum: '', datenschutz: '' };
 
     // Reiter
     dialog.querySelectorAll('[data-site-tab]').forEach((tab) => tab.addEventListener('click', () => {
@@ -932,6 +973,10 @@ export const startEditor = () => {
             <label class="field"><span class="field-label">Rolle <small>— kleine Zeile über dem Namen</small></span><input type="text" data-host-field="role" value="${esc(h.role)}" placeholder="z. B. Gastgeberin · Executive Coach" /></label>
           </div>
           <label class="field"><span class="field-label">Profiltext <small>— Absätze durch Leerzeile</small></span><textarea rows="7" data-host-field="text">${esc(h.text)}</textarea></label>
+          <div class="host-en">
+            <label class="field field-en"><span class="field-label">Role (English) <small>— leer = Standardübersetzung</small></span><input type="text" lang="en" data-host-field="role_en" value="${esc(h.role_en)}" placeholder="${esc(EN_SITE.hosts?.[i]?.role || '')}" /></label>
+            <label class="field field-en"><span class="field-label">Profile text (English) <small>— leer = Standardübersetzung</small></span><textarea rows="7" lang="en" data-host-field="text_en" placeholder="${esc(EN_SITE.hosts?.[i]?.text || '')}">${esc(h.text_en)}</textarea></label>
+          </div>
           <div class="field-row">
             <label class="field"><span class="field-label">Telefon</span><input type="text" data-host-field="phone" value="${esc(h.phone)}" /></label>
             <label class="field"><span class="field-label">E-Mail</span><input type="text" data-host-field="email" value="${esc(h.email)}" /></label>
@@ -979,7 +1024,7 @@ export const startEditor = () => {
       }
     });
     $('#site-add-host').addEventListener('click', () => {
-      hosts.push({ name: '', role: '', photo: '', text: '', phone: '', email: '', web: '' });
+      hosts.push({ name: '', role: '', role_en: '', photo: '', text: '', text_en: '', phone: '', email: '', web: '' });
       renderHosts();
     });
 
@@ -987,8 +1032,10 @@ export const startEditor = () => {
       const content = {
         contactEmail: $('#site-contact-email').value.trim(),
         hostsHeading: $('#site-hosts-heading').value.trim(),
+        hostsHeading_en: $('#site-hosts-heading-en').value.trim(),
         hosts: hosts.map((h) => ({
-          name: (h.name || '').trim(), role: (h.role || '').trim(), photo: h.photo || '', text: (h.text || '').trim(),
+          name: (h.name || '').trim(), role: (h.role || '').trim(), role_en: (h.role_en || '').trim(),
+          photo: h.photo || '', text: (h.text || '').trim(), text_en: (h.text_en || '').trim(),
           phone: (h.phone || '').trim(), email: (h.email || '').trim(), web: (h.web || '').trim(),
         })),
       };
@@ -999,22 +1046,29 @@ export const startEditor = () => {
         content,
         impressum: $('#impressum-text').value,
         datenschutz: $('#datenschutz-text').value,
+        impressum_en: $('#impressum-text-en').value,
+        datenschutz_en: $('#datenschutz-text-en').value,
       };
     };
 
     button.addEventListener('click', async () => {
       status.textContent = 'Lädt…';
       dialog.showModal();
-      const [content, impressum, datenschutz] = await Promise.all([
+      const [content, impressum, datenschutz, impressumEn, datenschutzEn] = await Promise.all([
         loadSiteContent(), loadLegalText('impressum'), loadLegalText('datenschutz'),
+        loadEnglishLegal('impressum_en', EN_IMPRESSUM_HTML), loadEnglishLegal('datenschutz_en', EN_DATENSCHUTZ_HTML),
       ]);
       dialog.querySelectorAll('[data-header-key]').forEach((input) => {
         input.value = content[input.dataset.headerKey] || '';
       });
       $('#site-contact-email').value = content.contactEmail || '';
       $('#site-hosts-heading').value = content.hostsHeading || '';
+      $('#site-hosts-heading-en').value = content.hostsHeading_en || '';
       $('#impressum-text').value = impressum;
       $('#datenschutz-text').value = datenschutz;
+      $('#impressum-text-en').value = impressumEn;
+      $('#datenschutz-text-en').value = datenschutzEn;
+      loadedLegalEn = { impressum: impressumEn, datenschutz: datenschutzEn };
       hosts = (content.hosts || []).map((h) => ({ ...h }));
       renderHosts();
       snapshot = JSON.stringify(collect());
@@ -1037,7 +1091,12 @@ export const startEditor = () => {
           saveSiteContent(texts.content),
           saveLegalText('impressum', texts.impressum),
           saveLegalText('datenschutz', texts.datenschutz),
+          // Englisch nur schreiben, wenn geändert — sonst bliebe der gebündelte
+          // Standardtext für immer als Kopie in Firestore stehen.
+          texts.impressum_en !== loadedLegalEn.impressum && saveLegalText('impressum_en', texts.impressum_en),
+          texts.datenschutz_en !== loadedLegalEn.datenschutz && saveLegalText('datenschutz_en', texts.datenschutz_en),
         ]);
+        loadedLegalEn = { impressum: texts.impressum_en, datenschutz: texts.datenschutz_en };
         snapshot = JSON.stringify(texts);
         status.textContent = 'Gespeichert — beim nächsten Laden der Website sichtbar.';
       } catch (err) {

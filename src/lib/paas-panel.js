@@ -1,6 +1,8 @@
 /* PaasPanel — slide-up + scroll-reveal detail panel
    Usage: const panel = new PaasPanel(); panel.open(schildData);
 */
+import { t } from './i18n.js';
+
 export class PaasPanel {
   constructor({ root = document.body, sceneVeil = null } = {}) {
     this.root = root;
@@ -13,7 +15,7 @@ export class PaasPanel {
     el.className = 'paas-panel';
     el.innerHTML = `
       <div class="pp-glass"></div>
-      <button class="pp-close t-caption" type="button">× SCHLIESSEN</button>
+      <button class="pp-close t-caption" type="button">${t('× SCHLIESSEN')}</button>
       <div class="pp-scroll">
         <div class="pp-spacer"></div>
         <header class="pp-head">
@@ -30,11 +32,11 @@ export class PaasPanel {
           </div>
           <footer class="pp-foot">
             <div class="hairline"></div>
-            <div class="t-caption pp-back">← ZURÜCK ZUR KARTE</div>
-            <nav class="t-caption pp-legal" aria-label="Kontakt und Rechtliches">
-              <a href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
-              <a href="#impressum">Impressum</a>
-              <a href="#datenschutz">Datenschutz</a>
+            <div class="t-caption pp-back">${t('← ZURÜCK ZUR KARTE')}</div>
+            <nav class="t-caption pp-legal" aria-label="${t('Kontakt und Rechtliches')}">
+              <a href="mailto:kontakt@paasleben.com" data-contact-email>${t('Kontakt')}</a>
+              <a href="#impressum">${t('Impressum')}</a>
+              <a href="#datenschutz">${t('Datenschutz')}</a>
             </nav>
           </footer>
         </article>
@@ -116,7 +118,7 @@ export class PaasPanel {
           <span class="pp-video-play" aria-hidden="true">
             <svg viewBox="0 0 24 24" width="22" height="22"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg>
           </span>
-          <span class="t-caption">Film folgt in Kürze</span>
+          <span class="t-caption">${t('Film folgt in Kürze')}</span>
         </div>`;
       return;
     }
@@ -133,7 +135,7 @@ export class PaasPanel {
       )).join('');
     } else {
       this.$figure.className = 'pp-figure';
-      this.$figure.innerHTML = `<div class="pp-placeholder"><span class="t-caption">BILD · ${title || ''}</span></div>`;
+      this.$figure.innerHTML = `<div class="pp-placeholder"><span class="t-caption">${t('BILD')} · ${title || ''}</span></div>`;
     }
   }
 

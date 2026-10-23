@@ -97,10 +97,12 @@ const loadImageData = async (imageId) => {
   return promise;
 };
 
-// Löst die Bild-Einträge eines Ortes zu {src, alt} auf (für <img src>).
+// Löst die Bild-Einträge eines Ortes zu {src, alt, url} auf (für <img src>).
+// `url` ist der statische Pfad (leer bei hochgeladenen Fotos) — Schlüssel für
+// die englischen Alt-Texte (siehe localizeLocation in i18n.js).
 export const resolveImages = async (location, baseUrl = '/') => {
   const resolved = await Promise.all(location.images.map(async (img) => {
-    if (img.url) return { src: `${baseUrl}${img.url}`, alt: img.alt || '' };
+    if (img.url) return { src: `${baseUrl}${img.url}`, alt: img.alt || '', url: img.url };
     if (img.imageId) {
       const data = await loadImageData(img.imageId);
       return data ? { src: data, alt: img.alt || '' } : null;

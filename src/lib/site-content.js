@@ -4,6 +4,7 @@
 // Editor unter „Website-Texte" gepflegt. Die Werte hier sind Startwerte und
 // Fallback ohne Verbindung.
 import { readDoc } from './firestore-rest.js';
+import { t } from './i18n.js';
 
 const CONTENT_DOC = 'paas_config/content';
 
@@ -48,7 +49,9 @@ export const DEFAULT_SITE_CONTENT = {
 };
 
 // Leere Felder in Firestore fallen auf den Startwert zurück — so lässt sich
-// ein Text nicht versehentlich „wegspeichern".
+// ein Text nicht versehentlich „wegspeichern". Die englischen Felder (`*_en`,
+// auch `role_en`/`text_en` in hosts[]) laufen als normale Strings bzw. mit dem
+// Host-Array durch; ausgewählt wird die Sprache in localizeSite (i18n.js).
 const merge = (data = {}) => {
   const out = { ...DEFAULT_SITE_CONTENT };
   for (const [k, v] of Object.entries(data)) {
@@ -94,7 +97,7 @@ export const mailtoHref = (email) => `mailto:${esc(String(email || '').trim())}`
 const renderContactHTML = (content) => {
   const email = String(content.contactEmail || '').trim();
   if (!email) return '';
-  return `<div class="pp-contact"><span class="t-caption">Anfragen &amp; Kontakt</span><a class="pp-contact-link" href="${mailtoHref(email)}">${esc(email)}</a></div>`;
+  return `<div class="pp-contact"><span class="t-caption">${esc(t('Anfragen & Kontakt'))}</span><a class="pp-contact-link" href="${mailtoHref(email)}">${esc(email)}</a></div>`;
 };
 
 const ICONS = {
@@ -123,7 +126,7 @@ export const renderHostsHTML = (content, baseUrl = '/') => {
     const photo = resolvePhoto(h.photo, baseUrl);
     return `<article class="pp-host">
       <div class="pp-host-head">
-        ${photo ? `<img class="pp-host-photo" src="${esc(photo)}" alt="Porträt ${esc(h.name)}" loading="lazy">` : ''}
+        ${photo ? `<img class="pp-host-photo" src="${esc(photo)}" alt="${esc(t('Porträt'))} ${esc(h.name)}" loading="lazy">` : ''}
         <div class="pp-host-id">
           ${h.role ? `<span class="pp-host-role t-caption">${esc(h.role)}</span>` : ''}
           <h3>${esc(h.name)}</h3>
@@ -133,5 +136,5 @@ export const renderHostsHTML = (content, baseUrl = '/') => {
       <div class="pp-host-text">${paras}</div>
     </article>`;
   }).join('');
-  return `<h2>${esc(content.hostsHeading || 'Die Gastgeber')}</h2><div class="pp-hosts">${items}</div>${renderContactHTML(content)}`;
+  return `<h2>${esc(content.hostsHeading || t('Die Gastgeber'))}</h2><div class="pp-hosts">${items}</div>${renderContactHTML(content)}`;
 };

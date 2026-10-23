@@ -14,6 +14,7 @@ import { createSky } from './lib/paas-sky.js';
 import { fetchLocations, resolveImages } from './lib/locations.js';
 import { loadLegalText } from './lib/legal.js';
 import { loadSiteContent, mailtoHref, renderHostsHTML } from './lib/site-content.js';
+import { LANG, t, switchLang, localizeLocation, localizeSite } from './lib/i18n.js';
 import {
   REFERENCE_SPLAT, REFERENCE_CAMERA,
   buildSplatAlignment as buildSplatAlignmentShared,
@@ -22,6 +23,34 @@ import {
 
 gsap.registerPlugin(Flip);
 lockPageZoom();
+
+// ── Sprache (Deutsch/Englisch) ─────────────────────────────────────────
+// Die Wahl steckt in der Adresse (?lang=en|de, siehe src/lib/i18n.js). Die
+// statischen Texte in index.html tragen data-i18n (Textinhalt) bzw.
+// data-i18n-label (aria-label) mit dem deutschen Text als Schlüssel; für
+// Deutsch bleibt alles unverändert.
+document.documentElement.lang = LANG;
+if (LANG === 'en') document.title = 'PAASLEBEN · A place to breathe';
+const applyStaticTranslations = () => {
+  if (LANG !== 'en') return;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.getAttribute('data-i18n'));
+  });
+  document.querySelectorAll('[data-i18n-label]').forEach((el) => {
+    el.setAttribute('aria-label', t(el.getAttribute('data-i18n-label')));
+  });
+};
+applyStaticTranslations();
+// Umschalter: zeigt die jeweils andere Sprache und lädt die Seite damit neu.
+const langBtn = document.querySelector('#lang-button');
+if (langBtn) {
+  const english = LANG === 'en';
+  langBtn.setAttribute('aria-label', english ? 'Deutsche Version' : 'English version');
+  langBtn.setAttribute('lang', english ? 'de' : 'en');
+  const lbl = langBtn.querySelector('.ui-chip-label');
+  if (lbl) lbl.textContent = english ? 'DE' : 'EN';
+  langBtn.addEventListener('click', () => switchLang());
+}
 
 const SCENE_SPLAT_PATH = `${import.meta.env.BASE_URL}scene.ksplat`;
 const MODEL_PATH = `${import.meta.env.BASE_URL}Paasleben.glb`;
@@ -185,13 +214,13 @@ const applyContactEmail = () => {
 };
 // Erst nach der CSV anwenden, sonst überschreibt sie die Editor-Texte.
 Promise.all([loadSheetContent(), loadSiteContent()]).then(([, content]) => {
-  siteContent = content;
+  siteContent = localizeSite(content);
   document.querySelectorAll('[data-content-key]').forEach((el) => {
-    const value = content[el.getAttribute('data-content-key')];
+    const value = siteContent[el.getAttribute('data-content-key')];
     if (typeof value === 'string' && value.trim()) el.textContent = value;
   });
   applyContactEmail();
-  return content;
+  return siteContent;
 });
 
 // Theme aus Firestore anwenden (paas_config/site). Absichtlich nicht
@@ -274,7 +303,7 @@ const boot = async () => {
   const manager = new THREE.LoadingManager();
   const loader = new PaasLoader({
     // Je Satz eine Zeile — die drei gleich gebauten Sätze lesen sich als Reihe.
-    text: 'Ein Ort zum Atmen.\nEin Ort für Skulpturen.\nEin Ort für Tiere.',
+    text: t('Ein Ort zum Atmen.\nEin Ort für Skulpturen.\nEin Ort für Tiere.'),
     manager,
   });
 
@@ -764,14 +793,14 @@ const boot = async () => {
     btn.className = 'schild-marker';
     btn.dataset.marker = '';
     btn.dataset.id = sp.id;
-    btn.setAttribute('aria-label', `${sp.display} — ${sp.name} — öffnen`);
+    btn.setAttribute('aria-label', `${sp.display} — ${sp.name} — ${t('öffnen')}`);
     // sm-badge ist die Hochformat-Variante: nur die Nummer als kleine
     // Plakette. Die vollen Schilder sind ~140px breit und überdeckten sich auf
     // schmalen Displays zu einer unlesbaren Wand. Welche der beiden sichtbar
     // ist, entscheidet allein CSS (siehe style.css, max-width: 640px).
     btn.innerHTML = `
       <span class="sm-card">
-        <span class="sm-num">Nr. ${sp.display}</span>
+        <span class="sm-num">${t('Nr.')} ${sp.display}</span>
         <span class="sm-title">${sp.name}</span>
       </span>
       <span class="sm-badge" aria-hidden="true" data-name="${sp.name}">${sp.display}</span>
@@ -1164,8 +1193,8 @@ const boot = async () => {
 
   const closeBtn = panel.el.querySelector('.pp-close');
   if (closeBtn) {
-    closeBtn.setAttribute('aria-label', 'Schließen');
-    closeBtn.innerHTML = '<span class="pp-close-label">SCHLIESSEN</span>';
+    closeBtn.setAttribute('aria-label', t('Schließen'));
+    closeBtn.innerHTML = `<span class="pp-close-label">${t('SCHLIESSEN')}</span>`;
     if (head) head.insertBefore(closeBtn, folds.nextSibling);
   }
 
@@ -1333,14 +1362,15 @@ const boot = async () => {
     syncTimeline();
     // Bilder auflösen (statische URLs sofort, hochgeladene aus Firestore) —
     // einmal pro Standpunkt, danach gecacht.
-    sp.imagesReady = sp.imagesReady || resolveImages(sp, import.meta.env.BASE_URL);
+    sp.imagesReady = sp.imagesReady || resolveImages(sp, import.meta.env.BASE_URL)
+      .then((images) => images.map(({ url, ...img }) => ({ ...img, alt: sp.imageAlt(url, img.alt) })));
     const data = {
-      caption: `STANDPUNKT · ${sp.display}`,
+      caption: `${t('STANDPUNKT')} · ${sp.display}`,
       title: sp.name.toUpperCase(),
       meta: [
-        { label: 'KAPITEL', value: sp.display },
-        { label: 'CHARAKTER', value: sp.subtitle },
-        { label: 'ORT', value: 'PAASLEBEN · GARTEN' },
+        { label: t('KAPITEL'), value: sp.display },
+        { label: t('CHARAKTER'), value: sp.subtitle },
+        { label: t('ORT'), value: t('PAASLEBEN · GARTEN') },
       ],
       body: sp.body,
       video: sp.video
@@ -1426,8 +1456,8 @@ const boot = async () => {
     const nextIndex = (activeIndex + 1) % standpoints.length;
     tlPrevName.textContent = `${standpoints[previousIndex].display} · ${standpoints[previousIndex].name}`;
     tlNextName.textContent = `${standpoints[nextIndex].display} · ${standpoints[nextIndex].name}`;
-    tlPrev?.setAttribute('aria-label', `Zurück zu ${standpoints[previousIndex].display} ${standpoints[previousIndex].name}`);
-    tlNext?.setAttribute('aria-label', `Weiter zu ${standpoints[nextIndex].display} ${standpoints[nextIndex].name}`);
+    tlPrev?.setAttribute('aria-label', `${t('Zurück zu')} ${standpoints[previousIndex].display} ${standpoints[previousIndex].name}`);
+    tlNext?.setAttribute('aria-label', `${t('Weiter zu')} ${standpoints[nextIndex].display} ${standpoints[nextIndex].name}`);
   };
 
   tlPrev?.addEventListener('click', () => {
@@ -1447,7 +1477,7 @@ const boot = async () => {
       b.type = 'button';
       b.className = 'tl-item';
       b.dataset.idx = String(idx);
-      b.setAttribute('aria-label', `${sp.display} ${sp.name} — ansehen`);
+      b.setAttribute('aria-label', `${sp.display} ${sp.name} — ${t('ansehen')}`);
       b.innerHTML = `<span class="tl-num">${sp.display}</span><span class="tl-name"></span>`;
       // Namen als Text setzen, nicht als HTML — er kommt aus Firestore.
       b.querySelector('.tl-name').textContent = sp.name;
@@ -1678,7 +1708,7 @@ const boot = async () => {
   // und es gab kaum noch einen Weg zurück. Jetzt immer.
   const closeZone = document.createElement('div');
   closeZone.className = 'pp-close-zone';
-  closeZone.setAttribute('aria-label', 'Schließen — auf den oberen Bereich tippen');
+  closeZone.setAttribute('aria-label', t('Schließen — auf den oberen Bereich tippen'));
   panel.el.appendChild(closeZone);
   closeZone.addEventListener('click', () => panel.close());
 
@@ -1799,7 +1829,7 @@ const boot = async () => {
     if (helpVisible) toggleHelp(false);
     const key = openInfo;
     const content = infoOverlays[key].querySelector(`#${key}-content`);
-    legalLoaded[key] = legalLoaded[key] || loadLegalText(key).then((html) => { content.innerHTML = html; });
+    legalLoaded[key] = legalLoaded[key] || loadLegalText(LANG === 'en' ? `${key}_en` : key).then((html) => { content.innerHTML = html; });
     infoOverlays[key].querySelector('.help-card').scrollTop = 0;
   };
   document.addEventListener('click', (e) => {
@@ -1848,10 +1878,10 @@ const boot = async () => {
       if (user) audioUserRevision += 1;
       audio.muted = muted;
       audioBtn.setAttribute('aria-pressed', String(!muted));
-      audioBtn.setAttribute('aria-label', muted ? 'Ton einschalten' : 'Ton ausschalten');
+      audioBtn.setAttribute('aria-label', muted ? t('Ton einschalten') : t('Ton ausschalten'));
       audioBtn.classList.toggle('is-on', !muted);
       const lbl = audioBtn.querySelector('.ui-chip-label');
-      if (lbl) lbl.textContent = muted ? 'Ton' : 'Ton an';
+      if (lbl) lbl.textContent = muted ? t('Ton') : t('Ton an');
       if (!muted) tryPlay();
     };
     setMuted(true);
@@ -2200,7 +2230,7 @@ const boot = async () => {
     const tryProgress = () => {
       const total = 2;
       const done = (splatLoaded ? 1 : 0) + (gltfLoaded ? 1 : 0);
-      loader.setProgress(done / total, splatLoaded && !gltfLoaded ? 'Standpunkte · Modell' : 'Szene · Splat');
+      loader.setProgress(done / total, splatLoaded && !gltfLoaded ? t('Standpunkte · Modell') : t('Szene · Splat'));
     };
 
     let gltf = null;
@@ -2227,12 +2257,15 @@ const boot = async () => {
       const locations = await locationsPromise;
       for (const loc of locations) {
         if (!loc.visible) continue;
+        // Texte in der gewählten Sprache (Deutsch: unverändert).
+        const text = localizeLocation(loc);
         const sp = {
           id: loc.id,
           display: loc.displayNumber || '—',
-          name: loc.title,
-          subtitle: loc.subtitle,
-          body: loc.body,
+          name: text.title,
+          subtitle: text.subtitle,
+          body: text.body,
+          imageAlt: text.imageAlt,
           video: loc.video,
           videoPlaceholder: loc.videoPlaceholder,
           showHosts: loc.showHosts,

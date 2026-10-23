@@ -1,8 +1,10 @@
 /* PaasLoader — typewriter loading experience
    Drop in: const loader = new PaasLoader({ text, manager, onDone });
 */
+import { t } from './i18n.js';
+
 export class PaasLoader {
-  constructor({ text = "Ein Ort zum Atmen. Ein Ort für Skulpturen.", manager = null, root = document.body, onDone, onReveal,
+  constructor({ text = t("Ein Ort zum Atmen. Ein Ort für Skulpturen."), manager = null, root = document.body, onDone, onReveal,
     // Nach dieser Zeit wird nur die Schreibanimation abgekürzt. Ausgeblendet
     // wird erst, sobald die Szene wirklich bereit ist.
     autoAfterMs = 4200,
@@ -31,11 +33,11 @@ export class PaasLoader {
     el.className = 'paas-loader paper';
     el.innerHTML = `
       <div class="pl-stage">
-        <div class="pl-caption t-caption">PAASLEBEN · KAPITEL EINS</div>
+        <div class="pl-caption t-caption">${t('PAASLEBEN · KAPITEL EINS')}</div>
         <div class="pl-typed t-headline"><span class="pl-text"></span><span class="pl-caret" aria-hidden="true">|</span><span class="pl-rest" aria-hidden="true"></span></div>
       </div>
       <div class="pl-progress">
-        <div class="pl-meta t-caption"><span class="pl-pct">000</span> · <span class="pl-asset">vorbereiten</span></div>
+        <div class="pl-meta t-caption"><span class="pl-pct">000</span> · <span class="pl-asset">${t('vorbereiten')}</span></div>
         <div class="pl-line"><div class="pl-line-fill"></div></div>
       </div>
       <button class="pl-skip t-caption" type="button"></button>
@@ -52,7 +54,7 @@ export class PaasLoader {
     this.$skip = el.querySelector('.pl-skip');
     // Auf Touch-Geräten gibt es keine Esc-Taste — dort auf das Tippen hinweisen.
     const touch = matchMedia('(pointer: coarse)').matches;
-    this.$skip.textContent = touch ? 'TIPPEN ZUM ÜBERSPRINGEN' : '[ESC] ÜBERSPRINGEN';
+    this.$skip.textContent = touch ? t('TIPPEN ZUM ÜBERSPRINGEN') : t('[ESC] ÜBERSPRINGEN');
     // Die ganze Fläche ist auslösbar, nicht nur der kleine Knopf. Übersprungen
     // wird die Schreibanimation, nicht das Laden der Szene — sonst stünde nach
     // einem frühen Tippen nur eine leere Fläche im Bild.
@@ -113,7 +115,7 @@ export class PaasLoader {
     this._show(this.text.length);
     this._typingDone = true;
     this.skipped = true;   // bricht die Tippschleife ab
-    this.$skip.textContent = 'SZENE WIRD GELADEN';
+    this.$skip.textContent = t('SZENE WIRD GELADEN');
     this.$skip.disabled = true;
     this._maybeFinish();
   }

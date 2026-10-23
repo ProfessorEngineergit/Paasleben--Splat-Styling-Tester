@@ -355,6 +355,11 @@ html, body {
 .field-check .field-label { margin: 0; }
 .pos-details { margin-bottom: 0.8rem; }
 .pos-details summary { cursor: pointer; font-size: 0.8rem; color: var(--paas-muted); margin-bottom: 0.5rem; }
+/* Englische Texte: eingeklappt, damit das Formular kurz bleibt */
+.en-details { margin-bottom: 0.8rem; padding: 0.4rem 0.6rem 0.1rem; border: 1px solid var(--paas-line); border-radius: 4px; }
+.en-details[open] { padding-bottom: 0.3rem; }
+.en-details summary { cursor: pointer; font-size: 0.8rem; color: var(--paas-muted); margin-bottom: 0.5rem; }
+.en-hint { margin: 0 0 0.6rem; font-size: 0.74rem; color: var(--paas-muted); }
 
 /* ── Fotos ── */
 .images-section { border-top: 1px solid var(--paas-line); padding-top: 0.8rem; margin-top: 0.5rem; }
@@ -589,3 +594,14 @@ html, body {
 .host-nophoto { width: 60px; height: 80px; display: grid; place-items: center; font-size: 11px; color: var(--ink-mute, #6f6a6b); background: var(--paper-warm, #f8f8f6); border-radius: 4px; }
 .host-card textarea { width: 100%; box-sizing: border-box; }
 .host-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Englische Felder in den Website-Texten: leicht eingerückt unter dem deutschen */
+.site-pane .field-en { margin-left: 14px; padding-left: 10px; border-left: 2px solid var(--accent-pale, rgba(233,133,23,.25)); }
+.host-en { margin-top: 2px; }
+.host-en .field-en textarea { width: 100%; box-sizing: border-box; }
+/* Umschalter Deutsch | English über den Rechtstexten */
+.lang-switch { display: inline-flex; margin: 0 0 10px; }
+.lang-switch .btn { border-radius: 0; }
+.lang-switch .btn:first-child { border-radius: 6px 0 0 6px; }
+.lang-switch .btn:last-child { border-radius: 0 6px 6px 0; margin-left: -1px; }
+.lang-switch .btn.is-active { background: var(--ink, #403a3c); color: #fff; border-color: var(--ink, #403a3c); }

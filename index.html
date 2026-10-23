@@ -22,7 +22,7 @@
       <main id="stage">
         <div id="viewport"></div>
         <div class="scene-veil" aria-hidden="true"></div>
-        <div id="marker-layer" class="marker-layer" aria-label="Standpunkte"></div>
+        <div id="marker-layer" class="marker-layer" aria-label="Standpunkte" data-i18n-label="Standpunkte"></div>
       </main>
 
       <header id="brand" class="brand">
@@ -45,18 +45,18 @@
           <span class="audio-glyph audio-glyph-on" aria-hidden="true">
             <svg viewBox="0 0 22 22" width="14" height="14"><path d="M3 8h4l5-4v14l-5-4H3z" fill="currentColor"/><path d="M15 7c2 1 2 7 0 8M18 5c3.5 2 3.5 10 0 12" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round"/></svg>
           </span>
-          <span class="ui-chip-label t-caption">Ton</span>
+          <span class="ui-chip-label t-caption" data-i18n="Ton">Ton</span>
         </button>
-        <button id="topdown-button" class="ui-chip" type="button" aria-label="Draufsicht auf das Areal" aria-pressed="false">
+        <button id="topdown-button" class="ui-chip" type="button" aria-label="Draufsicht auf das Areal" data-i18n-label="Draufsicht auf das Areal" aria-pressed="false">
           <span class="topdown-glyph" aria-hidden="true">
             <svg viewBox="0 0 22 22" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
               <rect x="3.5" y="3.5" width="15" height="15" rx="1.5" />
               <path d="M11 7.5v7M7.5 11h7" />
             </svg>
           </span>
-          <span class="ui-chip-label t-caption">Draufsicht</span>
+          <span class="ui-chip-label t-caption" data-i18n="Draufsicht">Draufsicht</span>
         </button>
-        <button id="info-button" class="ui-chip" type="button" aria-label="Bedienung & Tastenkürzel">
+        <button id="info-button" class="ui-chip" type="button" aria-label="Bedienung & Tastenkürzel" data-i18n-label="Bedienung & Tastenkürzel">
           <span class="info-glyph" aria-hidden="true">
             <svg viewBox="0 0 18 18" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round">
               <circle cx="9" cy="9" r="7.2" />
@@ -64,22 +64,27 @@
               <path d="M9 5.55h.01" stroke-width="1.35" />
             </svg>
           </span>
-          <span class="ui-chip-label t-caption">Bedienung</span>
+          <span class="ui-chip-label t-caption" data-i18n="Bedienung">Bedienung</span>
+        </button>
+        <!-- Sprachumschalter: zeigt die jeweils andere Sprache (Deutsch → EN,
+             Englisch → DE); lädt die Seite mit ?lang=… neu (src/lib/i18n.js). -->
+        <button id="lang-button" class="ui-chip ui-chip--lang" type="button" aria-label="English version" lang="en">
+          <span class="ui-chip-label t-caption">EN</span>
         </button>
       </div>
 
       <!-- Zeitleiste: auf Touch-Geräten der Weg zwischen den Orten, weil die
            Kamera dort absichtlich kaum frei bewegt wird. Die Einträge baut
            src/main.js aus den Standpunkten. -->
-      <nav id="timeline" class="timeline" aria-label="Orte auf dem Areal">
+      <nav id="timeline" class="timeline" aria-label="Orte auf dem Areal" data-i18n-label="Orte auf dem Areal">
         <div id="tl-track" class="tl-track"></div>
-        <div id="tl-panel-nav" class="tl-panel-nav" aria-label="Zwischen geöffneten Standpunkten wechseln">
-          <button id="tl-prev" class="tl-nav-button" type="button" aria-label="Vorheriger Standpunkt">
+        <div id="tl-panel-nav" class="tl-panel-nav" aria-label="Zwischen geöffneten Standpunkten wechseln" data-i18n-label="Zwischen geöffneten Standpunkten wechseln">
+          <button id="tl-prev" class="tl-nav-button" type="button" aria-label="Vorheriger Standpunkt" data-i18n-label="Vorheriger Standpunkt">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 6.5 9 12l5.5 5.5M9.5 12H20"/></svg>
-            <span class="tl-nav-copy"><span class="tl-nav-kicker">Zurück</span><span id="tl-prev-name" class="tl-nav-name"></span></span>
+            <span class="tl-nav-copy"><span class="tl-nav-kicker" data-i18n="Zurück">Zurück</span><span id="tl-prev-name" class="tl-nav-name"></span></span>
           </button>
-          <button id="tl-next" class="tl-nav-button tl-nav-button--next" type="button" aria-label="Nächster Standpunkt">
-            <span class="tl-nav-copy"><span class="tl-nav-kicker">Weiter</span><span id="tl-next-name" class="tl-nav-name"></span></span>
+          <button id="tl-next" class="tl-nav-button tl-nav-button--next" type="button" aria-label="Nächster Standpunkt" data-i18n-label="Nächster Standpunkt">
+            <span class="tl-nav-copy"><span class="tl-nav-kicker" data-i18n="Weiter">Weiter</span><span id="tl-next-name" class="tl-nav-name"></span></span>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 6.5 5.5 5.5-5.5 5.5M4 12h10.5"/></svg>
           </button>
         </div>
@@ -128,61 +133,61 @@
         </div>
       </div>
 
-      <nav class="legal-links t-caption" aria-label="Kontakt und Rechtliches">
-        <a class="contact-link" href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
-        <a href="#impressum">Impressum</a>
-        <a href="#datenschutz">Datenschutz</a>
+      <nav class="legal-links t-caption" aria-label="Kontakt und Rechtliches" data-i18n-label="Kontakt und Rechtliches">
+        <a class="contact-link" href="mailto:kontakt@paasleben.com" data-contact-email data-i18n="Kontakt">Kontakt</a>
+        <a href="#impressum" data-i18n="Impressum">Impressum</a>
+        <a href="#datenschutz" data-i18n="Datenschutz">Datenschutz</a>
       </nav>
 
 
-      <div id="impressum-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Impressum">
+      <div id="impressum-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Impressum" data-i18n-label="Impressum">
         <div class="help-card impressum-card">
-          <button class="help-close" type="button" aria-label="Schließen">×</button>
+          <button class="help-close" type="button" aria-label="Schließen" data-i18n-label="Schließen">×</button>
           <div id="impressum-content" class="impressum-content"></div>
         </div>
       </div>
 
-      <div id="datenschutz-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Datenschutzerklärung">
+      <div id="datenschutz-overlay" class="help-overlay impressum-overlay" aria-hidden="true" role="dialog" aria-label="Datenschutzerklärung" data-i18n-label="Datenschutzerklärung">
         <div class="help-card impressum-card">
-          <button class="help-close" type="button" aria-label="Schließen">×</button>
+          <button class="help-close" type="button" aria-label="Schließen" data-i18n-label="Schließen">×</button>
           <div id="datenschutz-content" class="impressum-content"></div>
         </div>
       </div>
 
       <div id="help-overlay" class="help-overlay" aria-hidden="true">
         <div class="help-card">
-          <button class="help-close" type="button" aria-label="Schließen">×</button>
-          <div class="t-caption help-eyebrow">Über Paasleben</div>
-          <p class="help-intro">
+          <button class="help-close" type="button" aria-label="Schließen" data-i18n-label="Schließen">×</button>
+          <div class="t-caption help-eyebrow" data-i18n="Über Paasleben">Über Paasleben</div>
+          <p class="help-intro" data-i18n="Hilfe-Einleitung">
             Ein Retreat von Maren &amp; Til Paas. Erkunde das Atelier,
             den Garten und das Haus — klicke ein Schild, um die Geschichte
             zu öffnen.
           </p>
 
           <div class="help-section">
-            <div class="t-caption help-eyebrow">Bedienung</div>
+            <div class="t-caption help-eyebrow" data-i18n="Bedienung">Bedienung</div>
             <ul class="help-list">
-              <li><span class="help-action">Karte ziehen</span><span>zum Bewegen</span></li>
-              <li><span class="help-action">Schild antippen</span><span>Standpunkt öffnen</span></li>
-              <li><span class="help-action">Hochwischen / Scrollen</span><span>Text lesen</span></li>
-              <li><span class="help-action">Tippen oben</span><span>Schließen</span></li>
+              <li><span class="help-action" data-i18n="Karte ziehen">Karte ziehen</span><span data-i18n="zum Bewegen">zum Bewegen</span></li>
+              <li><span class="help-action" data-i18n="Schild antippen">Schild antippen</span><span data-i18n="Standpunkt öffnen">Standpunkt öffnen</span></li>
+              <li><span class="help-action" data-i18n="Hochwischen / Scrollen">Hochwischen / Scrollen</span><span data-i18n="Text lesen">Text lesen</span></li>
+              <li><span class="help-action" data-i18n="Tippen oben">Tippen oben</span><span data-i18n="Schließen">Schließen</span></li>
             </ul>
           </div>
 
           <div class="help-section help-keys">
-            <div class="t-caption help-eyebrow">Tastatur</div>
+            <div class="t-caption help-eyebrow" data-i18n="Tastatur">Tastatur</div>
             <ul class="help-list">
-              <li><span class="help-action"><kbd>1</kbd>–<kbd>9</kbd></span><span>Direkt zu Standpunkt</span></li>
-              <li><span class="help-action"><kbd>←</kbd> <kbd>→</kbd></span><span>Wechseln</span></li>
-              <li><span class="help-action"><kbd>H</kbd></span><span>Heim</span></li>
-              <li><span class="help-action"><kbd>Esc</kbd></span><span>Schließen</span></li>
+              <li><span class="help-action"><kbd>1</kbd>–<kbd>9</kbd></span><span data-i18n="Direkt zu Standpunkt">Direkt zu Standpunkt</span></li>
+              <li><span class="help-action"><kbd>←</kbd> <kbd>→</kbd></span><span data-i18n="Wechseln">Wechseln</span></li>
+              <li><span class="help-action"><kbd>H</kbd></span><span data-i18n="Heim">Heim</span></li>
+              <li><span class="help-action"><kbd>Esc</kbd></span><span data-i18n="Schließen">Schließen</span></li>
             </ul>
           </div>
 
           <p class="help-legal t-caption">
-            <a href="mailto:kontakt@paasleben.com" data-contact-email>Kontakt</a>
-            <a href="#impressum">Impressum</a>
-            <a href="#datenschutz">Datenschutz</a>
+            <a href="mailto:kontakt@paasleben.com" data-contact-email data-i18n="Kontakt">Kontakt</a>
+            <a href="#impressum" data-i18n="Impressum">Impressum</a>
+            <a href="#datenschutz" data-i18n="Datenschutz">Datenschutz</a>
           </p>
         </div>
       </div>
