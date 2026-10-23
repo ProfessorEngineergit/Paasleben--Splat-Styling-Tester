@@ -106,23 +106,10 @@
                 <span class="field-label">Fließtext <small>— der Haupttext des Ortes; Absätze durch Leerzeile</small></span>
                 <textarea id="f-body" name="body" rows="9"></textarea>
               </label>
-              <!-- Englische Texte: leer = Standardübersetzung der Website -->
-              <details class="en-details">
-                <summary>Englisch (English)</summary>
-                <p class="en-hint">Leer lassen = Standardübersetzung. Wird Besuchern mit <code>?lang=en</code> oder englischem Browser gezeigt.</p>
-                <label class="field">
-                  <span class="field-label">Title <small>— englischer Titel</small></span>
-                  <input id="f-title-en" name="title_en" type="text" />
-                </label>
-                <label class="field">
-                  <span class="field-label">Subtitle <small>— englischer Untertitel</small></span>
-                  <input id="f-subtitle-en" name="subtitle_en" type="text" />
-                </label>
-                <label class="field">
-                  <span class="field-label">Body text <small>— englischer Fließtext; Absätze durch Leerzeile</small></span>
-                  <textarea id="f-body-en" name="body_en" rows="9"></textarea>
-                </label>
-              </details>
+              <div class="bi-entry">
+                <button id="open-place-texts" class="btn" type="button">Deutsch &amp; English nebeneinander</button>
+                <p id="place-en-status" class="bi-status"></p>
+              </div>
               <label class="field">
                 <span class="field-label">Hintergrundvideo <small>— optional, ersetzt die Fotos; Datei unter public/videos/ oder volle URL zu einer .mp4</small></span>
                 <input id="f-video" name="video" type="text" placeholder="z. B. videos/porsche.mp4" />
@@ -191,8 +178,12 @@
       <div id="preview-overlay" class="preview-overlay" hidden>
         <div class="preview-topbar">
           <span id="preview-title" class="preview-title">End-Ansicht</span>
-          <span class="preview-hint">Website-Vorschau im Kartenbereich · Die Editor-Sidebar bleibt aktiv. Texte im Panel direkt anklicken und ändern.</span>
+          <span class="preview-hint">Text anklicken zum Bearbeiten · Sprache oben wählen</span>
           <div class="preview-actions">
+            <div class="preview-device" role="group" aria-label="Sprache der Vorschau">
+              <button class="btn is-active" type="button" data-preview-lang="de" aria-pressed="true">Deutsch</button>
+              <button class="btn" type="button" data-preview-lang="en" aria-pressed="false">English</button>
+            </div>
             <div class="preview-device" role="group" aria-label="Vorschaugröße">
               <button class="btn is-active" type="button" data-preview-device="desktop" aria-pressed="true">Desktop</button>
               <button class="btn" type="button" data-preview-device="mobile" aria-pressed="false">Mobile</button>
@@ -227,33 +218,48 @@
           <section class="site-pane" data-site-pane="hosts" hidden>
             <p class="site-where">Erscheint <b>unter dem Fließtext</b> aller Orte, bei denen „Gastgeber hier anzeigen“ angehakt ist (z. B. Willkommen). Telefon, E-Mail und Website stehen unter dem Namen jeder Person.</p>
             <label class="field"><span class="field-label">Kontakt-E-Mail der Website <small>— Knopf „Kontakt“ in der Fußzeile, im Bedienungs-Fenster und unter den Gastgebern</small></span><input id="site-contact-email" type="email" placeholder="kontakt@paasleben.com" /></label>
-            <label class="field"><span class="field-label">Überschrift des Abschnitts</span><input id="site-hosts-heading" type="text" /></label>
-            <label class="field field-en"><span class="field-label">Heading of the section <small>— englisch; leer = Standardübersetzung</small></span><input id="site-hosts-heading-en" type="text" /></label>
+            <div class="bi-head" aria-hidden="true"><span>Deutsch</span><span>English</span></div>
+            <div class="field bi-row"><span class="field-label">Überschrift des Abschnitts</span><div class="bi-cols"><div class="bi-col" data-l="Deutsch"><input id="site-hosts-heading" type="text" aria-label="Überschrift Deutsch" /></div><div class="bi-col" data-l="English"><input id="site-hosts-heading-en" type="text" lang="en" aria-label="Heading English" /></div></div></div>
             <div id="site-hosts"></div>
             <button id="site-add-host" class="btn" type="button">＋ Person hinzufügen</button>
           </section>
           <section class="site-pane" data-site-pane="impressum" hidden>
-            <p class="site-where">Erscheint im Fenster <b>„Impressum“</b>. HTML erlaubt: &lt;h2&gt;/&lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche. Der englische Text ist eine Übersetzung als Serviceleistung und erscheint für Besucher mit <b>?lang=en</b> oder englischem Browser.</p>
-            <div class="lang-switch" role="group" aria-label="Sprache des Impressums">
-              <button class="btn is-active" type="button" data-legal-lang="de" aria-pressed="true">Deutsch</button>
-              <button class="btn" type="button" data-legal-lang="en" aria-pressed="false">English</button>
+            <p class="site-where">Erscheint im Fenster <b>„Impressum“</b>. HTML erlaubt: &lt;h2&gt;/&lt;h3&gt; für Überschriften, &lt;p&gt; für Absätze, &lt;br&gt; für Zeilenumbrüche. Der englische Text ist eine Übersetzung als Serviceleistung.</p>
+            <div class="bi-head" aria-hidden="true"><span>Deutsch</span><span>English</span></div>
+            <div class="bi-cols">
+              <div class="bi-col" data-l="Deutsch"><textarea id="impressum-text" class="impressum-text" rows="22" spellcheck="true" aria-label="Impressum Deutsch"></textarea></div>
+              <div class="bi-col" data-l="English"><textarea id="impressum-text-en" class="impressum-text" rows="22" spellcheck="true" lang="en" aria-label="Impressum English"></textarea></div>
             </div>
-            <textarea id="impressum-text" class="impressum-text" data-legal-text="de" rows="22" spellcheck="true"></textarea>
-            <textarea id="impressum-text-en" class="impressum-text" data-legal-text="en" rows="22" spellcheck="true" lang="en" hidden></textarea>
           </section>
           <section class="site-pane" data-site-pane="datenschutz" hidden>
-            <p class="site-where">Erscheint im Fenster <b>„Datenschutz“</b> (Link unten rechts, im Bedienungs-Fenster und am Ende jedes Ortes). HTML wie beim Impressum. Der Startwert beschreibt den technischen Stand der Website — bei neuen Diensten (z. B. YouTube-Einbettung, Statistik) bitte anpassen. Der englische Text ist eine Übersetzung als Serviceleistung und erscheint für Besucher mit <b>?lang=en</b> oder englischem Browser — bei Änderungen am deutschen Text bitte mitpflegen.</p>
-            <div class="lang-switch" role="group" aria-label="Sprache der Datenschutzerklärung">
-              <button class="btn is-active" type="button" data-legal-lang="de" aria-pressed="true">Deutsch</button>
-              <button class="btn" type="button" data-legal-lang="en" aria-pressed="false">English</button>
+            <p class="site-where">Erscheint im Fenster <b>„Datenschutz“</b> (Link unten rechts, im Bedienungs-Fenster und am Ende jedes Ortes). HTML wie beim Impressum. Der Startwert beschreibt den technischen Stand der Website — bei neuen Diensten (z. B. YouTube-Einbettung, Statistik) bitte anpassen. Der englische Text ist eine Übersetzung als Serviceleistung — bei Änderungen am deutschen Text bitte mitpflegen.</p>
+            <div class="bi-head" aria-hidden="true"><span>Deutsch</span><span>English</span></div>
+            <div class="bi-cols">
+              <div class="bi-col" data-l="Deutsch"><textarea id="datenschutz-text" class="impressum-text" rows="22" spellcheck="true" aria-label="Datenschutz Deutsch"></textarea></div>
+              <div class="bi-col" data-l="English"><textarea id="datenschutz-text-en" class="impressum-text" rows="22" spellcheck="true" lang="en" aria-label="Datenschutz English"></textarea></div>
             </div>
-            <textarea id="datenschutz-text" class="impressum-text" data-legal-text="de" rows="22" spellcheck="true"></textarea>
-            <textarea id="datenschutz-text-en" class="impressum-text" data-legal-text="en" rows="22" spellcheck="true" lang="en" hidden></textarea>
           </section>
         </div>
         <div class="impressum-actions">
           <span id="site-status" class="save-status" aria-live="polite"></span>
           <button id="site-save" class="btn btn-primary" type="button">Speichern</button>
+        </div>
+      </dialog>
+
+      <!-- Ort: Deutsch und English nebeneinander -->
+      <dialog id="place-dialog" class="library-dialog site-dialog place-dialog">
+        <div class="library-head">
+          <h2 id="place-dialog-title">Ort</h2>
+          <button id="place-dialog-close" class="btn btn-quiet" type="button">Schließen</button>
+        </div>
+        <div class="site-body">
+          <div class="bi-head">
+            <span>Deutsch</span>
+            <span>English<button id="place-en-reset" class="bi-link" type="button">Standardübersetzung wiederherstellen</button></span>
+          </div>
+          <div class="field bi-row"><span class="field-label">Titel <small>— große Überschrift im Panel und Name auf dem Schild</small></span><div class="bi-cols"><div class="bi-col" data-l="Deutsch"><input id="pd-title" type="text" aria-label="Titel Deutsch" /></div><div class="bi-col" data-l="English"><input id="pd-title-en" type="text" lang="en" aria-label="Title English" /></div></div></div>
+          <div class="field bi-row"><span class="field-label">Untertitel <small>— kleine Zeile „Charakter“ unter dem Titel</small></span><div class="bi-cols"><div class="bi-col" data-l="Deutsch"><input id="pd-subtitle" type="text" aria-label="Untertitel Deutsch" /></div><div class="bi-col" data-l="English"><input id="pd-subtitle-en" type="text" lang="en" aria-label="Subtitle English" /></div></div></div>
+          <div class="field bi-row"><span class="field-label">Fließtext <small>— Absätze durch Leerzeile</small></span><div class="bi-cols"><div class="bi-col" data-l="Deutsch"><textarea id="pd-body" rows="15" aria-label="Fließtext Deutsch"></textarea></div><div class="bi-col" data-l="English"><textarea id="pd-body-en" rows="15" lang="en" aria-label="Body text English"></textarea></div></div></div>
         </div>
       </dialog>
 
