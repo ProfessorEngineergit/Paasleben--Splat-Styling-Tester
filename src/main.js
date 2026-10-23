@@ -1793,6 +1793,13 @@ const boot = async () => {
     if (helpVisible && helpMode === 'hint') toggleHelp(false);
   });
 
+  // Dialoge (Bedienung, Impressum, Datenschutz) direkt an <body> hängen. In
+  // #app (position: fixed → eigener Stapelkontext) lagen sie trotz hohem
+  // z-index hinter dem Detail-Panel, das ebenfalls an <body> hängt (z: 800):
+  // wer aus einem geöffneten Ort das Impressum anklickte, sah es nicht.
+  document.querySelectorAll('#help-overlay, #impressum-overlay, #datenschutz-overlay')
+    .forEach((overlay) => document.body.appendChild(overlay));
+
   // ── Info button ──
   const infoBtn = document.querySelector('#info-button');
   if (infoBtn) {
