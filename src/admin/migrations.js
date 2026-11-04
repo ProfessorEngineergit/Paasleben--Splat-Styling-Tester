@@ -10,8 +10,9 @@ import {
 } from 'firebase/firestore';
 import { db as defaultDb } from '../lib/firebase.js';
 import * as willkommen2026 from '../lib/content-updates/2026-10-willkommen.js';
+import * as willkommenVideo from '../lib/content-updates/2026-11-willkommen-video.js';
 
-const MIGRATIONS = [willkommen2026];
+const MIGRATIONS = [willkommen2026, willkommenVideo];
 const LOCATIONS = 'paas_locations';
 
 const runOne = async (db, migration) => {

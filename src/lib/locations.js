@@ -8,6 +8,7 @@
 import { readCollection, readDoc } from './firestore-rest.js';
 import snapshotFallback from '../data/locations-snapshot.json';
 import * as willkommen2026 from './content-updates/2026-10-willkommen.js';
+import * as willkommenVideo from './content-updates/2026-11-willkommen-video.js';
 
 const LOCATIONS = 'paas_locations';
 const IMAGES = 'paas_images';
@@ -47,7 +48,7 @@ const fromSnapshot = () =>
 // (das passiert erst beim nächsten Editor-Login, siehe src/admin/migrations.js),
 // zeigt die Website schon jetzt: dieselbe reine Plan-Funktion, im Speicher
 // angewendet. Sobald das Update in Firestore steht, wird hier nichts mehr getan.
-const CONTENT_UPDATES = [willkommen2026];
+const CONTENT_UPDATES = [willkommen2026, willkommenVideo];
 const applyPendingUpdates = async (locations) => {
   let applied = [];
   try {

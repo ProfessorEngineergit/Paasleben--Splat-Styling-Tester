@@ -41,12 +41,13 @@
       "y": 0.2590149939060211,
       "z": 1.0317188270615016
     },
-    "updatedAt": "2026-10-23T13:10:21.037Z",
+    "updatedAt": "2026-11-04T11:20:13.265Z",
     "displayNumber": "01",
     "visible": true,
     "body": "PAASLEBEN ist ein privater Tier- und Skulpturenpark in der Metropolregion Wolfsburg-Braunschweig, direkt am Naturschutzgebiet Lappwald. Auf dem weitläufigen Areal einer alten Fabrik (ehemals Brauerei) ist ein einzigartiges Paradies entstanden. Seit Sommer 2024 öffnet das Areal seine Tore für exklusive Veranstaltungen von Unternehmen, Beratern und Coaches. Es werden  Offsites,  Strategie-Meetings, Teambuildings, Coachings und pferdegestützte Interventionen durchgeführt. Für absolute Exklusivität sorgt, dass immer nur eine Veranstaltung zur Zeit stattfindet.",
     "showHosts": true,
-    "videoPlaceholder": true
+    "videoPlaceholder": false,
+    "video": "videos/paasleben-intro.mp4"
   },
   {
     "id": "geschichte",

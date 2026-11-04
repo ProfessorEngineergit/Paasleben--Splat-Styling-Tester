@@ -137,6 +137,13 @@ Neues Update anlegen: Datei in `src/lib/content-updates/`, die eine eindeutige
    `videos/porsche.mp4` eintragen. Das Video ersetzt dann den Platzhalter
    und läuft stumm in Schleife.
 
+Aktuell eingebunden: `videos/paasleben-intro.mp4` (Drohnenflug mit Endkarte,
+Full-HD, 66 s, ohne Ton, ca. 22 MB) beim Ort „Willkommen". Das Inhalts-Update
+`src/lib/content-updates/2026-11-willkommen-video.js` trägt es ein; ein im
+Editor bereits eingetragenes Video bleibt unangetastet. Größere Dateien
+(über ca. 25 MB) lieber per SFTP in den Ordner `videos/` auf dem Webspace
+legen und im Feld die volle Adresse eintragen.
+
 ## Deployment
 
 Zwei GitHub-Actions-Workflows, beide bei Push auf `main`:
