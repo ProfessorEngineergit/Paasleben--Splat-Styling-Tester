@@ -419,8 +419,8 @@
   width: 100%; height: 100%;
   object-fit: cover;
   display: block;
-  /* bewusst etwas dunkler als natürlich */
-  filter: brightness(0.72) saturate(0.92);
+  /* Unverändert: Das Intro-Video ist ein fertig gefärbter Film mit Endkarte —
+     eine Abdunkelung ließ Himmel und Schrift matt wirken. */
 }
 
 /* Video angekündigt, aber noch nicht hinterlegt: gleicher Rahmen, erstes
